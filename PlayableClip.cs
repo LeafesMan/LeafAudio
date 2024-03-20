@@ -9,7 +9,6 @@
  */
 
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 
 
@@ -17,33 +16,18 @@ using UnityEngine;
 
 public abstract class PlayableClip : ScriptableObject
 {
+
     /// <summary> Gets the specs for this clip</summary>
     public abstract ClipSpecs GetSpecs();
 
-
-    // Play Methods
-    public void Play() => Play(0);
-    public void Play(float delay) => AudioHandler.Play(GetSpecs(), delay);
-
-    public void Play3D(Vector3 pos) => Play3D(pos, 0);
-    public void Play3D(Vector3 pos, float delay) => AudioHandler.PlayPositional(GetSpecs(), pos, delay);
-
-    public void Play3D(Transform parent, Vector3 offset) => Play3D(parent, offset, 0);
-    public void Play3D(Transform parent, Vector3 offset, float delay) => AudioHandler.PlayParented(GetSpecs(), parent, offset, delay);
-
-    public void PlayLooping(float fadeInTime, uint slot) => PlayLooping(fadeInTime, slot, 0);
-    public void PlayLooping(float fadeInTime, uint slot, float delay) => AudioHandler.PlayLooping(GetSpecs(), fadeInTime, slot, delay);
-
-
-
     /// <summary>
-    /// This test method is a little scuffed, though not sure of a better way to do it.
+    /// This test method is a little scuffed still not sure of a good way to do it.
     /// </summary>
     public virtual void Test()
     {
         // Create Temp Object and Components
         AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
-        AudioHandler handler = source.AddComponent<AudioHandler>();
+        LeafAudioManager manager = source.gameObject.AddComponent<LeafAudioManager>();
 
         // Setup Source
         ClipSpecs specs = GetSpecs();
@@ -54,11 +38,22 @@ public abstract class PlayableClip : ScriptableObject
         source.Play();
 
         // Destroy temporary Object after the clips completion
-        handler.StartCoroutine(DestroyAfterClip());
+        manager.StartCoroutine(DestroyAfterClip());
         IEnumerator DestroyAfterClip()
         {
             yield return new WaitForSecondsRealtime(specs.clip.length);
             DestroyImmediate(source.gameObject);
         }
     }
+
+
+
+    // Play Methods
+    public void Play(float delay = 0) => LeafAudioManager.Play(GetSpecs(), delay);
+
+    public void Play(Vector3 pos, float delay = 0) => LeafAudioManager.PlayPositional(GetSpecs(), pos, delay);
+
+    public void Play(Transform parent, Vector3 offset, float delay = 0) => LeafAudioManager.PlayParented(GetSpecs(), parent, offset, delay);
+
+    public void PlayLooping(float fadeInTime, uint slot, float delay = 0) => LeafAudioManager.PlayLooping(GetSpecs(), fadeInTime, slot, delay);
 }
