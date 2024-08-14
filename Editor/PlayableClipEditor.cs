@@ -20,11 +20,8 @@ public class PlayableClipEditor : Editor
         PlayableClip playableClipScript = (PlayableClip)target;
 
         //Test Clip Button
-        if (GUILayout.Button("Test Audio"))
-        {
-            Debug.Log("Testing Clip!");
-            playableClipScript.Test();
-        }
+        if (GUILayout.Button(new GUIContent("Test Audio", "Plays the clip as it would be played in game.")))
+            playableClipScript.Test(playableClipScript.GetSpecs());
 
         base.OnInspectorGUI();
     }

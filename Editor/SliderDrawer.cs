@@ -31,7 +31,7 @@ public class RangedDrawer : PropertyDrawer
 
             /************************************** DRAW FIELDS AND SLIDER **************************************/
             //Draw Label
-            EditorGUI.LabelField(position, property.name);
+            EditorGUI.LabelField(position, property.name.Substring(0,1).ToUpper() + property.name.Substring(1));
 
             //Scoot right just enough space to draw next 3 elements
             position.x += position.width - 210;
