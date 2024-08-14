@@ -23,14 +23,13 @@ public abstract class PlayableClip : ScriptableObject
     /// <summary>
     /// This test method is a little scuffed still not sure of a good way to do it.
     /// </summary>
-    public virtual void Test()
+    public virtual void Test(ClipSpecs specs)
     {
         // Create Temp Object and Components
         AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
         LeafAudioManager manager = source.gameObject.AddComponent<LeafAudioManager>();
 
         // Setup Source
-        ClipSpecs specs = GetSpecs();
         source.clip = specs.clip;
         source.volume = specs.volume;
         source.pitch = specs.pitch;
@@ -49,11 +48,42 @@ public abstract class PlayableClip : ScriptableObject
 
 
     // Play Methods
-    public void Play(float delay = 0) => LeafAudioManager.Play(GetSpecs(), delay);
+    public void Play(float delay = 0)
+    {
+        if (AudioManagerStarted())
+            LeafAudioManager.Play(GetSpecs(), delay);
+    }
 
-    public void Play(Vector3 pos, float delay = 0) => LeafAudioManager.PlayPositional(GetSpecs(), pos, delay);
+    public void Play(Vector3 pos, float delay = 0)
+    {
+        if (AudioManagerStarted())
+            LeafAudioManager.PlayPositional(GetSpecs(), pos, delay);
+    }
 
-    public void Play(Transform parent, Vector3 offset, float delay = 0) => LeafAudioManager.PlayParented(GetSpecs(), parent, offset, delay);
+    public void Play(Transform parent, Vector3 offset, float delay = 0)
+    {
+        if (AudioManagerStarted())
+            LeafAudioManager.PlayParented(GetSpecs(), parent, offset, delay);
+    }
 
-    public void PlayLooping(float fadeInTime, uint slot, float delay = 0) => LeafAudioManager.PlayLooping(GetSpecs(), fadeInTime, slot, delay);
+    public void PlayLooping(float fadeInTime, uint slot, float delay = 0)
+    {
+        if(AudioManagerStarted())
+            LeafAudioManager.PlayLooping(GetSpecs(), fadeInTime, slot, delay);
+    }
+
+
+    /// <summary>
+    /// Returns whether an Audio Manager is loaded and prints a warning to console if one is not.
+    /// </summary>
+    /// <returns></returns>
+    bool AudioManagerStarted()
+    {
+        if (LeafAudioManager.Play == null) 
+        {
+            Debug.Log("Audio failed to play. No AudioManager loaded in the scene!");
+            return false; 
+        }
+        return true;
+    }
 }
