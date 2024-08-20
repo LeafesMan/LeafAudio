@@ -27,7 +27,7 @@ public abstract class PlayableClip : ScriptableObject
     {
         // Create Temp Object and Components
         AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
-        LeafAudioManager manager = source.gameObject.AddComponent<LeafAudioManager>();
+        AudioManager manager = source.gameObject.AddComponent<AudioManager>();
 
         // Setup Source
         source.clip = specs.clip;
@@ -51,25 +51,25 @@ public abstract class PlayableClip : ScriptableObject
     public void Play(float delay = 0)
     {
         if (AudioManagerStarted())
-            LeafAudioManager.Play(GetSpecs(), delay);
+            AudioManager.Play(GetSpecs(), delay);
     }
 
     public void Play(Vector3 pos, float delay = 0)
     {
         if (AudioManagerStarted())
-            LeafAudioManager.PlayPositional(GetSpecs(), pos, delay);
+            AudioManager.PlayPositional(GetSpecs(), pos, delay);
     }
 
     public void Play(Transform parent, Vector3 offset, float delay = 0)
     {
         if (AudioManagerStarted())
-            LeafAudioManager.PlayParented(GetSpecs(), parent, offset, delay);
+            AudioManager.PlayParented(GetSpecs(), parent, offset, delay);
     }
 
     public void PlayLooping(float fadeInTime, uint slot, float delay = 0)
     {
         if(AudioManagerStarted())
-            LeafAudioManager.PlayLooping(GetSpecs(), fadeInTime, slot, delay);
+            AudioManager.PlayLooping(GetSpecs(), fadeInTime, slot, delay);
     }
 
 
@@ -79,7 +79,7 @@ public abstract class PlayableClip : ScriptableObject
     /// <returns></returns>
     bool AudioManagerStarted()
     {
-        if (LeafAudioManager.Play == null) 
+        if (AudioManager.Play == null) 
         {
             Debug.Log("Audio failed to play. No AudioManager loaded in the scene!");
             return false; 
