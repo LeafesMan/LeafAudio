@@ -66,6 +66,7 @@ public class AudioManager : MonoBehaviour
         /// </summary>
         public void Setup(AudioData specs, float spatialBlend, Transform origin, Vector3 offset)
         {   // Audio Data
+            source.outputAudioMixerGroup = specs.mixerGroup;
             source.clip = specs.clip;
             source.volume = specs.volume;
             source.pitch = specs.pitch;
@@ -114,17 +115,17 @@ public class AudioManager : MonoBehaviour
         if (persist) DontDestroyOnLoad(gameObject);
 
         // Subscribe to Play events
-        Play += PlayClip;
-        PlayPositional += PlayClip;
-        PlayParented += PlayClip;
-        PlayLooping += PlayClipLooping;
+        Play += PlayAudio;
+        PlayPositional += PlayAudio;
+        PlayParented += PlayAudio;
+        PlayLooping += PlayAudioLooping;
     }
     private void OnDisable()
     {
-        Play -= PlayClip;
-        PlayPositional -= PlayClip;
-        PlayParented -= PlayClip;
-        PlayLooping -= PlayClipLooping;
+        Play -= PlayAudio;
+        PlayPositional -= PlayAudio;
+        PlayParented -= PlayAudio;
+        PlayLooping -= PlayAudioLooping;
     }
 
 
@@ -137,7 +138,7 @@ public class AudioManager : MonoBehaviour
     /// <summary>
     /// Plays a Clip with the given parameters
     /// </summary>
-    void PlayClip(AudioData specs, float spatialBlend, Transform parent, Vector3 pos)
+    void PlayAudio(AudioData specs, float spatialBlend, Transform parent, Vector3 pos)
     {   // Get Audio source
         PooledAudioSource pooledSource = GetAudioSource();
 
@@ -151,12 +152,12 @@ public class AudioManager : MonoBehaviour
         Sort(pooledSource);
     }
 
-    void PlayClip(AudioData specs, float delay) => ExecuteCallback(() => PlayClip(specs, 0, null, Vector3.zero), delay);
-    void PlayClip(AudioData specs, Vector3 position, float delay) => ExecuteCallback(() => PlayClip(specs, 1, null, position), delay);
-    void PlayClip(AudioData specs, Transform parent, Vector3 offset, float delay) => ExecuteCallback(() => PlayClip(specs, 1, parent, offset), delay);
+    void PlayAudio(AudioData specs, float delay) => ExecuteCallback(() => PlayAudio(specs, 0, null, Vector3.zero), delay);
+    void PlayAudio(AudioData specs, Vector3 position, float delay) => ExecuteCallback(() => PlayAudio(specs, 1, null, position), delay);
+    void PlayAudio(AudioData specs, Transform parent, Vector3 offset, float delay) => ExecuteCallback(() => PlayAudio(specs, 1, parent, offset), delay);
 
-    void PlayClipLooping(AudioData specs, float fadeDuration, uint slot, float delay) => ExecuteCallback(() => PlayClipLooping(specs, fadeDuration, slot), delay);
-    void PlayClipLooping(AudioData specs, float fadeDuration, uint slot)
+    void PlayAudioLooping(AudioData specs, float fadeDuration, uint slot, float delay) => ExecuteCallback(() => PlayAudioLooping(specs, fadeDuration, slot), delay);
+    void PlayAudioLooping(AudioData specs, float fadeDuration, uint slot)
     {   // If Audio Source pair hasnt been created for this slot create it
         if (!loopingPool.ContainsKey(slot))
         {
@@ -173,6 +174,7 @@ public class AudioManager : MonoBehaviour
         //Fade in faded out Audio Source, replace it's clip with clip to fade in, and set volume to 0
         loopingPool[slot].Item2.clip = specs.clip;
         loopingPool[slot].Item2.pitch = specs.pitch;
+        loopingPool[slot].Item2.outputAudioMixerGroup = specs.mixerGroup;
         StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, specs.volume, fadeDuration));
 
         //Swap faded in AudioSource with the faded out AudioSource in the audioSourcePairs tuple

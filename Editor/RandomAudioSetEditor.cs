@@ -15,7 +15,6 @@ using UnityEngine.UIElements;
 [CustomEditor(typeof(RandomAudioSet))]
 public class RandomAudioSetEditor : Editor
 {
-    [SerializeField] VisualTreeAsset uxml;
 
     public override VisualElement CreateInspectorGUI()
     {
@@ -32,6 +31,7 @@ public class RandomAudioSetEditor : Editor
 
 
         root.Add(testButton);
+        root.Add(new PropertyField(testClip.FindProperty("mixerGroup")));
         root.Add(new PropertyField(testClip.FindProperty("potentialClipSpecs")));
 
         // Return the finished Inspector UI.
