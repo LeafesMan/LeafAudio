@@ -8,12 +8,22 @@
  * Date: 8/23/24
  */
 using UnityEngine;
+using UnityEngine.Audio;
 
 
 [CreateAssetMenu(fileName ="NewAudioContainer", menuName ="Audio/Audio Container")]
 public class RandomAudioSet : ScriptableObject, IAudioDataProvider
 {
+    [Tooltip("The mixer group the produced audio will be a part of")]
+    [SerializeField] AudioMixerGroup mixerGroup;
     [SerializeField] RandomAudio[] randomAudios;
 
-    public AudioData GetAudioData() => LeafRand.I.Element(randomAudios).GetAudioData(); 
+    public AudioData GetAudioData() 
+    {
+        AudioData toReturn = LeafRand.I.Element(randomAudios).GetAudioData();
+
+        toReturn.mixerGroup = mixerGroup;
+
+        return toReturn;
+    } 
 }

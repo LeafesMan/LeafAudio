@@ -12,7 +12,7 @@ using UnityEngine.Audio;
 
 public struct AudioData
 {
-    public AudioMixer mixer;
+    public AudioMixerGroup mixerGroup;
     public AudioClip clip;
     public float volume;
     public float pitch;
