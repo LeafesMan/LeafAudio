@@ -35,16 +35,16 @@ public class AudioManager : MonoBehaviour
     #endregion
     #region Events
     // Static Events
-    public delegate void ClipHandler(ClipSpecs specs, float delay);
+    public delegate void ClipHandler(AudioData specs, float delay);
     public static ClipHandler Play;
 
-    public delegate void PositionalClipHandler(ClipSpecs specs, Vector3 position, float delay);
+    public delegate void PositionalClipHandler(AudioData specs, Vector3 position, float delay);
     public static PositionalClipHandler PlayPositional;
 
-    public delegate void ParentedClipHandler(ClipSpecs specs, Transform parent, Vector3 offset, float delay);
+    public delegate void ParentedClipHandler(AudioData specs, Transform parent, Vector3 offset, float delay);
     public static ParentedClipHandler PlayParented;
 
-    public delegate void LoopingClipHandler(ClipSpecs specs, float fadeInTime, uint slot, float delay);
+    public delegate void LoopingClipHandler(AudioData specs, float fadeInTime, uint slot, float delay);
     public static LoopingClipHandler PlayLooping;
     #endregion
     #region Pooled Audio Source Class
@@ -64,7 +64,7 @@ public class AudioManager : MonoBehaviour
         /// <summary>
         /// Setups a pooled audio source with a new set of parameters
         /// </summary>
-        public void Setup(ClipSpecs specs, float spatialBlend, Transform origin, Vector3 offset)
+        public void Setup(AudioData specs, float spatialBlend, Transform origin, Vector3 offset)
         {   // Audio Data
             source.clip = specs.clip;
             source.volume = specs.volume;
@@ -137,7 +137,7 @@ public class AudioManager : MonoBehaviour
     /// <summary>
     /// Plays a Clip with the given parameters
     /// </summary>
-    void PlayClip(ClipSpecs specs, float spatialBlend, Transform parent, Vector3 pos)
+    void PlayClip(AudioData specs, float spatialBlend, Transform parent, Vector3 pos)
     {   // Get Audio source
         PooledAudioSource pooledSource = GetAudioSource();
 
@@ -151,12 +151,12 @@ public class AudioManager : MonoBehaviour
         Sort(pooledSource);
     }
 
-    void PlayClip(ClipSpecs specs, float delay) => ExecuteCallback(() => PlayClip(specs, 0, null, Vector3.zero), delay);
-    void PlayClip(ClipSpecs specs, Vector3 position, float delay) => ExecuteCallback(() => PlayClip(specs, 1, null, position), delay);
-    void PlayClip(ClipSpecs specs, Transform parent, Vector3 offset, float delay) => ExecuteCallback(() => PlayClip(specs, 1, parent, offset), delay);
+    void PlayClip(AudioData specs, float delay) => ExecuteCallback(() => PlayClip(specs, 0, null, Vector3.zero), delay);
+    void PlayClip(AudioData specs, Vector3 position, float delay) => ExecuteCallback(() => PlayClip(specs, 1, null, position), delay);
+    void PlayClip(AudioData specs, Transform parent, Vector3 offset, float delay) => ExecuteCallback(() => PlayClip(specs, 1, parent, offset), delay);
 
-    void PlayClipLooping(ClipSpecs specs, float fadeDuration, uint slot, float delay) => ExecuteCallback(() => PlayClipLooping(specs, fadeDuration, slot), delay);
-    void PlayClipLooping(ClipSpecs specs, float fadeDuration, uint slot)
+    void PlayClipLooping(AudioData specs, float fadeDuration, uint slot, float delay) => ExecuteCallback(() => PlayClipLooping(specs, fadeDuration, slot), delay);
+    void PlayClipLooping(AudioData specs, float fadeDuration, uint slot)
     {   // If Audio Source pair hasnt been created for this slot create it
         if (!loopingPool.ContainsKey(slot))
         {
@@ -254,5 +254,33 @@ public class AudioManager : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         callback.Invoke();
+    }
+
+
+
+
+    /// <summary>
+    /// Tests the clip by creating a temporary gameobject with an audio source on it then destroying it.
+    /// </summary>
+    public static void Test(AudioData data)
+    {
+        // Create Temp Object and Components
+        AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
+        AudioManager manager = source.gameObject.AddComponent<AudioManager>();
+
+        // Setup Source
+        source.clip = data.clip;
+        source.volume = data.volume;
+        source.pitch = data.pitch;
+
+        source.Play();
+
+        // Destroy temporary Object after the clips completion
+        manager.StartCoroutine(DestroyAfterClip());
+        IEnumerator DestroyAfterClip()
+        {
+            yield return new WaitForSecondsRealtime(data.clip.length);
+            DestroyImmediate(source.gameObject);
+        }
     }
 }
