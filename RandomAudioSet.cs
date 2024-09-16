@@ -20,7 +20,7 @@ public class RandomAudioSet : ScriptableObject, IAudioDataProvider
 
     public AudioData GetAudioData() 
     {
-        AudioData toReturn = LeafRand.I.Element(randomAudios).GetAudioData();
+        AudioData toReturn = SRand.Element(randomAudios).GetAudioData();
 
         toReturn.mixerGroup = mixerGroup;
 
