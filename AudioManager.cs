@@ -35,16 +35,16 @@ public class AudioManager : MonoBehaviour
     #endregion
     #region Events
     // Static Events
-    public delegate void ClipHandler(AudioData specs, float delay);
+    public delegate void ClipHandler(AudioData specs, float delay = 0);
     public static ClipHandler Play;
 
-    public delegate void PositionalClipHandler(AudioData specs, Vector3 position, float delay);
+    public delegate void PositionalClipHandler(AudioData specs, Vector3 position, float delay = 0);
     public static PositionalClipHandler PlayPositional;
 
-    public delegate void ParentedClipHandler(AudioData specs, Transform parent, Vector3 offset, float delay);
+    public delegate void ParentedClipHandler(AudioData specs, Transform parent, Vector3 offset, float delay = 0);
     public static ParentedClipHandler PlayParented;
 
-    public delegate void LoopingClipHandler(AudioData specs, float fadeInTime, uint slot, float delay);
+    public delegate void LoopingClipHandler(AudioData specs, float fadeInTime, uint slot, float delay = 0);
     public static LoopingClipHandler PlayLooping;
     #endregion
     #region Pooled Audio Source Class
