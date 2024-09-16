@@ -32,7 +32,7 @@ public class RandomAudioSetEditor : Editor
 
         root.Add(testButton);
         root.Add(new PropertyField(testClip.FindProperty("mixerGroup")));
-        root.Add(new PropertyField(testClip.FindProperty("potentialClipSpecs")));
+        root.Add(new PropertyField(testClip.FindProperty("randomAudios")));
 
         // Return the finished Inspector UI.
         return root;
