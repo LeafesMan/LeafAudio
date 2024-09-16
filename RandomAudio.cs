@@ -33,13 +33,13 @@ public class RandomAudio : IAudioDataProvider, IWeighted // Rename to Randomized
     public AudioData GetAudioData()
     {
         float volume;
-        if (volumeType == FieldType.Range)      volume = LeafRand.I.Range(volumeRange);
-        else if (volumeType == FieldType.List)  volume = LeafRand.I.Element(volumeList);
+        if (volumeType == FieldType.Range)      volume = SRand.Range(volumeRange);
+        else if (volumeType == FieldType.List)  volume = SRand.Element(volumeList);
         else volume = this.volume;
 
         float pitch;
-        if      (pitchType == FieldType.Range) pitch = LeafRand.I.Range(pitchRange);
-        else if  (pitchType == FieldType.List) pitch = LeafRand.I.Element(pitchList);
+        if      (pitchType == FieldType.Range) pitch = SRand.Range(pitchRange);
+        else if  (pitchType == FieldType.List) pitch = SRand.Element(pitchList);
         else pitch = this.pitch;
 
         return new AudioData() { clip = clip, volume = volume, pitch = pitch };
