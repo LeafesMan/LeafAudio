@@ -7,6 +7,8 @@
  *  
  *  Desc: Script for playing & pooling audio.
  *      Attach this component to one object in your scene to listen for and handle audio events.
+ *      * Updated to automatically initialize a pool
+ *      * Instance is required for updating positions and running Coroutines
  */
 
 using UnityEngine;
@@ -16,36 +18,17 @@ using System;
 
 public class AudioManager : MonoBehaviour
 {
-    
-    static AudioManager singleton;
-
     #region Vars
-    [SerializeField, Tooltip("Whether this audio manager should persists after scene load.")] 
-    bool persist;
-    [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.")] 
-    int poolSize;
+    [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")] 
+    const int poolSize = 30;
     /// <summary>
     /// Audio Source Pool. Sorted in ascending order by End Time
     /// </summary>
-    List<PooledAudioSource> pool = new();
+    static List<PooledAudioSource> pool = new();
     /// <summary>
     /// Each Looping audio source element has two audio sources for fading in a new looping clip
     /// </summary>
-    Dictionary<uint, (AudioSource, AudioSource)> loopingPool = new();
-    #endregion
-    #region Events
-    // Static Events
-    public delegate void ClipHandler(AudioData specs, float delay = 0);
-    public static ClipHandler Play;
-
-    public delegate void PositionalClipHandler(AudioData specs, Vector3 position, float delay = 0);
-    public static PositionalClipHandler PlayPositional;
-
-    public delegate void ParentedClipHandler(AudioData specs, Transform parent, Vector3 offset, float delay = 0);
-    public static ParentedClipHandler PlayParented;
-
-    public delegate void LoopingClipHandler(AudioData specs, float fadeInTime, uint slot, float delay = 0);
-    public static LoopingClipHandler PlayLooping;
+    static Dictionary<uint, (AudioSource, AudioSource)> loopingPool = new();
     #endregion
     #region Pooled Audio Source Class
     /// <summary>
@@ -53,7 +36,7 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     class PooledAudioSource
     {
-        readonly AudioSource source;
+        public readonly AudioSource source;
         Transform origin;
         Vector3 offset;
         public float endTime;
@@ -64,23 +47,41 @@ public class AudioManager : MonoBehaviour
         /// <summary>
         /// Setups a pooled audio source with a new set of parameters
         /// </summary>
-        public void Setup(AudioData specs, float spatialBlend, Transform origin, Vector3 offset)
+        public void Setup(Audio audio, SpatialRolloff spatialRolloff)
         {   // Audio Data
-            source.outputAudioMixerGroup = specs.mixerGroup;
-            source.clip = specs.clip;
-            source.volume = specs.volume;
-            source.pitch = specs.pitch;
-            source.spatialBlend = spatialBlend;
+            print($"Printing Pool ({pool.Count})");
+            foreach (var s in pool) print($"Index: uknown LOL {s.source}");
+            source.outputAudioMixerGroup = audio.Group;
 
-            // Cache position Data
-            this.origin = origin;
-            this.offset = offset;
+            var audioSpec = audio.RandomAudioSpec;
+
+            source.clip = audioSpec.GetClip();
+            source.volume = audioSpec.GetVolume();
+            source.pitch = audioSpec.GetPitch();
+
+            // Setup spatial settings
+            if(spatialRolloff != null)
+            {
+                origin = spatialRolloff.origin;
+                offset = spatialRolloff.offset;
+
+                source.spatialBlend = 1;
+                source.rolloffMode = AudioRolloffMode.Custom;
+                source.maxDistance = spatialRolloff.range.y;
+                source.dopplerLevel = 0;
+                float curveLength = source.maxDistance - source.minDistance;
+                var rolloffCurve = new AnimationCurve(new Keyframe(spatialRolloff.range.x, 1, 0, -spatialRolloff.power / curveLength), new Keyframe(spatialRolloff.range.y, 0));
+                source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, rolloffCurve);
+            }
+            else
+                source.spatialBlend = 0;
+            
 
             // Init position
-            source.transform.position = origin == null ? Vector3.zero : origin.position + offset;
+            source.transform.position = origin == null ? offset : origin.position + offset;
 
             // Cache End Time stamp based on clip length
-            endTime = specs.clip.length + Time.time;
+            endTime = audioSpec.GetClip().length + Time.time;
         }
 
         /// <summary>
@@ -100,50 +101,41 @@ public class AudioManager : MonoBehaviour
         }
     }
     #endregion
+   
+    static AudioManager instance;
 
+
+    [RuntimeInitializeOnLoadMethod]
+    static void GenerateSingleton()
+    {
+        GameObject audioManager = new GameObject("AudioManager");
+        DontDestroyOnLoad(audioManager);
+        audioManager.AddComponent<AudioManager>();
+    }
     private void OnEnable()
-    {   // Setup Singleton
-        if (singleton != null)
+    {   // Ensure Single Instance
+        if (instance != null)
         {
             Destroy(gameObject);
             return;
         }
-        else 
-            singleton = this;
-
-        // Persist
-        if (persist) DontDestroyOnLoad(gameObject);
-
-        // Subscribe to Play events
-        Play += PlayAudio;
-        PlayPositional += PlayAudio;
-        PlayParented += PlayAudio;
-        PlayLooping += PlayAudioLooping;
+        else
+            instance = this;;
     }
-    private void OnDisable()
-    {
-        Play -= PlayAudio;
-        PlayPositional -= PlayAudio;
-        PlayParented -= PlayAudio;
-        PlayLooping -= PlayAudioLooping;
-    }
-
-
     private void Update()
     {
         foreach (PooledAudioSource pooledSource in pool)
             pooledSource.UpdatePosition();
     }
-
     /// <summary>
     /// Plays a Clip with the given parameters
     /// </summary>
-    void PlayAudio(AudioData specs, float spatialBlend, Transform parent, Vector3 pos)
+    public static void Play(Audio audio, SpatialRolloff spatialSpecs = null)
     {   // Get Audio source
         PooledAudioSource pooledSource = GetAudioSource();
 
         // Setup audio source
-        pooledSource.Setup(specs, spatialBlend, parent, pos);
+        pooledSource.Setup(audio, spatialSpecs);
 
         // Play Audio Source
         pooledSource.Play();
@@ -151,17 +143,14 @@ public class AudioManager : MonoBehaviour
         // Add source to used audio sources
         Sort(pooledSource);
     }
-
-    void PlayAudio(AudioData specs, float delay) => ExecuteCallback(() => PlayAudio(specs, 0, null, Vector3.zero), delay);
-    void PlayAudio(AudioData specs, Vector3 position, float delay) => ExecuteCallback(() => PlayAudio(specs, 1, null, position), delay);
-    void PlayAudio(AudioData specs, Transform parent, Vector3 offset, float delay) => ExecuteCallback(() => PlayAudio(specs, 1, parent, offset), delay);
-
-    void PlayAudioLooping(AudioData specs, float fadeDuration, uint slot, float delay) => ExecuteCallback(() => PlayAudioLooping(specs, fadeDuration, slot), delay);
-    void PlayAudioLooping(AudioData specs, float fadeDuration, uint slot)
+    public static void Play(Audio audio, float delay) => Play(audio, null, delay);
+    public static void Play(Audio audio, SpatialRolloff spatialSpecs, float delay) => ExecuteCallback(() => Play(audio, spatialSpecs), delay);
+    public static void PlayLooping(Audio audio, float fadeDuration, uint slot, float delay = 0) => ExecuteCallback(() => PlayLooping(audio, fadeDuration, slot), delay);
+    public static void PlayLooping(Audio audio, float fadeDuration, uint slot)
     {   // If Audio Source pair hasnt been created for this slot create it
         if (!loopingPool.ContainsKey(slot))
         {
-            loopingPool.Add(slot, new(gameObject.AddComponent<AudioSource>(), gameObject.AddComponent<AudioSource>()));
+            loopingPool.Add(slot, new(instance.gameObject.AddComponent<AudioSource>(), instance.gameObject.AddComponent<AudioSource>()));
             loopingPool[slot].Item1.loop = true;
             loopingPool[slot].Item2.loop = true;
         }
@@ -169,13 +158,14 @@ public class AudioManager : MonoBehaviour
 
 
         //Start fading out the faded in AudioSource
-        StartCoroutine(FadeVolume(loopingPool[slot].Item2, loopingPool[slot].Item2.volume, 0, fadeDuration));
+        instance.StartCoroutine(FadeVolume(loopingPool[slot].Item2, loopingPool[slot].Item2.volume, 0, fadeDuration));
 
         //Fade in faded out Audio Source, replace it's clip with clip to fade in, and set volume to 0
-        loopingPool[slot].Item2.clip = specs.clip;
-        loopingPool[slot].Item2.pitch = specs.pitch;
-        loopingPool[slot].Item2.outputAudioMixerGroup = specs.mixerGroup;
-        StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, specs.volume, fadeDuration));
+        var audioSpec = audio.RandomAudioSpec;
+        loopingPool[slot].Item2.clip = audioSpec.GetClip();
+        loopingPool[slot].Item2.pitch = audioSpec.GetPitch();
+        loopingPool[slot].Item2.outputAudioMixerGroup = audio.Group;
+        instance.StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, audioSpec.GetVolume(), fadeDuration));
 
         //Swap faded in AudioSource with the faded out AudioSource in the audioSourcePairs tuple
         loopingPool[slot] = new(loopingPool[slot].Item2, loopingPool[slot].Item1);
@@ -186,7 +176,7 @@ public class AudioManager : MonoBehaviour
     /// <summary>
     /// Fades volume from current value to targetVolume over duration.
     /// </summary>
-    IEnumerator FadeVolume(AudioSource source, float from, float to, float duration)
+    static IEnumerator FadeVolume(AudioSource source, float from, float to, float duration)
     {
         float startTime = Time.time;
 
@@ -199,9 +189,7 @@ public class AudioManager : MonoBehaviour
 
         source.volume = to;
     }
-
-
-    PooledAudioSource GetAudioSource()
+    static PooledAudioSource GetAudioSource()
     {   // Grabs a Pooled audio source to use for playing a sound
         // Uses free sources when possible
         // When there are no free sources creates a new one
@@ -219,9 +207,13 @@ public class AudioManager : MonoBehaviour
         else
         {   // Create and  reparent an audio source
             AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
-            audioSource.transform.SetParent(transform);
+            audioSource.transform.SetParent(instance.transform);
+
+            print($"Creating pooled source with source: {audioSource}");
 
             toReturn = new PooledAudioSource(audioSource);
+
+            print($"Created pooled source with source: {toReturn.source}");
         }
 
         return toReturn;
@@ -230,7 +222,7 @@ public class AudioManager : MonoBehaviour
     /// Sorts the pool by ascending end time.<br></br>
     /// ***Assumes the PooledSource passed in is the only one that has changed
     /// </summary>
-    void Sort(PooledAudioSource toInsert)
+    static void Sort(PooledAudioSource toInsert)
     {
         pool.Remove(toInsert);
 
@@ -241,39 +233,34 @@ public class AudioManager : MonoBehaviour
 
         pool.Insert(i, toInsert);
     }
-
     /// <summary>
     /// Executes the callback after delay.
     /// Does not spin up a coroutine if delay is <= 0.
     /// </summary>
-    void ExecuteCallback(Action callback, float delay)
+    static void ExecuteCallback(Action callback, float delay)
     {
-        if (delay > 0) StartCoroutine(ExecuteCallbackCoroutine(callback, delay));
+        if (delay > 0) instance.StartCoroutine(ExecuteCallbackCoroutine(callback, delay));
         else callback.Invoke();
     }
-    IEnumerator ExecuteCallbackCoroutine(Action callback, float delay)
+    static IEnumerator ExecuteCallbackCoroutine(Action callback, float delay)
     {
         yield return new WaitForSeconds(delay);
 
         callback.Invoke();
     }
-
-
-
-
     /// <summary>
     /// Tests the clip by creating a temporary gameobject with an audio source on it then destroying it.
     /// </summary>
-    public static void Test(AudioData data)
+    public static void Test(AudioClip clip, float volume, float pitch)
     {
         // Create Temp Object and Components
         AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
         AudioManager manager = source.gameObject.AddComponent<AudioManager>();
 
         // Setup Source
-        source.clip = data.clip;
-        source.volume = data.volume;
-        source.pitch = data.pitch;
+        source.clip = clip;
+        source.volume = volume;
+        source.pitch = pitch;
 
         source.Play();
 
@@ -281,7 +268,7 @@ public class AudioManager : MonoBehaviour
         manager.StartCoroutine(DestroyAfterClip());
         IEnumerator DestroyAfterClip()
         {
-            yield return new WaitForSecondsRealtime(data.clip.length);
+            yield return new WaitForSecondsRealtime(clip.length);
             DestroyImmediate(source.gameObject);
         }
     }
