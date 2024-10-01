@@ -49,8 +49,6 @@ public class AudioManager : MonoBehaviour
         /// </summary>
         public void Setup(Audio audio, SpatialRolloff spatialRolloff)
         {   // Audio Data
-            print($"Printing Pool ({pool.Count})");
-            foreach (var s in pool) print($"Index: uknown LOL {s.source}");
             source.outputAudioMixerGroup = audio.Group;
 
             var audioSpec = audio.RandomAudioSpec;
@@ -106,11 +104,16 @@ public class AudioManager : MonoBehaviour
 
 
     [RuntimeInitializeOnLoadMethod]
-    static void GenerateSingleton()
+    static void Setup()
     {
         GameObject audioManager = new GameObject("AudioManager");
         DontDestroyOnLoad(audioManager);
         audioManager.AddComponent<AudioManager>();
+
+        // Create new Pool instance
+        // Static variables are not refreshed by default
+        // (Since I have disabled it for faster reloads + this will be default in future Unity versions)
+        pool = new();
     }
     private void OnEnable()
     {   // Ensure Single Instance
@@ -131,7 +134,14 @@ public class AudioManager : MonoBehaviour
     /// Plays a Clip with the given parameters
     /// </summary>
     public static void Play(Audio audio, SpatialRolloff spatialSpecs = null)
-    {   // Get Audio source
+    {   // Null Audio Check
+        if (audio == null)
+        {
+            Debug.LogWarning("Failed to play audio: Received null audio!");
+            return;
+        }
+        
+        // Get Audio source
         PooledAudioSource pooledSource = GetAudioSource();
 
         // Setup audio source
@@ -209,11 +219,11 @@ public class AudioManager : MonoBehaviour
             AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
             audioSource.transform.SetParent(instance.transform);
 
-            print($"Creating pooled source with source: {audioSource}");
+            //print($"Creating pooled source with source: {audioSource}");
 
             toReturn = new PooledAudioSource(audioSource);
 
-            print($"Created pooled source with source: {toReturn.source}");
+            //print($"Created pooled source with source: {toReturn.source}");
         }
 
         return toReturn;

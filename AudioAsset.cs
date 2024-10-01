@@ -16,5 +16,5 @@ public class AudioAsset : ScriptableObject
     [SerializeField] Audio audio;
 
 
-    public static implicit operator Audio(AudioAsset audioAsset) => audioAsset.audio;
+    public static implicit operator Audio(AudioAsset audioAsset) => audioAsset == null ? null : audioAsset.audio;
 }
