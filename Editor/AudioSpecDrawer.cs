@@ -13,8 +13,6 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor.Rendering;
-using System.Collections.Generic;
-using System;
 
 [CustomPropertyDrawer(typeof(AudioSpec))]
 public class AudioSpecDrawer : PropertyDrawer
