@@ -15,6 +15,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System;
+using UnityEngine.Audio;
 
 public class AudioManager : MonoBehaviour
 {
@@ -47,11 +48,10 @@ public class AudioManager : MonoBehaviour
         /// <summary>
         /// Setups a pooled audio source with a new set of parameters
         /// </summary>
-        public void Setup(Audio audio, SpatialRolloff spatialRolloff)
+        public void Setup(AudioSpec audioSpec, AudioMixerGroup mixerGroup, SpatialRolloff spatialRolloff)
         {   // Audio Data
-            source.outputAudioMixerGroup = audio.Group;
+            source.outputAudioMixerGroup = mixerGroup;
 
-            var audioSpec = audio.RandomAudioSpec;
 
             source.clip = audioSpec.GetClip();
             source.volume = audioSpec.GetVolume();
@@ -134,18 +134,30 @@ public class AudioManager : MonoBehaviour
     /// Plays a Clip with the given parameters
     /// </summary>
     public static void Play(Audio audio, SpatialRolloff spatialSpecs = null)
-    {   // Null Audio Check
-        if (audio == null)
-        {
-            Debug.LogWarning("Failed to play audio: Received null audio!");
-            return;
-        }
-        
+    {   /* Null Audio Check Description
+         * There are three cases where Audio may be null:
+         * - Audio = null
+         * - Audio.AudioSpec[].count = 0
+         * - Audio.AudioSpec[x].clip = null
+         * In all cases we quitely fail to play the audio
+         * - I think this is ideal as we don't want to interrupt program flow with an error
+         * - Theres an argument that the user should be informed of no audio playing
+         *      but we don't want to blow up the console if it is intentional
+         * - It is easy to determine why audio isnt playing dont need a console warning
+         * (Perhaps turning on debug mode could print a warning)
+         */
+        // First and Second Null Audio Check
+        if (audio == null || audio.AudioSpecCount == 0) return;
+
+        // Get Spec to Play
+        AudioSpec toPlay = audio.RandomAudioSpec;
+        if (toPlay.GetClip() == null) return; // Third Null Audio Check
+
         // Get Audio source
         PooledAudioSource pooledSource = GetAudioSource();
 
         // Setup audio source
-        pooledSource.Setup(audio, spatialSpecs);
+        pooledSource.Setup(toPlay, audio.Group, spatialSpecs);
 
         // Play Audio Source
         pooledSource.Play();
@@ -263,6 +275,8 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public static void Test(AudioClip clip, float volume, float pitch)
     {
+        if (clip == null) return;
+
         // Create Temp Object and Components
         AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
         AudioManager manager = source.gameObject.AddComponent<AudioManager>();

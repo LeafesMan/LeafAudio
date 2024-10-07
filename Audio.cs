@@ -16,8 +16,10 @@ public class Audio
 {
     [Tooltip("The mixer group the produced audio will be a part of")]
     [SerializeField] AudioMixerGroup mixerGroup;
-    [SerializeField] AudioSpec[] audioSpecs;
+    [SerializeField] bool useWeights;
+    [SerializeReference] AudioSpec[] audioSpecs;
 
     public AudioMixerGroup Group => mixerGroup;
-    public AudioSpec RandomAudioSpec => SRand.Weighted(audioSpecs);
+    public AudioSpec RandomAudioSpec => useWeights ? SRand.Weighted(audioSpecs) : SRand.Element(audioSpecs);
+    public int AudioSpecCount => audioSpecs.Length;
 }

@@ -19,14 +19,13 @@ public class AudioSpec :  IWeighted // Rename to RandomizedAudioData
     [SerializeField] FieldType volumeType;
     [SerializeField] float volume = 0.5f;
     [SerializeField] Vector2 volumeRange = new Vector2(0.4f, 0.6f);
-    [SerializeField] Weighted<float>[] volumeList = new Weighted<float>[] { new(0.9f, 0), new(1, 0), new(1.1f, 0) };
+    [SerializeField] Weighted<float>[] volumeList = new Weighted<float>[] { new(0.9f, 1), new(1, 1), new(1.1f, 1) };
 
     [SerializeField] FieldType pitchType;
     [SerializeField] float pitch = 1;
     [SerializeField] Vector2 pitchRange = new Vector2(0.9f, 1.1f);
-    [SerializeField] Weighted<float>[] pitchList = new Weighted<float>[] { new(0.9f, 0), new(1, 0), new(1.1f, 0) };
+    [SerializeField] Weighted<float>[] pitchList = new Weighted<float>[] { new(0.9f, 1), new(1, 1), new(1.1f, 1) };
     public enum FieldType { Float, Range, List };
-
 
 
     public AudioClip GetClip() => clip;

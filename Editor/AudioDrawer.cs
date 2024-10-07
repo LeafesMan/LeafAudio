@@ -15,21 +15,51 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor.Rendering;
+using System.Linq;
+using Unity.VisualScripting;
 
 [CustomPropertyDrawer(typeof(Audio))]
 public class AudioDrawer : PropertyDrawer
 {
-    bool initialized = false;
+    // Selection Vars
+    int selectedIndex;
+    int SelectedIndex { set { selectedIndex = value; SelectedIndexChanged?.Invoke(); } }
+    event Action SelectedIndexChanged = null;
 
+    // UI Cache
+    List<AudioSpecUIInfo> audioSpecUIInfos;
 
-    static bool showWeight;
+    // Static Vars
     static bool showFieldType;
-    static bool showTestButton;
+
+
+    [System.Serializable]
+    class AudioSpecUIInfo
+    {
+        public SerializedProperty prop;
+        public VisualElement weightElement;
+        public VisualElement pitchElement;
+        public VisualElement volumeElement;
+    }
 
     public override VisualElement CreatePropertyGUI(SerializedProperty property)
-    {
+    {   // Refresh State
+        // Unity maintains values when returning to a property drawer
+        SelectedIndex = -1;
+        audioSpecUIInfos = new();
 
-        // Create the root container
+
+        // Get Audio Specs
+        SerializedProperty audioSpecs = property.FindPropertyRelative("audioSpecs");
+
+
+        // Generate Specs Container
+        VisualElement specsContainer = new VisualElement();
+        for (int i = 0; i < audioSpecs.arraySize; i++)
+            InsertNewAudioSpecUI(specsContainer, property, i);
+
+
+        // Create root container
         VisualElement root = new Foldout()
         {
             text = property.displayName,
@@ -43,169 +73,160 @@ public class AudioDrawer : PropertyDrawer
                 backgroundColor = new Color(0.25f, 0.25f, 0.25f)
             }
         };
-        // Do not encase in foldout if in ShakeSpecsAsset
-        if (property.serializedObject.targetObject is AudioAsset)
+        if (property.serializedObject.targetObject is AudioAsset) // Do not encase in foldout if in ShakeSpecsAsset
             root = new VisualElement();
 
-
-        SerializedProperty audioSpecsProperty = property.FindPropertyRelative("audioSpecs");
-
-        VisualElement specsContainer = new VisualElement();
-
-        // Button to add a shake component
-        Button addButton = new Button();
-        addButton = new Button(() =>
+        // Add/Remove UI from Specs Container on UNDO/REDO
+        root.TrackPropertyValue(audioSpecs, (p) =>
         {
-            // Add a new shake component of the selected type
-            audioSpecsProperty.arraySize++;
-            audioSpecsProperty.serializedObject.ApplyModifiedProperties();
+            // Nullify Selected Index
+            SelectedIndex = -1;
 
-            // Initialize the new shake component in the list
-            var newSpecProperty = audioSpecsProperty.GetArrayElementAtIndex(audioSpecsProperty.arraySize - 1);
-            newSpecProperty.managedReferenceValue = (AudioSpec)Activator.CreateInstance(typeof(AudioSpec));
+            // On Adding element Update Weight Field Displays
+            UpdateWeightFieldDisplays(property);
 
-            newSpecProperty.serializedObject.ApplyModifiedProperties();
+            // Removed an Element
+            Debug.Log($"{audioSpecs.arraySize} < {audioSpecUIInfos.Count}");
+            if (audioSpecs.arraySize < audioSpecUIInfos.Count)
+            {
 
-            // Refresh the UI to show the new element
-            RefreshSpecsContainer();
-        }) { text = "Add" };
-
-        
-
-        // Settings
-        VisualElement settingsFoldout = new Foldout() { text = "Settings" };
-
-        // Show Weights
-        Toggle weightToggle = new Toggle("Show Weights");
-        weightToggle.value = showWeight;
-        weightToggle.RegisterValueChangedCallback((val) => { showWeight = val.newValue; RefreshSpecsContainer(); });
-        settingsFoldout.Add(weightToggle);
-
-        // Show Types
-        Toggle fieldTypesToggle = new Toggle("Show Field Types");
-        fieldTypesToggle.value = showWeight;
-        fieldTypesToggle.RegisterValueChangedCallback((val) => { showFieldType = val.newValue; RefreshSpecsContainer(); });
-        settingsFoldout.Add(fieldTypesToggle);
-
-        // Show Test Button
-        Toggle testButtonToggle = new Toggle("Show Test Buttons");
-        testButtonToggle.value = showWeight;
-        testButtonToggle.RegisterValueChangedCallback((val) => { showTestButton = val.newValue; RefreshSpecsContainer(); });
-        settingsFoldout.Add(testButtonToggle);
+                int indexToRemoveUI = audioSpecUIInfos.Count - 1;
+                // Find index of removed element
+                for (int i = 0; i < audioSpecs.arraySize; i++)
+                    if (!audioSpecs.GetArrayElementAtIndex(i).propertyPath.Equals(audioSpecUIInfos[i].prop.propertyPath))
+                        indexToRemoveUI = i;
 
 
+                // Remove UI
+                specsContainer.RemoveAt(indexToRemoveUI);
+                audioSpecUIInfos.RemoveAt(indexToRemoveUI);
+            }
+            // Added an element
+            else if (audioSpecs.arraySize > audioSpecUIInfos.Count)
+            {
+                int indexToAddUI = audioSpecs.arraySize - 1;
+                // Find index of added element
+                for (int i = 0; i < audioSpecUIInfos.Count; i++)
+                {
+                    // Cannot compare properties directly since they may actually be different object refs
+                    if (!audioSpecs.GetArrayElementAtIndex(i).propertyPath.Equals(audioSpecUIInfos[i].prop.propertyPath))
+                        indexToAddUI = i;
+                }
 
-        root.Add(new PropertyField(property.FindPropertyRelative("audioMixer")));
-        root.Add(settingsFoldout);
+
+                Debug.Log($"Adding at: {indexToAddUI}");
+                InsertNewAudioSpecUI(specsContainer, property, indexToAddUI);
+            }
+        });
+
+        // Populate Root
+        root.Add(GetHeader("Main Settings"));
+        root.Add(GetLabeledElement(new PropertyField(property.FindPropertyRelative("mixerGroup"), ""), "Mixer Group"));
+        root.Add(GetWeightedToggle(property));
+        root.Add(GetFieldTypesToggle());
         root.Add(GetHeader("Audio Specs"));
         root.Add(specsContainer);
-        root.Add(addButton);
-
-        void RefreshSpecsContainer()
-        {
-            Debug.Log("Refreshing");
-            specsContainer.Clear(); // Clear previous UI
-
-
-            // Add Remove and add button afterwards
-            int selectedSpecs = -1;
-            var removeButton = new Button(() =>
-            {
-                // Remove shake component and corresponding bool
-                audioSpecsProperty.DeleteArrayElementAtIndex(selectedSpecs);
-                audioSpecsProperty.serializedObject.ApplyModifiedProperties();
-                RefreshSpecsContainer(); // Refresh the UI
-            }) { text = "Remove Selected" };
-            removeButton.SetEnabled(false);
-            Action specsClicked = () => removeButton.SetEnabled(selectedSpecs != -1);
-
-
-            // Add each shake component to specs container
-            // - Add property drawer for componentSpecs
-            // - Add bool for overriding 
-            for (int i = 0; i < audioSpecsProperty.arraySize; i++)
-            {
-                int index = i; // Cache index
-
-
-                // Get current shake component and override bool
-                var audioSpecProperty = audioSpecsProperty.GetArrayElementAtIndex(i);
-
-                // FOLDOUT
-                var foldout = new VisualElement(); // Can change this back to foldout if i desire
-                foldout.style.paddingLeft = new StyleLength(15); // Add padding
-                foldout.style.paddingRight = new StyleLength(5); // Add padding
-                foldout.style.marginBottom = new StyleLength(5); // Add padding
-                foldout.style.borderBottomLeftRadius = 10;
-                foldout.style.borderBottomRightRadius = 10;
-                foldout.style.borderTopLeftRadius = 10;
-                foldout.style.borderTopRightRadius = 10;
-                foldout.RegisterCallback<MouseDownEvent>(evt =>
-                {   // Deselect on clicking same item otherwise select item
-                    if (index == selectedSpecs) selectedSpecs = -1;
-                    else selectedSpecs = index;
-
-                    specsClicked?.Invoke();
-                });
-                specsClicked += () =>
-                {
-                    if (selectedSpecs == index) foldout.style.backgroundColor = new Color(.17f, .32f, .56f);
-                    else foldout.style.backgroundColor = new Color(0.27f, 0.27f, 0.27f);
-                };
-                foldout.style.backgroundColor = new Color(0.27f, 0.27f, 0.27f);
-                specsContainer.Add(foldout);
-
-                // Add the shake component fields
-
-                // Weight Field
-                var weightProperty = audioSpecProperty.FindPropertyRelative("weight");
-                var weightField = new PropertyField(weightProperty);
-                weightField.style.display = showWeight ? DisplayStyle.Flex : DisplayStyle.None;
-                weightField.BindProperty(weightProperty);
-
-
-                VisualElement root = new VisualElement();
-
-                var clipProp = audioSpecProperty.FindPropertyRelative("clip");
-                var clipField = new PropertyField(clipProp);
-                clipField.BindProperty(clipProp);
-
-                var title = new Label() { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 15, marginTop = 3f } };
-                clipField.RegisterValueChangeCallback((val) => title.text = clipProp.objectReferenceValue == null ? "No Clip" : clipProp.objectReferenceValue.name);
-
-                foldout.Add(title);
-                foldout.Add(clipField);
-                foldout.Add(GetHeader("Volume"));
-                foldout.Add(GetEnumBasedField(audioSpecProperty, "volume", new Vector2(0, 1), showFieldType));
-                foldout.Add(GetHeader("Pitch"));
-                foldout.Add(GetEnumBasedField(audioSpecProperty, "pitch", new Vector2(-3, 3), showFieldType));
-
-                if(showTestButton) foldout.Add(GetTestButton(audioSpecProperty));
-                foldout.Add(GetSpacer());
-
-                foldout.Add(weightField);
-            }
-
-
-            specsContainer.Add(removeButton);
-        }
-
-        // Initial call to refresh the list of Audio Specs
-        RefreshSpecsContainer();
-
-
-        // Refresh Specs Container on UNDO/REDO
-        // only subscribe once hence initialized
-        if (!initialized) root.TrackPropertyValue(audioSpecsProperty, (p) => RefreshSpecsContainer());
-        initialized = false;
+        root.Add(GetTestButton(property));
+        root.Add(GetAddButton(audioSpecs));
+        root.Add(GetRemoveButton(audioSpecs));
 
         return root;
     }
 
 
+    void UpdateWeightFieldDisplays(SerializedProperty prop)
+    {
+        DisplayStyle style = GetDisplayStyle(prop.FindPropertyRelative("useWeights").boolValue);
+        foreach (var info in audioSpecUIInfos) 
+            info.weightElement.style.display = style;
+    }
 
-    /*
-    private VisualElement GetHeader(string headerText)
+    void InsertNewAudioSpecUI(VisualElement root, SerializedProperty audio, int index)
+    {
+        float labelWidth = 69;
+        SerializedProperty audioSpec = audio.FindPropertyRelative("audioSpecs").GetArrayElementAtIndex(index);
+        SerializedProperty useWeights = audio.FindPropertyRelative("useWeights");
+
+        // FOLDOUT
+        var foldout = new VisualElement(); // Can change this back to foldout if i desire
+        foldout.style.paddingLeft = new StyleLength(15); // Add padding
+        foldout.style.paddingRight = new StyleLength(5); // Add padding
+        foldout.style.marginBottom = new StyleLength(5); // Add padding
+        foldout.style.borderBottomLeftRadius = 10;
+        foldout.style.borderBottomRightRadius = 10;
+        foldout.style.borderTopLeftRadius = 10;
+        foldout.style.borderTopRightRadius = 10;
+        foldout.RegisterCallback<MouseDownEvent>(evt =>
+        {   // Deselect on clicking same item otherwise select item
+
+            int myIndex = root.IndexOf(foldout);
+
+            if (myIndex == selectedIndex) SelectedIndex = -1;
+            else SelectedIndex = myIndex;
+
+            Debug.Log("Selected Index: " + selectedIndex);
+
+
+
+            // Have to find the element ourselves because unity occasionally performs a deep copy of all VisualElements rebuilding the tree
+            // so if I hold a reference to a visual element in an event, and throw that event, the event will act on the visual element in the old tree
+            var rootArray = root.Children().ToArray();
+            for(int i = 0; i < root.childCount; i++)
+            {
+                Debug.Log("Contains Foldout? " + root.Contains(foldout));
+
+                if (selectedIndex == i) rootArray[i].style.backgroundColor = new Color(.17f, .32f, .56f);
+                else rootArray[i].style.backgroundColor = new Color(0.27f, 0.27f, 0.27f);
+            }
+        });
+        foldout.style.backgroundColor = new Color(0.27f, 0.27f, 0.27f);
+
+
+
+        // Weight Field
+        var weightProperty = audioSpec.FindPropertyRelative("weight");
+        var weightField = new PropertyField(weightProperty, "");
+        weightField.BindProperty(weightProperty);
+        var weightLabeled = GetLabeledElement(weightField, "Weight", labelWidth);
+        weightLabeled.style.display = GetDisplayStyle(useWeights.boolValue);
+
+        var clipProp = audioSpec.FindPropertyRelative("clip");
+        var clipField = new PropertyField(clipProp, "");
+        clipField.BindProperty(clipProp);
+
+        var title = new Label() { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 15, marginTop = 3f, overflow = Overflow.Hidden } };
+        clipField.RegisterValueChangeCallback((val) => title.text = clipProp.objectReferenceValue == null ? "No Clip" : clipProp.objectReferenceValue.name);
+
+
+
+        var volumeElements = GetLabeledEnumBasedField(audioSpec, "volume", new Vector2(0, 1), labelWidth);
+        var pitchElements = GetLabeledEnumBasedField(audioSpec, "pitch", new Vector2(-3, 3), labelWidth);
+
+
+
+        foldout.Add(title);
+        foldout.Add(GetLabeledElement(clipField, "Clip", labelWidth));
+        foldout.Add(volumeElements.main);
+        foldout.Add(pitchElements.main);
+        foldout.Add(weightLabeled);
+        
+
+
+        // Add the Element to the given container
+        root.Insert(index, foldout);
+
+
+        // Add Latest AudioSpecUI Info
+        audioSpecUIInfos.Insert(index, new() 
+        { 
+            prop = audioSpec, 
+            pitchElement = pitchElements.typeField, 
+            volumeElement = volumeElements.typeField, 
+            weightElement = weightLabeled
+        });
+    }
+    
+    VisualElement GetHeader(string headerText)
     {
         // Create a root container for the header
         var container = new VisualElement();
@@ -239,130 +260,190 @@ public class AudioDrawer : PropertyDrawer
 
         return container;
     }
-    */
-    public VisualElement GetSpacer()
+    DisplayStyle GetDisplayStyle(bool show) => show ? DisplayStyle.Flex : DisplayStyle.None;
+    VisualElement GetWeightedToggle(SerializedProperty audio)
     {
-        VisualElement spacer = new VisualElement();
-        spacer.style.flexGrow = 1;
-        spacer.style.height = 12;
-
-
-        return spacer;
+        PropertyField weightToggle = new PropertyField(audio.FindPropertyRelative("useWeights"), "");
+        weightToggle.RegisterValueChangeCallback((evt) => UpdateWeightFieldDisplays(audio));
+        return GetLabeledElement(weightToggle, "Weighted");
     }
-    public VisualElement GetHeader(string txt)
+    VisualElement GetFieldTypesToggle()
     {
-        Label header = new Label(txt);
-        header.style.fontSize = 12; // Set the font size for the header
-        header.style.unityFontStyleAndWeight = FontStyle.Bold; // Make the font bold
-        header.style.marginTop = 12;
-
-
-        return header;
+        Toggle fieldTypesToggle = new Toggle();
+        fieldTypesToggle.value = showFieldType;
+        fieldTypesToggle.RegisterValueChangedCallback(
+            (val) =>
+            {
+                showFieldType = val.newValue;
+                audioSpecUIInfos.ForEach((info) =>
+                {
+                    info.pitchElement.style.display = GetDisplayStyle(showFieldType);
+                    info.volumeElement.style.display = GetDisplayStyle(showFieldType);
+                }
+                );
+            }
+        );
+        return GetLabeledElement(fieldTypesToggle, "Field Types");
     }
-    public Button GetTestButton(SerializedProperty property)
+    Button GetAddButton(SerializedProperty audioSpecs)
     {
+        Button addButton = new Button(() =>
+        {
+            // Add a new shake component of the selected type
+            audioSpecs.arraySize++;
+
+            // Initialize the new shake component in the list
+            var newAudioSpec = audioSpecs.GetArrayElementAtIndex(audioSpecs.arraySize - 1);
+            newAudioSpec.managedReferenceValue = (AudioSpec)Activator.CreateInstance(typeof(AudioSpec));
+            newAudioSpec.serializedObject.ApplyModifiedProperties();
+            audioSpecs.serializedObject.ApplyModifiedProperties();
+        })
+        { text = "Add" };
+
+        return addButton;
+    }
+    Button GetRemoveButton(SerializedProperty audioSpecs)
+    {
+
+        var removeButton = new Button(() =>
+        {
+            // Remove shake component and corresponding bool
+            audioSpecs.DeleteArrayElementAtIndex(selectedIndex);
+            audioSpecs.serializedObject.ApplyModifiedProperties();
+
+            SelectedIndex = -1;
+        })
+        { text = "Remove" };
+        removeButton.SetEnabled(false);
+        SelectedIndexChanged += () => removeButton.SetEnabled(selectedIndex != -1);
+
+        return removeButton;
+    }
+    Button GetTestButton(SerializedProperty property)
+    {
+        SerializedProperty audioSpecs = property.FindPropertyRelative("audioSpecs");
+        SerializedProperty useWeights = property.FindPropertyRelative("useWeights");
+
         Button button = new Button();
         button.text = "Test";
-        button.style.height = 24;
-        button.style.fontSize = 16;
-        button.style.marginTop = 10;
+        button.style.height = 20;
+        button.style.marginTop = 5;
 
-
-        //Debug.Log($"Playing with volume: {volume} ({volFieldType}) and pitch: {pitch} ({fieldType})");
-
+        // Disable Test Button if there are no clips
+        button.TrackPropertyValue(audioSpecs, (evt) => button.SetEnabled(audioSpecs.arraySize != 0));
 
         button.RegisterCallback<ClickEvent>(
             (evt) =>
             {
-                AudioManager.Test(property.FindPropertyRelative("clip").objectReferenceValue as AudioClip, GetValue("volume"), GetValue("pitch"));
+                // Choose the AudioSpec that should be played
+                SerializedProperty audioSpec;
+                if (selectedIndex == -1)
+                {
+                    // Build Array of weighted Indices matching the audio spec weights
+                    List<Weighted<int>> weightedIndices = new();
+                    for (int i = 0; i < audioSpecs.arraySize; i++)
+                        weightedIndices.Add(new(i, audioSpecs.GetArrayElementAtIndex(i).FindPropertyRelative("weight").floatValue));
 
+                    // Select Rand Index
+                    // If use weights is selected                                         select a weighted random index  otherwise    grab a random index
+                    int randIndex = useWeights.boolValue ? SRand.Weighted(weightedIndices) : SRand.Element(weightedIndices).element;
+
+                    audioSpec = audioSpecs.GetArrayElementAtIndex(randIndex);
+                }
+                else audioSpec = audioSpecs.GetArrayElementAtIndex(selectedIndex);
+
+
+                // Test the Audio Spec
+                AudioManager.Test(audioSpec.FindPropertyRelative("clip").objectReferenceValue as AudioClip, GetValue("volume"), GetValue("pitch"));
+
+
+                float GetValue(string toGet)
+                {
+                    var fieldType = audioSpec.FindPropertyRelative(toGet + "Type").GetEnumValue<AudioSpec.FieldType>();
+                    var floatValue = audioSpec.FindPropertyRelative(toGet).floatValue;
+                    var rangeValue = audioSpec.FindPropertyRelative(toGet + "Range").vector2Value;
+                    var arrayValue = ConvertPropertyToFloatArray(audioSpec.FindPropertyRelative(toGet + "List"));
+                    return AudioSpec.GetValue(fieldType, floatValue, rangeValue, arrayValue);
+                }
+                Weighted<float>[] ConvertPropertyToFloatArray(SerializedProperty property)
+                {
+                    // Ensure the property is an array or list
+                    if (!property.isArray)
+                    {
+                        Debug.LogError("Property is not an array.");
+                        return null;
+                    }
+
+                    // Get the size of the array
+                    int arraySize = property.arraySize;
+
+                    // Create a float array to store the values
+                    Weighted<float>[] floatArray = new Weighted<float>[arraySize];
+
+                    // Loop through the SerializedProperty array and get each element as a float
+                    for (int i = 0; i < arraySize; i++)
+                    {
+                        // Get the float value from each array element
+                        SerializedProperty element = property.GetArrayElementAtIndex(i);
+
+                        floatArray[i] = new(element.FindPropertyRelative("element").floatValue, element.FindPropertyRelative("weight").floatValue);
+
+                    }
+
+                    return floatArray;
+                }
             }
         );
 
         return button;
-
-
-        float GetValue(string toGet)
-        {
-            var fieldType = property.FindPropertyRelative(toGet + "Type").GetEnumValue<AudioSpec.FieldType>();
-            var floatValue = property.FindPropertyRelative(toGet).floatValue;
-            var rangeValue = property.FindPropertyRelative(toGet + "Range").vector2Value;
-            var arrayValue = ConvertPropertyToFloatArray(property.FindPropertyRelative(toGet + "List"));
-            return AudioSpec.GetValue(fieldType, floatValue, rangeValue, arrayValue);
-        }
-        Weighted<float>[] ConvertPropertyToFloatArray(SerializedProperty property)
-        {
-            // Ensure the property is an array or list
-            if (!property.isArray)
-            {
-                Debug.LogError("Property is not an array.");
-                return null;
-            }
-
-            // Get the size of the array
-            int arraySize = property.arraySize;
-
-            // Create a float array to store the values
-            Weighted<float>[] floatArray = new Weighted<float>[arraySize];
-
-            // Loop through the SerializedProperty array and get each element as a float
-            for (int i = 0; i < arraySize; i++)
-            {
-                // Get the float value from each array element
-                SerializedProperty element = property.GetArrayElementAtIndex(i);
-
-                floatArray[i] = new(element.FindPropertyRelative("element").floatValue, element.FindPropertyRelative("weight").floatValue);
-
-            }
-
-            return floatArray;
-        }
     }
-    public VisualElement GetEnumBasedField(SerializedProperty property, string var, Vector2 range, bool showType)
+    (VisualElement main, VisualElement typeField) GetLabeledEnumBasedField(SerializedProperty property, string var, Vector2 range, float labelWidth)
     {
+        var capitalizedVar = var.FirstCharacterToUpper();
+
         VisualElement box = new VisualElement();
         var typeProperty = property.FindPropertyRelative(var + "Type");
-        var typeField = new PropertyField(typeProperty, "Type");
+        var typeField = new PropertyField(typeProperty, "");
         typeField.BindProperty(typeProperty);
-        typeField.style.display = showFieldType ? DisplayStyle.Flex : DisplayStyle.None;
-        box.Add(typeField);
+
+        VisualElement labeledTypeField = GetLabeledElement(typeField, "Field Type", labelWidth);
+        labeledTypeField.style.display = GetDisplayStyle(showFieldType);
+        box.Add(labeledTypeField);
 
 
 
 
         // VALUE FIELD
-        var floatSlider = new Slider(range.x, range.y) { bindingPath = property.FindPropertyRelative(var).propertyPath };
-        floatSlider.style.flexGrow = 1;
+        var floatSlider = new Slider(range.x, range.y) { style = {flexGrow = 1, marginLeft = 0}};
+        floatSlider.BindProperty(property.FindPropertyRelative(var));
 
         // Create a TextField to display and edit the float value
-        var floatField = new TextField
-        {
-            value = floatSlider.value.ToString(),
-            style = { width = 60, marginLeft = 10 }
-        };
+        var floatField = GetFloatField();
+        floatField.style.marginRight = 5;
+        floatField.value = floatSlider.value;
         floatField.RegisterValueChangedCallback(evt =>
         {
-            if (float.TryParse(evt.newValue, out var newValue))
-            {
-                floatSlider.value = Mathf.Clamp(newValue, floatSlider.lowValue, floatSlider.highValue);
-            }
+            floatSlider.value = Mathf.Clamp(evt.newValue, floatSlider.lowValue, floatSlider.highValue);
         });
         floatSlider.RegisterValueChangedCallback(evt =>
         {
-            floatField.value = evt.newValue.ToString();
+            floatField.value = evt.newValue;
         });
 
-        VisualElement floatContainer = new VisualElement();
-        floatContainer.style.flexDirection = FlexDirection.Row;
-        floatContainer.Add(floatField);
-        floatContainer.Add(floatSlider);
+        var floatSliderField = new VisualElement();
+        floatSliderField.style.flexDirection = FlexDirection.Row;
+        floatSliderField.Add(floatField);
+        floatSliderField.Add(floatSlider);
+
+        VisualElement labeledFloat = GetLabeledElement(floatSliderField, capitalizedVar, labelWidth);
 
 
         // RANGE FIELD
-        var rangeSlider = new MinMaxSlider(range.x, range.y, range.x, range.y) { bindingPath = property.FindPropertyRelative(var + "Range").propertyPath };
+        var rangeSlider = new MinMaxSlider(range.x, range.y, range.x, range.y) { style = { marginLeft = 0}};
+        rangeSlider.BindProperty(property.FindPropertyRelative(var + "Range"));
         rangeSlider.style.flexGrow = 1;
-        TextField rangeFieldX = GetRangeField(rangeSlider, true);
-        TextField rangeFieldY = GetRangeField(rangeSlider, false);
+        FloatField rangeFieldX = GetRangeField(rangeSlider, true);
+        FloatField rangeFieldY = GetRangeField(rangeSlider, false);
 
         // Create a container for the float field
         VisualElement rangeContainer = new VisualElement();
@@ -371,13 +452,16 @@ public class AudioDrawer : PropertyDrawer
         rangeContainer.Add(rangeSlider);
         rangeContainer.Add(rangeFieldY);
 
+        VisualElement labeledRange = GetLabeledElement(rangeContainer, capitalizedVar, labelWidth);
+
+
         // LIST FIELD
-        var listField = new PropertyField(property.FindPropertyRelative(var + "List"), " ");
+        var listField = new PropertyField(property.FindPropertyRelative(var + "List"), var.FirstCharacterToUpper());
         listField.BindProperty(property.FindPropertyRelative(var + "List"));
 
         // Add the fields
-        box.Add(floatContainer);
-        box.Add(rangeContainer);
+        box.Add(labeledFloat);
+        box.Add(labeledRange);
         box.Add(listField);
 
 
@@ -388,37 +472,55 @@ public class AudioDrawer : PropertyDrawer
         void DisplayField(AudioSpec.FieldType typeToDisplay)
         {
 
-            floatContainer.style.display = typeToDisplay == AudioSpec.FieldType.Float ? DisplayStyle.Flex : DisplayStyle.None;
-            rangeContainer.style.display = typeToDisplay == AudioSpec.FieldType.Range ? DisplayStyle.Flex : DisplayStyle.None;
-            listField.style.display      = typeToDisplay == AudioSpec.FieldType.List  ? DisplayStyle.Flex : DisplayStyle.None;
+            labeledFloat.style.display = typeToDisplay == AudioSpec.FieldType.Float ? DisplayStyle.Flex : DisplayStyle.None;
+            labeledRange.style.display = typeToDisplay == AudioSpec.FieldType.Range ? DisplayStyle.Flex : DisplayStyle.None;
+            listField.style.display    = typeToDisplay == AudioSpec.FieldType.List  ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
 
-        return box;
+        return (box, labeledTypeField);
     }
-    private static TextField GetRangeField(MinMaxSlider rangeSlider, bool isXField)
+    FloatField GetRangeField(MinMaxSlider rangeSlider, bool isXField)
     {
-        var rangeField = new TextField
-        {
-            value = rangeSlider.value.x.ToString(),
-            style = { width = 40, marginLeft = 10, marginRight = 10, }
-        };
+        var rangeField = GetFloatField();
+        rangeField.value = rangeSlider.value.x;
+        if (isXField) rangeField.style.marginRight = 5;
+        else rangeField.style.marginLeft = 5;
 
         // Range Field updated
         rangeField.RegisterValueChangedCallback(evt =>
         {
-            if (float.TryParse(evt.newValue, out var newValue))
-            {
-                float newVal = Mathf.Clamp(newValue, rangeSlider.lowLimit, rangeSlider.highLimit);
-                rangeSlider.value = isXField ? new Vector2(newVal, rangeSlider.value.y) : new Vector2(rangeSlider.value.x, newVal);
-            }
+            
+            float newVal = Mathf.Clamp(evt.newValue, rangeSlider.lowLimit, rangeSlider.highLimit);
+            rangeSlider.value = isXField ? new Vector2(newVal, rangeSlider.value.y) : new Vector2(rangeSlider.value.x, newVal);            
         });
 
         // Range Slider updated
         rangeSlider.RegisterValueChangedCallback(evt =>
         {
-            rangeField.value = isXField ? evt.newValue.x.ToString() : evt.newValue.y.ToString();
+            rangeField.value = isXField ? evt.newValue.x : evt.newValue.y;
         });
         return rangeField;
+    }
+    FloatField GetFloatField() => new FloatField(4) { style = { width = 33 } };
+    /// <summary>
+    /// Returns a new element rapping the passed in element with a label and style both elements as neccessary
+    /// </summary>
+    /// <returns></returns>
+    VisualElement GetLabeledElement(VisualElement toLabel, string text, float labelWidth = 80)
+    {   // Create and Style Label
+        Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
+
+        // Style element to Label
+        toLabel.style.flexGrow = 1;
+        //toLabel.style.paddingRight = 4;
+        toLabel.style.overflow = Overflow.Visible;
+
+        // Create, Populate, and Return labeled Element
+        VisualElement labeledElement = new VisualElement() { style = { flexDirection = FlexDirection.Row, overflow = Overflow.Hidden, paddingRight = 2 } };
+        labeledElement.Add(label);
+        labeledElement.Add(toLabel);
+
+        return labeledElement;
     }
 }
