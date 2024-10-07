@@ -1,7 +1,7 @@
 /*
  * Auth: Ian
  * 
- * Proj: SpaceS
+ * Proj: Audio
  * 
  * Desc: Custom Editor Drawer for 
  * 
@@ -14,7 +14,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor.Rendering;
 
-[CustomPropertyDrawer(typeof(AudioSpec))]
+/*[CustomPropertyDrawer(typeof(AudioSpec))]
 public class AudioSpecDrawer : PropertyDrawer
 {
     public override VisualElement CreatePropertyGUI(SerializedProperty property)
@@ -124,11 +124,13 @@ public class AudioSpecDrawer : PropertyDrawer
     public VisualElement GetEnumBasedField(SerializedProperty property, string var, Vector2 range)
     {
         VisualElement box = new VisualElement();
-        var typeField = new PropertyField(property.FindPropertyRelative(var + "Type"));
+        var typeField = new PropertyField(property.FindPropertyRelative(var + "Type"), "Type");
         box.Add(typeField);
 
-        // Get field Properties
 
+
+
+        // VALUE FIELD
         var floatSlider = new Slider(range.x, range.y) { bindingPath = property.FindPropertyRelative(var).propertyPath };
         floatSlider.style.flexGrow = 1;
 
@@ -150,17 +152,17 @@ public class AudioSpecDrawer : PropertyDrawer
             floatField.value = evt.newValue.ToString();
         });
 
-        // Create a container for the float field
         VisualElement floatContainer = new VisualElement();
         floatContainer.style.flexDirection = FlexDirection.Row;
         floatContainer.Add(floatField);
         floatContainer.Add(floatSlider);
 
 
+        // RANGE FIELD
         var rangeSlider = new MinMaxSlider(range.x, range.y, range.x, range.y) { bindingPath = property.FindPropertyRelative(var + "Range").propertyPath };
         rangeSlider.style.flexGrow = 1;
-        TextField rangeFieldX = GetLabel(rangeSlider, true);
-        TextField rangeFieldY = GetLabel(rangeSlider, false);
+        TextField rangeFieldX = GetRangeField(rangeSlider, true);
+        TextField rangeFieldY = GetRangeField(rangeSlider, false);
 
         // Create a container for the float field
         VisualElement rangeContainer = new VisualElement();
@@ -169,8 +171,8 @@ public class AudioSpecDrawer : PropertyDrawer
         rangeContainer.Add(rangeSlider);
         rangeContainer.Add(rangeFieldY);
 
-
-        var listField = new PropertyField(property.FindPropertyRelative(var + "List"));
+        // LIST FIELD
+        var listField = new PropertyField(property.FindPropertyRelative(var + "List"), " ");
 
 
         // Add the fields
@@ -204,7 +206,7 @@ public class AudioSpecDrawer : PropertyDrawer
     /// </summary>
     /// <param name="rangeSlider"></param>
     /// <returns></returns>
-    private static TextField GetLabel(MinMaxSlider rangeSlider, bool isXLabel)
+    private static TextField GetRangeField(MinMaxSlider rangeSlider, bool isXField)
     {
         var rangeField = new TextField
         {
@@ -217,16 +219,17 @@ public class AudioSpecDrawer : PropertyDrawer
         {
             if (float.TryParse(evt.newValue, out var newValue))
             {
-                float newVal = Mathf.Clamp(newValue, rangeSlider.minValue, rangeSlider.maxValue);
-                rangeSlider.value = isXLabel ? new Vector2(newVal, rangeSlider.value.y) : new Vector2(rangeSlider.value.x, newVal);
+                float newVal = Mathf.Clamp(newValue, rangeSlider.lowLimit, rangeSlider.highLimit);
+                rangeSlider.value = isXField ? new Vector2(newVal, rangeSlider.value.y) : new Vector2(rangeSlider.value.x, newVal);
             }
         });
 
         // Range Slider updated
         rangeSlider.RegisterValueChangedCallback(evt =>
         {
-            rangeField.value = isXLabel ? evt.newValue.x.ToString() : evt.newValue.y.ToString();
+            rangeField.value = isXField ? evt.newValue.x.ToString() : evt.newValue.y.ToString();
         });
         return rangeField;
     }
 }
+*/
