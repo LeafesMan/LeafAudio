@@ -1,7 +1,8 @@
 ### Motivation
 - Reusable Audio Assets
 - Convenient Clip, Pitch, and Volume Variation
-  - Play with different pitches (Unity's Sources only support PlayOneShot with a single)
 - Test Audio outside of play mode
-- Audio sources live after object destruction
-  - Audio Source Pooling
+- New Audio Sources needed to support:
+  - Playing with different pitches
+  - Playing audio that persists through object destruction
+- Audio Pooling to reduce strain of creating so many new sources
