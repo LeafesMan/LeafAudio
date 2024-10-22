@@ -10,7 +10,7 @@
 using UnityEngine;
 
 
-[CreateAssetMenu(fileName ="NewAudioContainer", menuName ="Audio/Audio Container")]
+[CreateAssetMenu(fileName ="NewAudioAsset", menuName ="FX/Audio Asset")]
 public class AudioAsset : ScriptableObject
 {
     [SerializeField] Audio audio;

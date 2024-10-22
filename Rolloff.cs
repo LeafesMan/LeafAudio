@@ -1,7 +1,7 @@
 using UnityEngine;
 
 
-[CreateAssetMenu(menuName = "Rolloff")]
+[CreateAssetMenu(menuName = "FX/Rolloff")]
 public class Rolloff : ScriptableObject
 {
     [SerializeField] Vector2 range = new Vector2(5, 30);

@@ -147,7 +147,7 @@ public class AudioManager : MonoBehaviour
          * (Perhaps turning on debug mode could print a warning)
          */
         // First and Second Null Audio Check
-        if (audio == null || audio.AudioSpecCount == 0) return;
+        if (audio == null || audio.AudioSpecCount == 0) { Debug.LogWarning("Audio Failed: Received null Audio!"); return; }
 
         // Get Spec to Play
         AudioSpec toPlay = audio.RandomAudioSpec;
