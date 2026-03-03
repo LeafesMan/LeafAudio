@@ -1,15 +1,8 @@
-/*
- * Auth: Ian
- * 
- * Proj: Audio
- * 
- * Desc: A Scriptable Object Wrapper for Audio
- * 
- * Date: 8/23/24
- */
 using UnityEngine;
 
-
+/// <summary>
+/// A Scriptable Object Wrapper for Audio
+/// </summary>
 [CreateAssetMenu(fileName ="NewAudioAsset", menuName ="FX/Audio Asset")]
 public class AudioAsset : ScriptableObject
 {

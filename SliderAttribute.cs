@@ -1,14 +1,3 @@
-/*
- *  Name: Ian
- *
- *  Proj: MonMon
- *
- *  Date: 7/27/23 
- *  
- *  Desc: Property Attribute for a sliders min and max value.
- */
-
-
 using UnityEngine;
 
 public class SliderAttribute : PropertyAttribute

@@ -1,16 +1,9 @@
-/*
- *  Name: Ian
- *
- *  Proj: MonMon
- *
- *  Date: 7/27/23 
- *  
- *  Desc: Property attribute for Vector2 and Vector2Int. Displays a slider from SliderAttributeMin->Max. Changes in slider value or text field value update the Vectors x and y values.
- */
-
 using UnityEngine;
 using UnityEditor;
 
+/// <summary>
+/// Property attribute for Vector2 and Vector2Int. Displays a slider from SliderAttributeMin->Max. Changes in slider value or text field value update the Vectors x and y values.
+/// </summary>
 [CustomPropertyDrawer(typeof(SliderAttribute))]
 public class RangedDrawer : PropertyDrawer
 {

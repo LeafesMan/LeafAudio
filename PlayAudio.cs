@@ -1,18 +1,11 @@
-/*
- * Auth: Ian
- * 
- * Proj: Audio
- * 
- * Date: 10/1/24
- * 
- * Desc: Attach to an object to play Audio through UnityEvents
- *  - This is neccesary as Unity events only accept a single parameter in the inspector
- *  - This component stores those parameters 
- *  - Call the Play() method through a UnityEvent to play the Audio with all desired parameters 
- */
-
 using UnityEngine;
 
+/// <summary>
+/// Desc: Attach to an object to play Audio through UnityEvents <br></br>
+/// - This is neccesary as Unity events only accept a single parameter in the inspector<br></br>
+/// - This component stores those parameters <br></br>
+/// - Call the Play() method through a UnityEvent to play the Audio with all desired parameters 
+/// </summary>
 public class PlayAudio : MonoBehaviour
 {
     [Header("Main")]

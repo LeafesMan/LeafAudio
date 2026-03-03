@@ -1,22 +1,15 @@
-/*
- *  Name: Ian
- *
- *  Proj: Audio Library
- *
- *  Date: 7/26/23 
- *  
- *  Desc: Script for playing & pooling audio.
- *      Attach this component to one object in your scene to listen for and handle audio events.
- *      * Updated to automatically initialize a pool
- *      * Instance is required for updating positions and running Coroutines
- */
-
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System;
 using UnityEngine.Audio;
 
+/// <summary>
+/// Script for playing and pooling audio. <br></br>
+/// - Attach this component to one object in your scene to listen for and handle audio events. <br></br>
+/// - Updated to automatically initialize a pool <br></br>
+/// - Instance is required for updating positions and running Coroutines 
+/// </summary>
 public class AudioManager : MonoBehaviour
 {
     #region Vars

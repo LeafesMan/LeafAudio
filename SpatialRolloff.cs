@@ -1,15 +1,8 @@
-/*
- * Auth: Ian
- * 
- * Proj: ---
- * 
- * Date: 7/24/24
- * 
- * Desc: A Piston that may extend and retract, Either extending to a specified length or stopping after collision
- *          * designed to work with the friction system from PlatformerMovement
- */
 using UnityEngine;
 
+/// <summary>
+/// Defines the volume rolloff over distance for a sound.
+/// </summary>
 [System.Serializable]
 public class SpatialRolloff
 {

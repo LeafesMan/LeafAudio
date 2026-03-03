@@ -1,16 +1,9 @@
-/*
- * Auth: Ian
- * 
- * Proj: Audio Audio Audio
- * 
- * Desc: Variables regarding a single clip within a LeafAudioClip
- * 
- * Date: 8/23/24
- */
 using UnityEngine;
 using LeafRand;
-using System.Collections.Generic;
 
+/// <summary>
+/// Definition variables concerning a single audio clip.
+/// </summary>
 [System.Serializable]
 public class AudioSpec
 {

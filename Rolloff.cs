@@ -2,6 +2,9 @@ using UnityEngine;
 
 
 [CreateAssetMenu(menuName = "FX/Rolloff")]
+/// <summary>
+/// A rolloff curve over some range raised to some power.
+/// </summary>
 public class Rolloff : ScriptableObject
 {
     [SerializeField] Vector2 range = new Vector2(5, 30);

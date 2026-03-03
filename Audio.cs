@@ -1,18 +1,11 @@
-/*
- * Auth: Ian
- * 
- * Proj: Audio
- * 
- * Desc: Audio consists of a mixer group and an array of randomized audio clips
- * 
- * Date: 8/23/24
- */
-
 using UnityEngine;
 using UnityEngine.Audio;
 using LeafRand;
 using System.Collections.Generic;
 
+/// <summary>
+/// Audio consists of a mixer group and an array of randomized audio clips
+/// </summary>
 [System.Serializable]
 public class Audio
 {

@@ -1,13 +1,3 @@
-/*
- * Auth: Ian
- * 
- * Proj: Audio
- * 
- * Date: 10/2/24
- * 
- * Desc: An audio Drawer for
- */
-
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -17,8 +7,10 @@ using UnityEditor.UIElements;
 using System.Linq;
 using Unity.VisualScripting;
 using LeafRand;
-using UnityEditorInternal;
 
+/// <summary>
+/// Draws an audio definition. Conceals uneeded vars and allows playing any individual spec or group of specs.
+/// </summary>
 [CustomPropertyDrawer(typeof(Audio))]
 public class AudioDrawer : PropertyDrawer
 {
