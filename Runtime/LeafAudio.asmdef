@@ -1,0 +1,16 @@
+{
+    "name": "LeafAudio",
+    "rootNamespace": "",
+    "references": [
+        "GUID:347bb22a9474ff9408ab139a61e78152"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

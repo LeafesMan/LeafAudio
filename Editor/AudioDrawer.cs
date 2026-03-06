@@ -391,7 +391,7 @@ public class AudioDrawer : PropertyDrawer
     }
     (VisualElement main, VisualElement typeField) GetLabeledEnumBasedField(SerializedProperty audioSpecProp, string var, Vector2 range, float labelWidth)
     {
-        var capitalizedVar = var.FirstCharacterToUpper();
+        var capitalizedVar = char.ToUpper(var[0]) + var.Substring(1);
 
         VisualElement box = new VisualElement();
         var typeProperty = audioSpecProp.FindPropertyRelative(var + "Type");
@@ -448,7 +448,7 @@ public class AudioDrawer : PropertyDrawer
 
 
         // LIST FIELD
-        var listField = new PropertyField(audioSpecProp.FindPropertyRelative(var + "List"), var.FirstCharacterToUpper());
+        var listField = new PropertyField(audioSpecProp.FindPropertyRelative(var + "List"), capitalizedVar);
         listField.BindProperty(audioSpecProp.FindPropertyRelative(var + "List"));
 
         // Add the fields

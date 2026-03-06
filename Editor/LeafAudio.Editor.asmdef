@@ -1,0 +1,19 @@
+{
+    "name": "LeafAudio.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e6c26e98c9623ea4081787c5c9dec7a2",
+        "GUID:347bb22a9474ff9408ab139a61e78152"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

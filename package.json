@@ -1,0 +1,11 @@
+{
+  "name": "com.leafesman.leafaudio",
+  "version": "1.0.0",
+  "displayName": "Leaf Audio",
+  "description": "Provides reusable audio assets, convenient playing, and randomization.",
+  "unity": "2022.3",
+  "author": {
+    "name": "LeafesMan",
+    "url": "https://github.com/LeafesMan/LeafAudio"
+  }
+}
