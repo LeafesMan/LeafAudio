@@ -1,5 +1,6 @@
 using UnityEngine;
-using LeafRand;
+using LeafRand.Collections;
+using LeafRand.Global;
 
 /// <summary>
 /// Definition variables concerning a single audio clip.

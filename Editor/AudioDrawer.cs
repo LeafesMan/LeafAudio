@@ -5,8 +5,8 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System.Linq;
-using Unity.VisualScripting;
-using LeafRand;
+using LeafRand.Collections;
+using LeafRand.Global;
 
 /// <summary>
 /// Draws an audio definition. Conceals uneeded vars and allows playing any individual spec or group of specs.

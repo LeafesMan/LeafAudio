@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Audio;
-using LeafRand;
+using LeafRand.Collections;
+using LeafRand.Global;
 using System.Collections.Generic;
 
 /// <summary>
