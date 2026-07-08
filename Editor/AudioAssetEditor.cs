@@ -2,18 +2,21 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
-/// <summary>
-/// Editor that draws default inspector and prevents multi-object editing
-/// </summary>
-[CustomEditor(typeof(AudioAsset), false)]
-public class AudioAssetEditor : Editor
+namespace LeafAudio.Editor
 {
-    public override VisualElement CreateInspectorGUI()
+    /// <summary>
+    /// Editor that draws default inspector and prevents multi-object editing
+    /// </summary>
+    [CustomEditor(typeof(AudioAsset), false)]
+    public class AudioAssetEditor : UnityEditor.Editor
     {
-        VisualElement root = new();
+        public override VisualElement CreateInspectorGUI()
+        {
+            VisualElement root = new();
 
-        InspectorElement.FillDefaultInspector(root, serializedObject, this);
+            InspectorElement.FillDefaultInspector(root, serializedObject, this);
 
-        return root;
+            return root;
+        }
     }
 }
