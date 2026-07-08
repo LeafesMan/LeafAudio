@@ -7,6 +7,7 @@ using UnityEditor.UIElements;
 using System.Linq;
 using LeafRand.Collections;
 using LeafRand.Global;
+using LeafAudio.Editor;
 
 /// <summary>
 /// Draws an audio definition. Conceals uneeded vars and allows playing any individual spec or group of specs.
@@ -22,6 +23,8 @@ public class AudioDrawer : PropertyDrawer
     // May be able to go without this look into it
     List<SerializedProperty> audioSpecPropsCache;
 
+    VisualElement specsContainer;
+
     public override VisualElement CreatePropertyGUI(SerializedProperty property)
     {   // Refresh State
         // Unity maintains values when returning to a property drawer
@@ -31,9 +34,8 @@ public class AudioDrawer : PropertyDrawer
         // Get Audio Specs
         SerializedProperty audioSpecs = property.FindPropertyRelative("audioSpecs");
 
-
         // Generate Specs Container
-        VisualElement specsContainer = new VisualElement();
+        specsContainer = new VisualElement();
         for (int i = 0; i < audioSpecs.arraySize; i++)
             InsertNewAudioSpecUI(specsContainer, property, i);
 
@@ -114,8 +116,7 @@ public class AudioDrawer : PropertyDrawer
     void UpdateWeightFieldDisplays(SerializedProperty prop)
     {
         DisplayStyle style = GetDisplayStyle(prop.FindPropertyRelative("useWeights").boolValue);
-        //foreach (var info in audioSpecUIInfos)
-        //info.weightElement.style.display = style;
+        foreach (VisualElement element in specsContainer.Children()) element[4].style.display = style;
     }
 
     void InsertNewAudioSpecUI(VisualElement root, SerializedProperty audioProp, int index)
@@ -274,37 +275,25 @@ public class AudioDrawer : PropertyDrawer
         SerializedProperty audioSpecs = property.FindPropertyRelative("audioSpecs");
         SerializedProperty useWeights = property.FindPropertyRelative("useWeights");
 
+        Audio audio = property.boxedValue as Audio;
+
         Button button = new Button();
         button.text = "Test";
         button.style.height = 20;
         button.style.marginTop = 5;
 
-        // Disable Test Button if there are no clips
+        // Disable Test Button if there are no clips asd
         button.TrackPropertyValue(audioSpecs, (evt) => button.SetEnabled(audioSpecs.arraySize != 0));
 
         button.RegisterCallback<ClickEvent>(
             (evt) =>
             {
-                // Choose the AudioSpec that should be played
-                SerializedProperty audioSpec;
-                if (selectedIndex == -1)
-                {
-                    // Build Array of weighted Indices matching the audio spec weights
-                    List<Weighted<int>> weightedIndices = new();
-                    for (int i = 0; i < audioSpecs.arraySize; i++)
-                        weightedIndices.Add(new(i, audioSpecs.GetArrayElementAtIndex(i).FindPropertyRelative("weight").floatValue));
+                var val = audio.RandomAudioSpec;
+                AudioSpec spec;
+                if (selectedIndex == -1) spec = audio.RandomAudioSpec;
+                else spec = audioSpecs.GetArrayElementAtIndex(selectedIndex).boxedValue as AudioSpec;
 
-                    // Select Rand Index
-                    // If use weights is selected                                         select a weighted random index  otherwise    grab a random index
-                    int randIndex = useWeights.boolValue ? Rand.Item(weightedIndices).Item : Rand.ItemWeighted(weightedIndices);
-
-                    audioSpec = audioSpecs.GetArrayElementAtIndex(randIndex);
-                }
-                else audioSpec = audioSpecs.GetArrayElementAtIndex(selectedIndex);
-
-
-                // Test the Audio Spec
-                AudioManager.Test(audioSpec.FindPropertyRelative("clip").objectReferenceValue as AudioClip, (audioSpec.boxedValue as AudioSpec).GetVolume(), (audioSpec.boxedValue as AudioSpec).GetPitch());
+                AudioTester.Test(spec);
             }
         );
 

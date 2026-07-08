@@ -13,7 +13,7 @@ using UnityEngine.Audio;
 public class AudioManager : MonoBehaviour
 {
     #region Vars
-    [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")] 
+    [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")]
     const int poolSize = 30;
     /// <summary>
     /// Audio Source Pool. Sorted in ascending order by End Time
@@ -51,7 +51,7 @@ public class AudioManager : MonoBehaviour
             source.pitch = audioSpec.GetPitch();
 
             // Setup spatial settings
-            if(spatialRolloff != null)
+            if (spatialRolloff != null)
             {
                 origin = spatialRolloff.origin;
                 offset = spatialRolloff.offset;
@@ -66,7 +66,7 @@ public class AudioManager : MonoBehaviour
             }
             else
                 source.spatialBlend = 0;
-            
+
 
             // Init position
             source.transform.position = origin == null ? offset : origin.position + offset;
@@ -87,12 +87,12 @@ public class AudioManager : MonoBehaviour
         public void UpdatePosition()
         {   // If no origin assume origin is (0, 0, 0)
             // Position is origin position + offset
-            if(origin == null) return;
+            if (origin == null) return;
             source.transform.position = origin.position + offset;
         }
     }
     #endregion
-   
+
     static AudioManager instance;
 
 
@@ -116,7 +116,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
         else
-            instance = this;;
+            instance = this; ;
     }
     private void Update()
     {
@@ -262,31 +262,5 @@ public class AudioManager : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         callback.Invoke();
-    }
-    /// <summary>
-    /// Tests the clip by creating a temporary gameobject with an audio source on it then destroying it.
-    /// </summary>
-    public static void Test(AudioClip clip, float volume, float pitch)
-    {
-        if (clip == null) return;
-
-        // Create Temp Object and Components
-        AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
-        AudioManager manager = source.gameObject.AddComponent<AudioManager>();
-
-        // Setup Source
-        source.clip = clip;
-        source.volume = volume;
-        source.pitch = pitch;
-
-        source.Play();
-
-        // Destroy temporary Object after the clips completion
-        manager.StartCoroutine(DestroyAfterClip());
-        IEnumerator DestroyAfterClip()
-        {
-            yield return new WaitForSecondsRealtime(clip.length);
-            DestroyImmediate(source.gameObject);
-        }
     }
 }
