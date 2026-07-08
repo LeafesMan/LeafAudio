@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -14,35 +13,32 @@ namespace LeafAudio.Editor
     [CustomPropertyDrawer(typeof(Audio))]
     public class AudioDrawer : PropertyDrawer
     {
-        // Selection Vars
-        int selectedIndex;
-        int SelectedIndex { set { selectedIndex = value; SelectedIndexChanged?.Invoke(); } }
-        event Action SelectedIndexChanged = null;
+        class TrackedInt
+        {
+            public TrackedInt(int val) => this.val = val;
+            int val;
+            public int Value { get => val; set { val = value; Changed?.Invoke(val); } }
+            public event Action<int> Changed;
+        }
 
-        // May be able to go without this look into it
-        List<SerializedProperty> audioSpecPropsCache;
+        public override VisualElement CreatePropertyGUI(SerializedProperty audioProp)
+        {
 
-        VisualElement specsContainer;
+            Debug.Log($"CreatePropertyGUI called for: {audioProp.propertyPath}");
 
-        public override VisualElement CreatePropertyGUI(SerializedProperty property)
-        {   // Refresh State
-            // Unity maintains values when returning to a property drawer
-            SelectedIndex = -1;
-            audioSpecPropsCache = new();
 
-            // Get Audio Specs
-            SerializedProperty audioSpecs = property.FindPropertyRelative("audioSpecs");
+            SerializedProperty specsProp = audioProp.FindPropertyRelative("audioSpecs");
 
-            // Generate Specs Container
-            specsContainer = new VisualElement();
-            for (int i = 0; i < audioSpecs.arraySize; i++)
-                InsertNewAudioSpecUI(specsContainer, property, i);
+            // Cant have field at class level property drawers share those
+            TrackedInt selectedIndex = new(-1);
+            TrackedInt knownSpecCount = new(0);
+
 
 
             // Create root container
             VisualElement root = new Foldout()
             {
-                text = property.displayName,
+                text = audioProp.displayName,
                 style =
             {
                 paddingRight = 5,
@@ -53,72 +49,52 @@ namespace LeafAudio.Editor
                 backgroundColor = new Color(0.25f, 0.25f, 0.25f)
             }
             };
-            if (property.serializedObject.targetObject is AudioAsset) // Do not encase in foldout if in ShakeSpecsAsset
+            if (audioProp.serializedObject.targetObject is AudioAsset) // Do not encase in foldout if in ShakeSpecsAsset
                 root = new VisualElement();
 
-            // Add/Remove UI from Specs Container on UNDO/REDO
-            root.TrackPropertyValue(audioSpecs, (p) =>
-            {
-                // Nullify Selected Index
-                SelectedIndex = -1;
-
-                // On Adding element Update Weight Field Displays
-                UpdateWeightFieldDisplays(property);
-
-                // Removed an Element
-                if (audioSpecs.arraySize < audioSpecPropsCache.Count)
-                {
-
-                    int indexToRemoveUI = audioSpecPropsCache.Count - 1;
-                    // Find index of removed element
-                    for (int i = 0; i < audioSpecs.arraySize; i++)
-                        if (!audioSpecs.GetArrayElementAtIndex(i).propertyPath.Equals(audioSpecPropsCache[i].propertyPath))
-                            indexToRemoveUI = i;
 
 
-                    // Remove UI
-                    specsContainer.RemoveAt(indexToRemoveUI);
-                    audioSpecPropsCache.RemoveAt(indexToRemoveUI);
-                }
-                // Added an element
-                else if (audioSpecs.arraySize > audioSpecPropsCache.Count)
-                {
-                    int indexToAddUI = audioSpecs.arraySize - 1;
-                    // Find index of added element
-                    for (int i = 0; i < audioSpecPropsCache.Count; i++)
-                    {
-                        // Cannot compare properties directly since they may actually be different object refs
-                        if (!audioSpecs.GetArrayElementAtIndex(i).propertyPath.Equals(audioSpecPropsCache[i].propertyPath))
-                            indexToAddUI = i;
-                    }
-
-
-                    Debug.Log($"Adding at: {indexToAddUI}");
-                    InsertNewAudioSpecUI(specsContainer, property, indexToAddUI);
-                }
-            });
+            VisualElement specsContainer = GetSpecsContainer(audioProp, specsProp, knownSpecCount, selectedIndex);
 
             // Populate Root
             root.Add(GetHeader("Main Settings"));
-            root.Add(GetLabeledElement(new PropertyField(property.FindPropertyRelative("mixerGroup"), ""), "Mixer Group"));
-            root.Add(GetWeightedToggle(property));
+            root.Add(GetLabeledElement(new PropertyField(audioProp.FindPropertyRelative("mixerGroup"), ""), "Mixer Group"));
+            root.Add(GetWeightedToggle(specsContainer, audioProp));
             root.Add(GetHeader("Audio Specs"));
             root.Add(specsContainer);
-            root.Add(GetTestButton(property));
-            root.Add(GetAddButton(audioSpecs));
-            root.Add(GetRemoveButton(audioSpecs));
+            root.Add(GetTestButton(audioProp, selectedIndex));
+            root.Add(GetAddButton(specsProp));
+            root.Add(GetRemoveButton(specsProp, selectedIndex));
 
             return root;
         }
+        void RebuildSpecsContainer(VisualElement specsContainer, SerializedProperty audioProp, SerializedProperty specsProp, TrackedInt knownSpecCount, TrackedInt selectedIndex)
+        {
+            specsContainer.Clear();
+
+            for (int i = 0; i < specsProp.arraySize; i++)
+                InsertNewAudioSpecUI(specsContainer, audioProp, i, selectedIndex);
+
+            knownSpecCount.Value = specsProp.arraySize;
+        }
+        VisualElement GetSpecsContainer(SerializedProperty audioProp, SerializedProperty specsProp, TrackedInt knownSpecCount, TrackedInt selectedIndex)
+        {
+            // Generate Specs Container
+            VisualElement specsContainer = new VisualElement();
+            RebuildSpecsContainer(specsContainer, audioProp, specsProp, knownSpecCount, selectedIndex);
 
 
-        void UpdateWeightFieldDisplays(SerializedProperty prop)
+            // Add/Remove UI from Specs Container on UNDO/REDO
+            specsContainer.TrackPropertyValue(specsProp, (p) => { if (specsProp.arraySize != knownSpecCount.Value) RebuildSpecsContainer(specsContainer, audioProp, specsProp, knownSpecCount, selectedIndex); });
+
+            return specsContainer;
+        }
+        void UpdateWeightFieldDisplays(VisualElement specsContainer, SerializedProperty prop)
         {
             DisplayStyle style = GetDisplayStyle(prop.FindPropertyRelative("useWeights").boolValue);
             foreach (VisualElement element in specsContainer.Children()) element[4].style.display = style;
         }
-
-        void InsertNewAudioSpecUI(VisualElement root, SerializedProperty audioProp, int index)
+        void InsertNewAudioSpecUI(VisualElement root, SerializedProperty audioProp, int index, TrackedInt selectedIndex)
         {
             float labelWidth = 69;
 
@@ -141,11 +117,8 @@ namespace LeafAudio.Editor
 
                 int myIndex = root.IndexOf(foldout);
 
-                if (myIndex == selectedIndex) SelectedIndex = -1;
-                else SelectedIndex = myIndex;
-
-                Debug.Log("Selected Index: " + selectedIndex);
-
+                if (myIndex == selectedIndex.Value) selectedIndex.Value = -1;
+                else selectedIndex.Value = myIndex;
 
 
                 // Have to find the element ourselves because unity occasionally performs a deep copy of all VisualElements rebuilding the tree
@@ -153,9 +126,7 @@ namespace LeafAudio.Editor
                 var rootArray = root.Children().ToArray();
                 for (int i = 0; i < root.childCount; i++)
                 {
-                    Debug.Log("Contains Foldout? " + root.Contains(foldout));
-
-                    if (selectedIndex == i) rootArray[i].style.backgroundColor = new Color(.17f, .32f, .56f);
+                    if (selectedIndex.Value == i) rootArray[i].style.backgroundColor = new Color(.17f, .32f, .56f);
                     else rootArray[i].style.backgroundColor = new Color(0.27f, 0.27f, 0.27f);
                 }
             });
@@ -192,10 +163,6 @@ namespace LeafAudio.Editor
 
             // Add the Element to the given container
             root.Insert(index, foldout);
-
-
-            // Add Latest AudioSpecUI Info
-            audioSpecPropsCache.Insert(index, audioSpecProp);
         }
 
         VisualElement GetHeader(string headerText)
@@ -233,10 +200,10 @@ namespace LeafAudio.Editor
             return container;
         }
         DisplayStyle GetDisplayStyle(bool show) => show ? DisplayStyle.Flex : DisplayStyle.None;
-        VisualElement GetWeightedToggle(SerializedProperty audio)
+        VisualElement GetWeightedToggle(VisualElement specsContainer, SerializedProperty audio)
         {
             PropertyField weightToggle = new PropertyField(audio.FindPropertyRelative("useWeights"), "");
-            weightToggle.RegisterValueChangeCallback((evt) => UpdateWeightFieldDisplays(audio));
+            weightToggle.RegisterValueChangeCallback((evt) => UpdateWeightFieldDisplays(specsContainer, audio));
             return GetLabeledElement(weightToggle, "Weighted");
         }
         Button GetAddButton(SerializedProperty audioSpecs)
@@ -253,44 +220,43 @@ namespace LeafAudio.Editor
 
             return addButton;
         }
-        Button GetRemoveButton(SerializedProperty audioSpecs)
+        Button GetRemoveButton(SerializedProperty audioSpecsProp, TrackedInt selectedIndex)
         {
             var removeButton = new Button(() =>
             {
                 // Remove shake component and corresponding bool
-                audioSpecs.DeleteArrayElementAtIndex(selectedIndex);
-                audioSpecs.serializedObject.ApplyModifiedProperties();
+                audioSpecsProp.DeleteArrayElementAtIndex(selectedIndex.Value);
+                audioSpecsProp.serializedObject.ApplyModifiedProperties();
 
-                SelectedIndex = -1;
+                selectedIndex.Value = -1;
             })
             { text = "Remove" };
             removeButton.SetEnabled(false);
-            SelectedIndexChanged += () => removeButton.SetEnabled(selectedIndex != -1);
+            selectedIndex.Changed += (val) => { Debug.Log("Selected index changed now: " + selectedIndex + " and prop path: " + audioSpecsProp.propertyPath); removeButton.SetEnabled(val != -1); };
 
             return removeButton;
         }
-        Button GetTestButton(SerializedProperty property)
+        Button GetTestButton(SerializedProperty property, TrackedInt selectedIndex)
         {
             SerializedProperty audioSpecs = property.FindPropertyRelative("audioSpecs");
             SerializedProperty useWeights = property.FindPropertyRelative("useWeights");
 
-            Audio audio = property.boxedValue as Audio;
 
-            Button button = new Button();
-            button.text = "Test";
-            button.style.height = 20;
-            button.style.marginTop = 5;
-
+            Button button = new Button
+            {
+                text = "Test",
+                style = { height = 20, marginTop = 5 }
+            };
             // Disable Test Button if there are no clips asd
             button.TrackPropertyValue(audioSpecs, (evt) => button.SetEnabled(audioSpecs.arraySize != 0));
 
             button.RegisterCallback<ClickEvent>(
                 (evt) =>
                 {
-                    var val = audio.RandomAudioSpec;
+                    Audio audio = property.boxedValue as Audio;
                     AudioSpec spec;
-                    if (selectedIndex == -1) spec = audio.RandomAudioSpec;
-                    else spec = audioSpecs.GetArrayElementAtIndex(selectedIndex).boxedValue as AudioSpec;
+                    if (selectedIndex.Value == -1) spec = audio.RandomAudioSpec;
+                    else spec = audioSpecs.GetArrayElementAtIndex(selectedIndex.Value).FindPropertyRelative("item").boxedValue as AudioSpec;
 
                     AudioTester.Test(spec);
                 }
