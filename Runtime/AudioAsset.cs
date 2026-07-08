@@ -10,7 +10,7 @@ namespace LeafAudio
     {
         [SerializeField] Audio audio;
 
-
+        public Audio Audio => audio;
         public static implicit operator Audio(AudioAsset audioAsset) => audioAsset == null ? null : audioAsset.audio;
     }
 }

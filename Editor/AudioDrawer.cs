@@ -258,7 +258,7 @@ namespace LeafAudio.Editor
                     if (selectedIndex.Value == -1) spec = audio.RandomAudioSpec;
                     else spec = audioSpecs.GetArrayElementAtIndex(selectedIndex.Value).FindPropertyRelative("item").boxedValue as AudioSpec;
 
-                    AudioTester.Test(spec);
+                    AudioTester.Test(spec.GetClip(), spec.GetVolume(), spec.GetPitch());
                 }
             );
 
