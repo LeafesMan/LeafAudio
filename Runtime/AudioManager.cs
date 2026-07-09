@@ -30,12 +30,13 @@ namespace LeafAudio
         /// <summary>
         /// Struct for data stored about every source in the pool.
         /// </summary>
+        [Serializable]
         class PooledAudioSource
         {
-            public readonly AudioSource source;
-            Transform origin;
-            Vector3 offset;
-            public float endTime;
+            readonly AudioSource source;
+            [SerializeField] Transform origin;
+            [SerializeField] Vector3 offset;
+            [SerializeField] float endTime;
 
 
             public PooledAudioSource(AudioSource source) => this.source = source;
@@ -51,6 +52,10 @@ namespace LeafAudio
                 source.clip = audioSpec.GetClip();
                 source.volume = audioSpec.GetVolume();
                 source.pitch = audioSpec.GetPitch();
+
+#if UNITY_EDITOR
+                source.name = source.clip.name; // Soley an editor convenience for easier debugging
+#endif
 
                 // Setup spatial settings
                 if (spatialRolloff != null)
@@ -85,13 +90,17 @@ namespace LeafAudio
             /// <summary>
             /// Whether the pooled audio source has finished its clip
             /// </summary>
-            public bool IsActive => Time.time > endTime;
+            public bool IsDone => Time.time > endTime;
+            public float EndTime => endTime;
             public void UpdatePosition()
             {   // If no origin assume origin is (0, 0, 0)
                 // Position is origin position + offset
                 if (origin == null) return;
                 source.transform.position = origin.position + offset;
             }
+#if UNITY_EDITOR
+            public void ToggleSourceGameObject(bool on) => source.gameObject.SetActive(on);
+#endif
         }
         #endregion
 
@@ -123,7 +132,13 @@ namespace LeafAudio
         private void Update()
         {
             foreach (PooledAudioSource pooledSource in pool)
-                pooledSource.UpdatePosition();
+            {
+                bool isDone = pooledSource.IsDone;
+                if (!isDone) pooledSource.UpdatePosition();
+#if UNITY_EDITOR
+                pooledSource.ToggleSourceGameObject(!isDone); // This is purely visual for editor debugging can see what all is playing in inspector
+#endif
+            }
         }
         /// <summary>
         /// Plays a Clip with the given parameters
@@ -142,22 +157,18 @@ namespace LeafAudio
          * (Perhaps turning on debug mode could print a warning)
          */
             // First and Second Null Audio Check
-            if (audio == null || audio.AudioSpecCount == 0) { Debug.LogWarning("Audio Failed: Received null Audio!"); return; }
+            if (audio == null) { Debug.LogWarning("Skipping play request: Received null Audio!"); return; }
+            if (audio.AudioSpecCount == 0) { Debug.LogWarning("Skipping play request: Received Audio without any specs!"); return; }
 
             // Get Spec to Play
             AudioSpec toPlay = audio.RandomAudioSpec;
-            if (toPlay.GetClip() == null) return; // Third Null Audio Check
 
-            // Get Audio source
+            if (toPlay.GetClip() == null) { Debug.LogWarning("Skipping play request: Received AudioSpec with a null clip!"); return; }
+
+            // Grab a source, set it up, play it, and sort the sources
             PooledAudioSource pooledSource = GetAudioSource();
-
-            // Setup audio source
             pooledSource.Setup(toPlay, audio.Group, spatialSpecs);
-
-            // Play Audio Source
             pooledSource.Play();
-
-            // Add source to used audio sources
             Sort(pooledSource);
         }
         public static void Play(Audio audio, float delay) => Play(audio, null, delay);
@@ -215,7 +226,7 @@ namespace LeafAudio
 
 
             // Pool has Available Source --> Return it
-            if (pool.Count != 0 && pool[0].IsActive)
+            if (pool.Count != 0 && pool[0].IsDone)
                 toReturn = pool[0];
             // Pool Full --> Return Source that is closest to complete
             else if (pool.Count >= poolSize)
@@ -245,7 +256,7 @@ namespace LeafAudio
 
             int i = 0;
             for (; i < pool.Count; i++)
-                if (pool[i].endTime > toInsert.endTime)
+                if (pool[i].EndTime > toInsert.EndTime)
                     break;
 
             pool.Insert(i, toInsert);
