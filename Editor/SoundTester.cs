@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEditor.Callbacks;
 namespace LeafAudio.Editor
 {
-    public class AudioTester
+    public class SoundTester
     {
         const float DEFAULT_VOLUME = 0.1f;
 
@@ -15,18 +15,16 @@ namespace LeafAudio.Editor
         {
             Object asset = EditorUtility.EntityIdToObject(instanceID);
 
-            Debug.Log($"Double-clicked: {asset.name} ({asset.GetType().Name})");
-
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
             {
                 Test(asset as AudioClip, DEFAULT_VOLUME, 1);
                 return true;
             }
-            if (asset.GetType() == typeof(AudioAsset))
+            if (asset.GetType() == typeof(Sound))
             {
-                AudioAsset audioAsset = asset as AudioAsset;
-                AudioSpec spec = audioAsset.Audio.RandomAudioSpec;
+                Sound sound = asset as Sound;
+                SoundVariant spec = sound.SelectVariant();
                 Test(spec.GetClip(), spec.GetVolume(), spec.GetPitch());
                 return true;
             }
@@ -40,6 +38,9 @@ namespace LeafAudio.Editor
         /// </summary>
         public static void Test(AudioClip clip, float volume, float pitch)
         {
+            if (clip == null) { Debug.LogWarning("Sound Testing Skipped: Can't test null clip!"); return; }
+
+
             // Create Temp Object and Components
             AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
 

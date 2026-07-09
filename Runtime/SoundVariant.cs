@@ -4,10 +4,10 @@ using LeafRand.Global;
 namespace LeafAudio
 {
     /// <summary>
-    /// Definition variables concerning a single audio clip.
+    /// A single sound variant containing an audio clip and playback parameters.
     /// </summary>
     [System.Serializable]
-    public class AudioSpec
+    public class SoundVariant
     {
         [SerializeField] AudioClip clip;
 
@@ -15,7 +15,6 @@ namespace LeafAudio
         [SerializeField] float volumeVariation = 0;
         [SerializeField] float pitch = 1;
         [SerializeField] float pitchVariation = 0.2f;
-
 
         public AudioClip GetClip() => clip;
         public float GetVolume() => volume + Rand.Float(-volumeVariation, volumeVariation);

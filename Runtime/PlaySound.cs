@@ -8,10 +8,10 @@ namespace LeafAudio
     /// - This component stores those parameters <br></br>
     /// - Call the Play() method through a UnityEvent to play the Audio with all desired parameters 
     /// </summary>
-    public class PlayAudio : MonoBehaviour
+    public class PlaySound : MonoBehaviour
     {
         [Header("Main")]
-        [SerializeField] new AudioAsset audio;
+        [SerializeField] Sound sound;
 
         [Header("Position")]
         [SerializeField, Tooltip("Leave null to play without spatial rolloff")] Rolloff rolloff;
@@ -23,7 +23,7 @@ namespace LeafAudio
         {
             SpatialRolloff spatialRolloff = rolloff ? new SpatialRolloff(rolloff, offset, origin) : null;
 
-            AudioManager.Play(audio, spatialRolloff);
+            Audio.Play(sound, spatialRolloff);
         }
     }
 }

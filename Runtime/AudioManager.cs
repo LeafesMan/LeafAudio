@@ -15,18 +15,147 @@ namespace LeafAudio
     public class AudioManager : MonoBehaviour
     {
         #region Vars
-        static AudioManager instance;
         [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")]
-        const int poolSize = 30;
+        int poolSize = 30;
         /// <summary>
         /// Audio Source Pool. Sorted in ascending order by End Time
         /// </summary>
-        static List<PooledAudioSource> pool = new();
+        [SerializeField]
+        List<PooledAudioSource> pool = new();
         /// <summary>
         /// Each Looping audio source element has two audio sources for fading in a new looping clip
         /// </summary>
-        static Dictionary<uint, (AudioSource, AudioSource)> loopingPool = new();
+        Dictionary<uint, (AudioSource, AudioSource)> loopingPool = new();
         #endregion
+        void Update()
+        {
+            foreach (PooledAudioSource pooledSource in pool)
+            {
+                bool isDone = pooledSource.IsDone;
+                if (!isDone) pooledSource.UpdatePosition();
+#if UNITY_EDITOR
+                pooledSource.ToggleSourceGameObject(!isDone); // This is purely visual for editor debugging can see what all is playing in inspector
+#endif
+            }
+        }
+        /// <summary>
+        /// Plays a Clip with the given parameters
+        /// </summary>
+        public void Play(Sound sound, SpatialRolloff spatialSpecs = null)
+        {   /* Null Audio Check Description
+         * There are three cases where Audio may be null:
+         * - Audio = null
+         * - Audio.AudioSpec[].count = 0
+         * - Audio.AudioSpec[x].clip = null
+         * In all cases we quitely fail to play the audio
+         * - I think this is ideal as we don't want to interrupt program flow with an error
+         * - Theres an argument that the user should be informed of no audio playing
+         *      but we don't want to blow up the console if it is intentional
+         * - It is easy to determine why audio isnt playing dont need a console warning
+         * (Perhaps turning on debug mode could print a warning)
+         */
+            // First and Second Null Audio Check
+            if (sound == null) { Debug.LogWarning("Skipping play request: Received null Audio!"); return; }
+            if (sound.VariantCount == 0) { Debug.LogWarning("Skipping play request: Received Audio without any specs!"); return; }
+
+            // Get Spec to Play
+            SoundVariant toPlay = sound.SelectVariant();
+
+            if (toPlay.GetClip() == null) { Debug.LogWarning("Skipping play request: Received AudioSpec with a null clip!"); return; }
+
+            // Grab a source, set it up, play it, and sort the sources
+            PooledAudioSource pooledSource = GetAudioSource();
+            pooledSource.Setup(toPlay, sound.Group, spatialSpecs);
+            pooledSource.Play();
+            Sort(pooledSource);
+        }
+        public void PlayLooping(Sound sound, float fadeDuration, uint slot)
+        {   // If Audio Source pair hasnt been created for this slot create it
+            if (!loopingPool.ContainsKey(slot))
+            {
+                loopingPool.Add(slot, new(gameObject.AddComponent<AudioSource>(), gameObject.AddComponent<AudioSource>()));
+                loopingPool[slot].Item1.loop = true;
+                loopingPool[slot].Item2.loop = true;
+            }
+
+
+
+            //Start fading out the faded in AudioSource
+            StartCoroutine(FadeVolume(loopingPool[slot].Item2, loopingPool[slot].Item2.volume, 0, fadeDuration));
+
+            //Fade in faded out Audio Source, replace it's clip with clip to fade in, and set volume to 0
+            var audioSpec = sound.SelectVariant();
+            loopingPool[slot].Item2.clip = audioSpec.GetClip();
+            loopingPool[slot].Item2.pitch = audioSpec.GetPitch();
+            loopingPool[slot].Item2.outputAudioMixerGroup = sound.Group;
+            StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, audioSpec.GetVolume(), fadeDuration));
+
+            //Swap faded in AudioSource with the faded out AudioSource in the audioSourcePairs tuple
+            loopingPool[slot] = new(loopingPool[slot].Item2, loopingPool[slot].Item1);
+
+            loopingPool[slot].Item1.Play();
+            loopingPool[slot].Item2.Play();
+        }
+        /// <summary>
+        /// Fades volume from current value to targetVolume over duration.
+        /// </summary>
+        IEnumerator FadeVolume(AudioSource source, float from, float to, float duration)
+        {
+            float startTime = Time.time;
+
+            //Lerp from start Volume to target Volume over duration
+            while (Time.time - startTime <= duration)
+            {
+                source.volume = Mathf.Lerp(from, to, (Time.time - startTime) / duration);
+                yield return null;
+            }
+
+            source.volume = to;
+        }
+        PooledAudioSource GetAudioSource()
+        {   // Grabs a Pooled audio source to use for playing a sound
+            // Uses free sources when possible
+            // When there are no free sources creates a new one
+            // OR   uses the oldest used source if the pool is full
+            PooledAudioSource toReturn;
+
+
+            // Pool has Available Source --> Return it
+            if (pool.Count != 0 && pool[0].IsDone)
+                toReturn = pool[0];
+            // Pool Full --> Return Source that is closest to complete
+            else if (pool.Count >= poolSize)
+                toReturn = pool[0];
+            // Pool Not Full --> Create new Source
+            else
+            {   // Create and  reparent an audio source
+                AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
+                audioSource.transform.SetParent(transform);
+
+                //print($"Creating pooled source with source: {audioSource}");
+
+                toReturn = new PooledAudioSource(audioSource);
+
+                //print($"Created pooled source with source: {toReturn.source}");
+            }
+
+            return toReturn;
+        }
+        /// <summary>
+        /// Sorts the pool by ascending end time.<br></br>
+        /// ***Assumes the PooledSource passed in is the only one that has changed
+        /// </summary>
+        void Sort(PooledAudioSource toInsert)
+        {
+            pool.Remove(toInsert);
+
+            int i = 0;
+            for (; i < pool.Count; i++)
+                if (pool[i].EndTime > toInsert.EndTime)
+                    break;
+
+            pool.Insert(i, toInsert);
+        }
         #region Pooled Audio Source Class
         /// <summary>
         /// Struct for data stored about every source in the pool.
@@ -45,14 +174,14 @@ namespace LeafAudio
             /// <summary>
             /// Setups a pooled audio source with a new set of parameters
             /// </summary>
-            public void Setup(AudioSpec audioSpec, AudioMixerGroup mixerGroup, SpatialRolloff spatialRolloff)
+            public void Setup(SoundVariant soundVariant, AudioMixerGroup mixerGroup, SpatialRolloff spatialRolloff)
             {   // Audio Data
                 source.outputAudioMixerGroup = mixerGroup;
 
 
-                source.clip = audioSpec.GetClip();
-                source.volume = audioSpec.GetVolume();
-                source.pitch = audioSpec.GetPitch();
+                source.clip = soundVariant.GetClip();
+                source.volume = soundVariant.GetVolume();
+                source.pitch = soundVariant.GetPitch();
 
 #if UNITY_EDITOR
                 source.name = source.clip.name; // Soley an editor convenience for easier debugging
@@ -80,7 +209,7 @@ namespace LeafAudio
                 source.transform.position = origin == null ? offset : origin.position + offset;
 
                 // Cache End Time stamp based on clip length
-                endTime = audioSpec.GetClip().length + Time.time;
+                endTime = soundVariant.GetClip().length + Time.time;
             }
 
             /// <summary>
@@ -104,158 +233,5 @@ namespace LeafAudio
 #endif
         }
         #endregion
-
-
-        [RuntimeInitializeOnLoadMethod]
-        static void Setup()
-        {
-            GameObject audioManager = new GameObject("AudioManager");
-            DontDestroyOnLoad(audioManager);
-            audioManager.AddComponent<AudioManager>();
-
-            // Create new Pool instance
-            // Static variables are not refreshed by default
-            // (Since I have disabled it for faster reloads + this will be default in future Unity versions)
-            pool = new();
-        }
-        private void OnEnable()
-        {   // Ensure Single Instance
-            if (instance != null)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            else
-                instance = this; ;
-        }
-        private void Update()
-        {
-            foreach (PooledAudioSource pooledSource in pool)
-            {
-                bool isDone = pooledSource.IsDone;
-                if (!isDone) pooledSource.UpdatePosition();
-#if UNITY_EDITOR
-                pooledSource.ToggleSourceGameObject(!isDone); // This is purely visual for editor debugging can see what all is playing in inspector
-#endif
-            }
-        }
-        /// <summary>
-        /// Plays a Clip with the given parameters
-        /// </summary>
-        public static void Play(Audio audio, SpatialRolloff spatialSpecs = null)
-        {   /* Null Audio Check Description
-         * There are three cases where Audio may be null:
-         * - Audio = null
-         * - Audio.AudioSpec[].count = 0
-         * - Audio.AudioSpec[x].clip = null
-         * In all cases we quitely fail to play the audio
-         * - I think this is ideal as we don't want to interrupt program flow with an error
-         * - Theres an argument that the user should be informed of no audio playing
-         *      but we don't want to blow up the console if it is intentional
-         * - It is easy to determine why audio isnt playing dont need a console warning
-         * (Perhaps turning on debug mode could print a warning)
-         */
-            // First and Second Null Audio Check
-            if (audio == null) { Debug.LogWarning("Skipping play request: Received null Audio!"); return; }
-            if (audio.AudioSpecCount == 0) { Debug.LogWarning("Skipping play request: Received Audio without any specs!"); return; }
-
-            // Get Spec to Play
-            AudioSpec toPlay = audio.RandomAudioSpec;
-
-            if (toPlay.GetClip() == null) { Debug.LogWarning("Skipping play request: Received AudioSpec with a null clip!"); return; }
-
-            // Grab a source, set it up, play it, and sort the sources
-            PooledAudioSource pooledSource = GetAudioSource();
-            pooledSource.Setup(toPlay, audio.Group, spatialSpecs);
-            pooledSource.Play();
-            Sort(pooledSource);
-        }
-        public static void PlayLooping(Audio audio, float fadeDuration, uint slot)
-        {   // If Audio Source pair hasnt been created for this slot create it
-            if (!loopingPool.ContainsKey(slot))
-            {
-                loopingPool.Add(slot, new(instance.gameObject.AddComponent<AudioSource>(), instance.gameObject.AddComponent<AudioSource>()));
-                loopingPool[slot].Item1.loop = true;
-                loopingPool[slot].Item2.loop = true;
-            }
-
-
-
-            //Start fading out the faded in AudioSource
-            instance.StartCoroutine(FadeVolume(loopingPool[slot].Item2, loopingPool[slot].Item2.volume, 0, fadeDuration));
-
-            //Fade in faded out Audio Source, replace it's clip with clip to fade in, and set volume to 0
-            var audioSpec = audio.RandomAudioSpec;
-            loopingPool[slot].Item2.clip = audioSpec.GetClip();
-            loopingPool[slot].Item2.pitch = audioSpec.GetPitch();
-            loopingPool[slot].Item2.outputAudioMixerGroup = audio.Group;
-            instance.StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, audioSpec.GetVolume(), fadeDuration));
-
-            //Swap faded in AudioSource with the faded out AudioSource in the audioSourcePairs tuple
-            loopingPool[slot] = new(loopingPool[slot].Item2, loopingPool[slot].Item1);
-
-            loopingPool[slot].Item1.Play();
-            loopingPool[slot].Item2.Play();
-        }
-        /// <summary>
-        /// Fades volume from current value to targetVolume over duration.
-        /// </summary>
-        static IEnumerator FadeVolume(AudioSource source, float from, float to, float duration)
-        {
-            float startTime = Time.time;
-
-            //Lerp from start Volume to target Volume over duration
-            while (Time.time - startTime <= duration)
-            {
-                source.volume = Mathf.Lerp(from, to, (Time.time - startTime) / duration);
-                yield return null;
-            }
-
-            source.volume = to;
-        }
-        static PooledAudioSource GetAudioSource()
-        {   // Grabs a Pooled audio source to use for playing a sound
-            // Uses free sources when possible
-            // When there are no free sources creates a new one
-            // OR   uses the oldest used source if the pool is full
-            PooledAudioSource toReturn;
-
-
-            // Pool has Available Source --> Return it
-            if (pool.Count != 0 && pool[0].IsDone)
-                toReturn = pool[0];
-            // Pool Full --> Return Source that is closest to complete
-            else if (pool.Count >= poolSize)
-                toReturn = pool[0];
-            // Pool Not Full --> Create new Source
-            else
-            {   // Create and  reparent an audio source
-                AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
-                audioSource.transform.SetParent(instance.transform);
-
-                //print($"Creating pooled source with source: {audioSource}");
-
-                toReturn = new PooledAudioSource(audioSource);
-
-                //print($"Created pooled source with source: {toReturn.source}");
-            }
-
-            return toReturn;
-        }
-        /// <summary>
-        /// Sorts the pool by ascending end time.<br></br>
-        /// ***Assumes the PooledSource passed in is the only one that has changed
-        /// </summary>
-        static void Sort(PooledAudioSource toInsert)
-        {
-            pool.Remove(toInsert);
-
-            int i = 0;
-            for (; i < pool.Count; i++)
-                if (pool[i].EndTime > toInsert.EndTime)
-                    break;
-
-            pool.Insert(i, toInsert);
-        }
     }
 }
