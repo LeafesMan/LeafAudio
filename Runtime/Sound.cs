@@ -19,6 +19,10 @@ namespace LeafAudio
         public enum SelectionMode { UniformRandom, WeightedRandom }
 
 
+        public void Play(SpatialRolloff spatialSpecs = null) => Audio.Play(this, spatialSpecs);
+        public void PlayLooping(float fadeDuration, uint slot) => Audio.PlayLooping(this, fadeDuration, slot);
+
+
         /// <summary>
         /// Selects a variant using the specified Selection Mode.
         /// </summary>
