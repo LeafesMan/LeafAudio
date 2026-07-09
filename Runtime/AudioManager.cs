@@ -15,6 +15,7 @@ namespace LeafAudio
     public class AudioManager : MonoBehaviour
     {
         #region Vars
+        static AudioManager instance;
         [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")]
         const int poolSize = 30;
         /// <summary>
@@ -104,8 +105,6 @@ namespace LeafAudio
         }
         #endregion
 
-        static AudioManager instance;
-
 
         [RuntimeInitializeOnLoadMethod]
         static void Setup()
@@ -171,9 +170,6 @@ namespace LeafAudio
             pooledSource.Play();
             Sort(pooledSource);
         }
-        public static void Play(Audio audio, float delay) => Play(audio, null, delay);
-        public static void Play(Audio audio, SpatialRolloff spatialSpecs, float delay) => ExecuteCallback(() => Play(audio, spatialSpecs), delay);
-        public static void PlayLooping(Audio audio, float fadeDuration, uint slot, float delay = 0) => ExecuteCallback(() => PlayLooping(audio, fadeDuration, slot), delay);
         public static void PlayLooping(Audio audio, float fadeDuration, uint slot)
         {   // If Audio Source pair hasnt been created for this slot create it
             if (!loopingPool.ContainsKey(slot))
@@ -260,21 +256,6 @@ namespace LeafAudio
                     break;
 
             pool.Insert(i, toInsert);
-        }
-        /// <summary>
-        /// Executes the callback after delay.
-        /// Does not spin up a coroutine if delay is <= 0.
-        /// </summary>
-        static void ExecuteCallback(Action callback, float delay)
-        {
-            if (delay > 0) instance.StartCoroutine(ExecuteCallbackCoroutine(callback, delay));
-            else callback.Invoke();
-        }
-        static IEnumerator ExecuteCallbackCoroutine(Action callback, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-
-            callback.Invoke();
         }
     }
 }

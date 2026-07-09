@@ -13,9 +13,6 @@ namespace LeafAudio
         [Header("Main")]
         [SerializeField] new AudioAsset audio;
 
-        [Header("Delay")]
-        [SerializeField] float delay;
-
         [Header("Position")]
         [SerializeField, Tooltip("Leave null to play without spatial rolloff")] Rolloff rolloff;
         [SerializeField] Transform origin;
@@ -26,7 +23,7 @@ namespace LeafAudio
         {
             SpatialRolloff spatialRolloff = rolloff ? new SpatialRolloff(rolloff, offset, origin) : null;
 
-            AudioManager.Play(audio, spatialRolloff, delay);
+            AudioManager.Play(audio, spatialRolloff);
         }
     }
 }
