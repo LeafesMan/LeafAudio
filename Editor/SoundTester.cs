@@ -5,7 +5,6 @@ namespace LeafAudio.Editor
 {
     public class SoundTester
     {
-        const float DEFAULT_VOLUME = 0.1f;
 
         /// <summary>
         /// Test Audio Clips & Assets on double click 
@@ -18,7 +17,7 @@ namespace LeafAudio.Editor
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
             {
-                Test(asset as AudioClip, DEFAULT_VOLUME, 1);
+                Test(asset as AudioClip, SoundVariant.DefaultVolume, 1);
                 return true;
             }
             if (asset.GetType() == typeof(Sound))
@@ -42,7 +41,8 @@ namespace LeafAudio.Editor
 
 
             // Create Temp Object and Components
-            AudioSource source = new GameObject("Audio Test (DELETE ME)").AddComponent<AudioSource>();
+            AudioSource source = new GameObject("SoundTest").AddComponent<AudioSource>();
+            source.gameObject.hideFlags = HideFlags.HideAndDontSave;
 
             // Setup Source
             source.clip = clip;

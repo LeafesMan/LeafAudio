@@ -49,7 +49,7 @@ namespace LeafAudio.Editor
             root.Add(GetHeader("Audio Specs"));
             root.Add(specsContainer);
             root.Add(GetTestButton(selectedIndex));
-            root.Add(GetAddButton());
+            root.Add(GetAddButton(selectedIndex));
             root.Add(GetRemoveButton(selectedIndex));
 
             return root;
@@ -190,15 +190,12 @@ namespace LeafAudio.Editor
             weightToggle.RegisterValueChangeCallback((evt) => UpdateWeightFieldDisplays(specsContainer));
             return GetLabeledElement(weightToggle, "Weighted");
         }
-        Button GetAddButton()
+        Button GetAddButton(TrackedInt selectedIndex)
         {
             Button addButton = new Button(() =>
             {
                 variantsProp.arraySize++;
-
-                var newAudioSpec = variantsProp.GetArrayElementAtIndex(variantsProp.arraySize - 1);
-                newAudioSpec.serializedObject.ApplyModifiedProperties();
-                variantsProp.serializedObject.ApplyModifiedProperties();
+                serializedObject.ApplyModifiedProperties();
             })
             { text = "Add" };
 

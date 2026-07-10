@@ -12,9 +12,9 @@ namespace LeafAudio
     [CreateAssetMenu(fileName = "NewSound", menuName = "FX/Sound")]
     public class Sound : ScriptableObject
     {
-        [SerializeField] AudioMixerGroup mixerGroup;
-        [SerializeField] SelectionMode selectionMode;
-        [SerializeField] List<Weighted<SoundVariant>> weightedVariants;
+        [SerializeField] AudioMixerGroup mixerGroup = null;
+        [SerializeField] SelectionMode selectionMode = SelectionMode.UniformRandom;
+        [SerializeField] List<Weighted<SoundVariant>> weightedVariants = new() { new Weighted<SoundVariant>(new SoundVariant(), 1) };
 
         public enum SelectionMode { UniformRandom, WeightedRandom }
 
