@@ -206,14 +206,21 @@ namespace LeafAudio.Editor
             var removeButton = new Button(() =>
             {
                 // Remove shake component and corresponding bool
-                variantsProp.DeleteArrayElementAtIndex(selectedIndex.Value);
+                int toDeleteIndex = selectedIndex.Value;
+                if (toDeleteIndex <= -1) toDeleteIndex = variantsProp.arraySize - 1;
+
+                variantsProp.DeleteArrayElementAtIndex(toDeleteIndex);
                 variantsProp.serializedObject.ApplyModifiedProperties();
 
-                selectedIndex.Value = -1;
+                selectedIndex.Value -= 1;
             })
             { text = "Remove" };
-            removeButton.SetEnabled(false);
-            selectedIndex.Changed += (val) => { Debug.Log("Selected index changed now: " + selectedIndex + " and prop path: " + variantsProp.propertyPath); removeButton.SetEnabled(val != -1); };
+
+            // Toggle Remove button based on num variants
+            // - Never allow less than one variant
+            UpdateRemoveButtonEnabled(variantsProp);
+            removeButton.TrackPropertyValue(variantsProp, UpdateRemoveButtonEnabled);
+            void UpdateRemoveButtonEnabled(SerializedProperty variantsProp) => removeButton.SetEnabled(variantsProp.arraySize > 1);
 
             return removeButton;
         }
