@@ -11,7 +11,7 @@ namespace LeafAudio.Editor
     /// <summary>
     /// Draws an audio definition. Conceals uneeded vars and allows playing any individual spec or group of specs.
     /// </summary>
-    [CustomEditor(typeof(Sound))]
+    [CustomEditor(typeof(Sound)), CanEditMultipleObjects]
     public class SoundEditor : UnityEditor.Editor
     {
         SerializedProperty variantsProp;
@@ -35,8 +35,11 @@ namespace LeafAudio.Editor
             root.Add(GetScriptField());
             root.Add(new PropertyField(serializedObject.FindProperty("mixerGroup"), "Mixer Group"));
             root.Add(GetWeightedToggle(variantsListView));
-            root.Add(variantsListView);
-            root.Add(GetTestButton(variantsListView));
+            if (targets.Length == 1)
+            {
+                root.Add(variantsListView);
+                root.Add(GetTestButton(variantsListView));
+            }
 
             return root;
         }
