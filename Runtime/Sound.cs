@@ -24,9 +24,21 @@ namespace LeafAudio
 
 
         /// <summary>
-        /// Selects a variant using the specified Selection Mode.
+        /// Selects a variant from this sound using this sound's SelectionMode.
         /// </summary>
-        public SoundVariant SelectVariant() => selectionMode == SelectionMode.WeightedRandom ? Rand.ItemWeighted(weightedVariants) : Rand.Item(weightedVariants).Item;
+        public SoundVariant SelectVariant() => SelectVariant(weightedVariants, selectionMode);
+        /// <summary>
+        /// Selects a variant from WeightedVariants using the specified SelectionMode.
+        /// </summary>
+        public static SoundVariant SelectVariant(List<Weighted<SoundVariant>> weightedVariants, SelectionMode selectionMode)
+        {
+            switch (selectionMode)
+            {
+                case SelectionMode.UniformRandom: return Rand.Item(weightedVariants).Item;
+                case SelectionMode.WeightedRandom: return Rand.ItemWeighted(weightedVariants);
+            }
+            throw new System.Exception("Undefined selection mode!");
+        }
         public AudioMixerGroup Group => mixerGroup;
         public SelectionMode Mode => selectionMode;
         public int VariantCount => weightedVariants.Count;

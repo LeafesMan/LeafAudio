@@ -5,6 +5,8 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System.Linq;
 using UnityEditorInternal;
+using System.Collections.Generic;
+using LeafRand.Collections;
 
 namespace LeafAudio.Editor
 {
@@ -14,14 +16,6 @@ namespace LeafAudio.Editor
     [CustomEditor(typeof(Sound))]
     public class SoundEditor : UnityEditor.Editor
     {
-        class TrackedInt
-        {
-            public TrackedInt(int val) => this.val = val;
-            int val;
-            public int Value { get => val; set { val = value; Changed?.Invoke(val); } }
-            public event Action<int> Changed;
-        }
-
         SerializedProperty variantsProp;
         SerializedProperty groupProp;
         SerializedProperty modeProp;
@@ -30,10 +24,6 @@ namespace LeafAudio.Editor
 
         public override VisualElement CreateInspectorGUI()
         {
-
-            // Cant have field at class level property drawers share those
-            TrackedInt selectedIndex = new(-1);
-
             // Grab props
             variantsProp = serializedObject.FindProperty("weightedVariants");
             groupProp = serializedObject.FindProperty("mixerGroup");
@@ -60,16 +50,12 @@ namespace LeafAudio.Editor
             variantsListView.bindItem += BindVariantUI;
             variantsListView.BindProperty(variantsProp);
 
-
             // Populate Root
             root.Add(GetScriptField());
             root.Add(new PropertyField(serializedObject.FindProperty("mixerGroup"), "Mixer Group"));
             root.Add(GetWeightedToggle());
             root.Add(variantsListView);
-            root.Add(GetTestButton(selectedIndex));
-
-            // Initialize certain things
-
+            root.Add(GetTestButton());
 
             return root;
         }
@@ -172,7 +158,7 @@ namespace LeafAudio.Editor
             void UpdateWeightFieldsShown() => variantsListView.Query<FloatField>().Name("weight").ToList().ForEach(element => element.style.display = GetWeightFieldDisplayStyle);
         }
         DisplayStyle GetWeightFieldDisplayStyle => ((Sound.SelectionMode)modeProp.enumValueIndex == Sound.SelectionMode.WeightedRandom) ? DisplayStyle.Flex : DisplayStyle.None;
-        Button GetTestButton(TrackedInt selectedIndex)
+        Button GetTestButton()
         {
             Button button = new Button
             {
@@ -180,17 +166,30 @@ namespace LeafAudio.Editor
                 style = { height = 20, marginTop = 5 }
             };
             // Disable Test Button if there are no clips asd
-            button.TrackPropertyValue(variantsProp, (evt) => button.SetEnabled(variantsProp.arraySize != 0));
+            variantsListView.selectedIndicesChanged += (indices) => button.text = "Test" + (indices.Any() ? " Selected" : "");
 
             button.RegisterCallback<ClickEvent>(
                 (evt) =>
                 {
                     Sound audio = target as Sound;
-                    SoundVariant spec;
-                    if (selectedIndex.Value == -1) spec = audio.SelectVariant();
-                    else spec = variantsProp.GetArrayElementAtIndex(selectedIndex.Value).FindPropertyRelative("item").boxedValue as SoundVariant;
+                    SoundVariant variant;
 
-                    SoundTester.Test(spec.GetClip(), spec.GetVolume(), spec.GetPitch());
+                    List<int> selectedIndices = new List<int>();
+                    foreach (var index in variantsListView.selectedIndices) selectedIndices.Add(index);
+
+                    // No Variants Selected? Use Sounds Variants+SelectionMode
+                    if (selectedIndices.Count == 0) variant = audio.SelectVariant();
+                    else
+                    {   // Variants Selected? Use Selected Variants+SoundsSelectionMode
+                        // Make a list of only selected variants then use Sound.SelectVariant on them
+                        List<Weighted<SoundVariant>> selectedWeightedSoundVariants = new();
+                        for (int i = 0; i < selectedIndices.Count; i++) selectedWeightedSoundVariants.Add((Weighted<SoundVariant>)variantsProp.GetArrayElementAtIndex(selectedIndices[i]).boxedValue);
+
+                        variant = Sound.SelectVariant(selectedWeightedSoundVariants, (Sound.SelectionMode)serializedObject.FindProperty("selectionMode").enumValueIndex);
+                    }
+
+
+                    SoundTester.Test(variant.GetClip(), variant.GetVolume(), variant.GetPitch());
                 }
             );
 
@@ -211,8 +210,6 @@ namespace LeafAudio.Editor
             box.Add(new Label(capitalizedVar));
             box.Add(labeledValueField);
             box.Add(labeledVariationField);
-
-
 
             return box;
         }
