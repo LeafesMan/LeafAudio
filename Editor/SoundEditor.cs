@@ -1,10 +1,8 @@
-using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System.Linq;
-using UnityEditorInternal;
 using System.Collections.Generic;
 using LeafRand.Collections;
 
@@ -59,25 +57,13 @@ namespace LeafAudio.Editor
                 reorderable = true,
                 headerTitle = "Variants"
             };
-            variantsListView.makeItem += MakeVariantUI;
             variantsListView.bindItem += BindVariantUI;
+            variantsListView.makeItem += MakeVariantUI;
             variantsListView.BindProperty(variantsProp);
 
             return variantsListView;
 
-            void BindVariantUI(VisualElement element, int index)
-            {
-                SerializedProperty weightedVariantProp = variantsProp.GetArrayElementAtIndex(index);
-                SerializedProperty variantProp = weightedVariantProp.FindPropertyRelative("item");
-
-                element.Q<ObjectField>("clip").BindProperty(variantProp.FindPropertyRelative("clip"));
-                element.Q<FloatField>("volume").BindProperty(variantProp.FindPropertyRelative("volume"));
-                element.Q<FloatField>("volumeVariation").BindProperty(variantProp.FindPropertyRelative("volumeVariation"));
-                element.Q<FloatField>("pitch").BindProperty(variantProp.FindPropertyRelative("pitch"));
-                element.Q<FloatField>("pitchVariation").BindProperty(variantProp.FindPropertyRelative("pitchVariation"));
-                element.Q<FloatField>("weight").BindProperty(weightedVariantProp.FindPropertyRelative("weight"));
-
-            }
+            void BindVariantUI(VisualElement element, int index) => ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index));
             VisualElement MakeVariantUI()
             {
                 float labelWidth = 69;
@@ -87,7 +73,7 @@ namespace LeafAudio.Editor
                 // SerializedProperty weightProp = weightedAudioSpecProp.FindPropertyRelative("weight");
 
                 // Container
-                var container = new VisualElement(); // Can change this back to foldout if i desire
+                var container = new BindableElement(); // Can change this back to foldout if i desire
                 container.style.paddingLeft = new StyleLength(15); // Add padding
                 container.style.paddingRight = new StyleLength(5); // Add padding
                 container.style.marginBottom = new StyleLength(5); // Add padding
@@ -97,11 +83,10 @@ namespace LeafAudio.Editor
                 container.style.borderTopRightRadius = 10;
 
                 // Weight Field
-                var weightField = GetLabeledElement(new FloatField("") { name = "weight" }, "Weight");
-                weightField.name = "weightElement";
+                var weightField = GetLabeledElement(new FloatField("") { bindingPath = "weight" }, "Weight", "weight");
                 weightField.style.display = GetWeightFieldDisplayStyle;
 
-                var clipField = GetLabeledElement(new ObjectField("") { name = "clip", objectType = typeof(AudioClip) }, "Clip");
+                var clipField = GetLabeledElement(new ObjectField("") { bindingPath = "item.clip", objectType = typeof(AudioClip) }, "Clip");
                 var title = new Label() { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 15, marginTop = 3f, overflow = Overflow.Hidden } };
 
                 var volumeElements = GetVariedField("volume", new Vector2(0, 1), 0.5f, labelWidth);
@@ -120,6 +105,32 @@ namespace LeafAudio.Editor
                 // Add the Element to the given container
                 return container;
             }
+            VisualElement GetVariedField(string var, Vector2 valueRange, float varyRange, float labelWidth)
+            {
+                var capitalizedVar = char.ToUpper(var[0]) + var.Substring(1);
+
+                VisualElement box = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
+
+                ClampedFloatField valueField = new ClampedFloatField(valueRange) { bindingPath = $"item.{var}", style = { flexGrow = 1, maxWidth = 50, flexBasis = 30 } };
+                Slider valueSlider = new Slider(valueRange.x, valueRange.y) { bindingPath = $"item.{var}", style = { flexGrow = 1 } };
+                VisualElement variationField = new ClampedFloatField(new Vector2(0, Mathf.Infinity), "+/-") { bindingPath = $"item.{var}Variation", style = { flexGrow = 1, maxWidth = 65, flexBasis = 45 } };
+                var variationLabel = variationField.Q<Label>();
+                variationLabel.style.flexGrow = 0;
+                variationLabel.style.flexShrink = 0;
+                variationLabel.style.minWidth = 22;
+                var variationText = variationField.Q<VisualElement>(className: "unity-base-field__input");
+                variationText.style.minWidth = 0;
+                variationText.style.flexGrow = 1f;
+
+                // Add the fields
+                //box.Add(new Label("(0.22-0.4)") { style = { unityTextAlign = TextAnchor.MiddleCenter } });
+                box.Add(valueField);
+                box.Add(valueSlider);
+                box.Add(variationField);
+
+                return GetLabeledElement(box, capitalizedVar);
+            }
+
         }
 
         VisualElement GetScriptField()
@@ -143,7 +154,7 @@ namespace LeafAudio.Editor
 
             return weightToggle;
 
-            void UpdateWeightFieldsShown() { variantsListView.Query<VisualElement>().Name("weightElement").ToList().ForEach(element => element.style.display = GetWeightFieldDisplayStyle); }
+            void UpdateWeightFieldsShown() { variantsListView.Query<VisualElement>().Name("weight").ToList().ForEach(element => element.style.display = GetWeightFieldDisplayStyle); }
         }
         DisplayStyle GetWeightFieldDisplayStyle => ((Sound.SelectionMode)modeProp.enumValueIndex == Sound.SelectionMode.WeightedRandom) ? DisplayStyle.Flex : DisplayStyle.None;
         Button GetTestButton(ListView variantsListView)
@@ -183,52 +194,20 @@ namespace LeafAudio.Editor
 
             return button;
         }
-        VisualElement GetVariedField(string var, Vector2 valueRange, float varyRange, float labelWidth)
-        {
-            var capitalizedVar = char.ToUpper(var[0]) + var.Substring(1);
 
-            VisualElement box = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
-
-
-            VisualElement labeledValueField = new FloatField("") { name = var, style = { flexGrow = 3, flexBasis = 0 } };
-            VisualElement labeledVariationField = new FloatField("") { name = var + "Variation", style = { flexGrow = 1, flexBasis = 0 } };
-
-
-            // Add the fields
-            box.Add(labeledValueField);
-            box.Add(new Label("+/-") { style = { unityTextAlign = TextAnchor.MiddleCenter, paddingLeft = 5 } });
-            box.Add(labeledVariationField);
-
-            return GetLabeledElement(box, capitalizedVar);
-        }
-        VisualElement GetSliderField(SerializedProperty floatProp, Vector2 range)
+        VisualElement GetSliderField(Vector2 range)
         {
             // VALUE FIELD
             var floatSlider = new Slider(range.x, range.y) { style = { flexGrow = 1, marginLeft = 0 } };
-            floatSlider.BindProperty(floatProp);
 
             // Create a TextField to display and edit the float value
-            var floatField = GetFloatField();
-            floatField.style.marginRight = 5;
-            floatField.value = floatSlider.value;
-            floatField.RegisterValueChangedCallback(evt =>
-            {
-                floatSlider.value = Mathf.Clamp(evt.newValue, floatSlider.lowValue, floatSlider.highValue);
-            });
-            floatSlider.RegisterValueChangedCallback(evt =>
-            {
-                floatField.value = evt.newValue;
-            });
-
             var floatSliderField = new VisualElement();
             floatSliderField.style.flexDirection = FlexDirection.Row;
-            floatSliderField.Add(floatField);
             floatSliderField.Add(floatSlider);
 
             return floatSliderField;
         }
-        FloatField GetFloatField() => new FloatField(4) { style = { width = 33 } };
-        VisualElement GetLabeledElement(VisualElement toLabel, string text, float labelWidth = 80)
+        BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = 55)
         {   // Create and Style Label
             Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
 
@@ -238,11 +217,24 @@ namespace LeafAudio.Editor
             toLabel.style.overflow = Overflow.Visible;
 
             // Create, Populate, and Return labeled Element
-            VisualElement labeledElement = new VisualElement() { style = { flexDirection = FlexDirection.Row, overflow = Overflow.Hidden, paddingRight = 2 } };
+            BindableElement labeledElement = new BindableElement()
+            {
+                name = name,
+                style = { flexDirection = FlexDirection.Row, overflow = Overflow.Hidden, paddingRight = 2 }
+            };
             labeledElement.Add(label);
             labeledElement.Add(toLabel);
 
             return labeledElement;
         }
     }
+}
+
+
+class ClampedFloatField : FloatField
+{
+    public Vector2 ClampRange;
+    public ClampedFloatField(Vector2 clampRange, string label = "") { this.ClampRange = clampRange; this.label = label; }
+
+    public override float value { get => base.value; set => base.value = Mathf.Clamp(value, ClampRange.x, ClampRange.y); }
 }
