@@ -20,8 +20,6 @@ namespace LeafAudio.Editor
         SerializedProperty groupProp;
         SerializedProperty modeProp;
 
-        ListView variantsListView;
-
         public override VisualElement CreateInspectorGUI()
         {
             // Grab props
@@ -32,8 +30,23 @@ namespace LeafAudio.Editor
 
             // Create root container and specs container
             VisualElement root = new VisualElement();
+            ListView variantsListView = GetVariantsListView();
 
-            variantsListView = new ListView()
+
+            // Populate Root
+            root.Add(GetScriptField());
+            root.Add(new PropertyField(serializedObject.FindProperty("mixerGroup"), "Mixer Group"));
+            root.Add(GetWeightedToggle(variantsListView));
+            root.Add(variantsListView);
+            root.Add(GetTestButton(variantsListView));
+
+            return root;
+        }
+
+
+        ListView GetVariantsListView()
+        {
+            ListView variantsListView = new ListView()
             {
                 showBorder = true,
                 showAddRemoveFooter = true,
@@ -50,90 +63,65 @@ namespace LeafAudio.Editor
             variantsListView.bindItem += BindVariantUI;
             variantsListView.BindProperty(variantsProp);
 
-            // Populate Root
-            root.Add(GetScriptField());
-            root.Add(new PropertyField(serializedObject.FindProperty("mixerGroup"), "Mixer Group"));
-            root.Add(GetWeightedToggle());
-            root.Add(variantsListView);
-            root.Add(GetTestButton());
+            return variantsListView;
 
-            return root;
+            void BindVariantUI(VisualElement element, int index)
+            {
+                SerializedProperty weightedVariantProp = variantsProp.GetArrayElementAtIndex(index);
+                SerializedProperty variantProp = weightedVariantProp.FindPropertyRelative("item");
+
+                element.Q<ObjectField>("clip").BindProperty(variantProp.FindPropertyRelative("clip"));
+                element.Q<FloatField>("volume").BindProperty(variantProp.FindPropertyRelative("volume"));
+                element.Q<FloatField>("volumeVariation").BindProperty(variantProp.FindPropertyRelative("volumeVariation"));
+                element.Q<FloatField>("pitch").BindProperty(variantProp.FindPropertyRelative("pitch"));
+                element.Q<FloatField>("pitchVariation").BindProperty(variantProp.FindPropertyRelative("pitchVariation"));
+                element.Q<FloatField>("weight").BindProperty(weightedVariantProp.FindPropertyRelative("weight"));
+
+            }
+            VisualElement MakeVariantUI()
+            {
+                float labelWidth = 69;
+
+                // SerializedProperty weightedAudioSpecProp = variantsProp.GetArrayElementAtIndex();
+                // SerializedProperty audioSpecProp = weightedAudioSpecProp.FindPropertyRelative("item");
+                // SerializedProperty weightProp = weightedAudioSpecProp.FindPropertyRelative("weight");
+
+                // Container
+                var container = new VisualElement(); // Can change this back to foldout if i desire
+                container.style.paddingLeft = new StyleLength(15); // Add padding
+                container.style.paddingRight = new StyleLength(5); // Add padding
+                container.style.marginBottom = new StyleLength(5); // Add padding
+                container.style.borderBottomLeftRadius = 10;
+                container.style.borderBottomRightRadius = 10;
+                container.style.borderTopLeftRadius = 10;
+                container.style.borderTopRightRadius = 10;
+
+                // Weight Field
+                var weightField = GetLabeledElement(new FloatField("") { name = "weight" }, "Weight");
+                weightField.name = "weightElement";
+                weightField.style.display = GetWeightFieldDisplayStyle;
+
+                var clipField = GetLabeledElement(new ObjectField("") { name = "clip", objectType = typeof(AudioClip) }, "Clip");
+                var title = new Label() { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 15, marginTop = 3f, overflow = Overflow.Hidden } };
+
+                var volumeElements = GetVariedField("volume", new Vector2(0, 1), 0.5f, labelWidth);
+                var pitchElements = GetVariedField("pitch", new Vector2(-3, 3), 1f, labelWidth);
+
+
+
+                container.Add(title);
+                container.Add(clipField);
+                container.Add(volumeElements);
+                container.Add(pitchElements);
+                container.Add(weightField);
+
+
+
+                // Add the Element to the given container
+                return container;
+            }
         }
 
-
-        private void BindVariantUI(VisualElement element, int index)
-        {
-            SerializedProperty weightedVariantProp = variantsProp.GetArrayElementAtIndex(index);
-            SerializedProperty variantProp = weightedVariantProp.FindPropertyRelative("item");
-
-            element.Q<ObjectField>("clip").BindProperty(variantProp.FindPropertyRelative("clip"));
-            element.Q<FloatField>("volume").BindProperty(variantProp.FindPropertyRelative("volume"));
-            element.Q<FloatField>("volumeVariation").BindProperty(variantProp.FindPropertyRelative("volumeVariation"));
-            element.Q<FloatField>("pitch").BindProperty(variantProp.FindPropertyRelative("pitch"));
-            element.Q<FloatField>("pitchVariation").BindProperty(variantProp.FindPropertyRelative("pitchVariation"));
-            element.Q<FloatField>("weight").BindProperty(weightedVariantProp.FindPropertyRelative("weight"));
-
-        }
-
-        private VisualElement MakeVariantUI()
-        {
-            float labelWidth = 69;
-
-            // SerializedProperty weightedAudioSpecProp = variantsProp.GetArrayElementAtIndex();
-            // SerializedProperty audioSpecProp = weightedAudioSpecProp.FindPropertyRelative("item");
-            // SerializedProperty weightProp = weightedAudioSpecProp.FindPropertyRelative("weight");
-
-            // Container
-            var container = new VisualElement(); // Can change this back to foldout if i desire
-            container.style.paddingLeft = new StyleLength(15); // Add padding
-            container.style.paddingRight = new StyleLength(5); // Add padding
-            container.style.marginBottom = new StyleLength(5); // Add padding
-            container.style.borderBottomLeftRadius = 10;
-            container.style.borderBottomRightRadius = 10;
-            container.style.borderTopLeftRadius = 10;
-            container.style.borderTopRightRadius = 10;
-            // container.RegisterCallback<MouseDownEvent>(evt =>
-            // {   // Deselect on clicking same item otherwise select item
-
-            //     int myIndex = root.IndexOf(container);
-
-            //     if (myIndex == selectedIndex.Value) selectedIndex.Value = -1;
-            //     else selectedIndex.Value = myIndex;
-
-
-            //     // Have to find the element ourselves because unity occasionally performs a deep copy of all VisualElements rebuilding the tree
-            //     // so if I hold a reference to a visual element in an event, and throw that event, the event will act on the visual element in the old tree
-            //     var rootArray = root.Children().ToArray();
-            //     for (int i = 0; i < root.childCount; i++)
-            //     {
-            //         if (selectedIndex.Value == i) rootArray[i].style.backgroundColor = new Color(.17f, .32f, .56f);
-            //         else rootArray[i].style.backgroundColor = new Color(0.27f, 0.27f, 0.27f);
-            //     }
-            // });
-
-
-            // Weight Field
-            var weightField = new FloatField("Weight") { name = "weight", style = { display = GetWeightFieldDisplayStyle } };
-
-            var clipField = new ObjectField("Clip") { name = "clip", objectType = typeof(AudioClip) };
-            var title = new Label() { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 15, marginTop = 3f, overflow = Overflow.Hidden } };
-
-            var volumeElements = GetVariedField("volume", new Vector2(0, 1), 0.5f, labelWidth);
-            var pitchElements = GetVariedField("pitch", new Vector2(-3, 3), 1f, labelWidth);
-
-
-
-            container.Add(title);
-            container.Add(clipField);
-            container.Add(volumeElements);
-            container.Add(pitchElements);
-            container.Add(weightField);
-
-
-
-            // Add the Element to the given container
-            return container;
-        }
         VisualElement GetScriptField()
         {
             var scriptField = new ObjectField("Script")
@@ -145,7 +133,7 @@ namespace LeafAudio.Editor
             scriptField.SetEnabled(false);
             return scriptField;
         }
-        VisualElement GetWeightedToggle()
+        VisualElement GetWeightedToggle(ListView variantsListView)
         {
             PropertyField weightToggle = new PropertyField(modeProp, "Selection Mode");
 
@@ -155,10 +143,10 @@ namespace LeafAudio.Editor
 
             return weightToggle;
 
-            void UpdateWeightFieldsShown() => variantsListView.Query<FloatField>().Name("weight").ToList().ForEach(element => element.style.display = GetWeightFieldDisplayStyle);
+            void UpdateWeightFieldsShown() { variantsListView.Query<VisualElement>().Name("weightElement").ToList().ForEach(element => element.style.display = GetWeightFieldDisplayStyle); }
         }
         DisplayStyle GetWeightFieldDisplayStyle => ((Sound.SelectionMode)modeProp.enumValueIndex == Sound.SelectionMode.WeightedRandom) ? DisplayStyle.Flex : DisplayStyle.None;
-        Button GetTestButton()
+        Button GetTestButton(ListView variantsListView)
         {
             Button button = new Button
             {
@@ -199,19 +187,19 @@ namespace LeafAudio.Editor
         {
             var capitalizedVar = char.ToUpper(var[0]) + var.Substring(1);
 
-            VisualElement box = new VisualElement();
+            VisualElement box = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
 
 
-            VisualElement labeledValueField = new FloatField("Value") { name = var };
-            VisualElement labeledVariationField = new FloatField("Variation") { name = var + "Variation" };
+            VisualElement labeledValueField = new FloatField("") { name = var, style = { flexGrow = 3, flexBasis = 0 } };
+            VisualElement labeledVariationField = new FloatField("") { name = var + "Variation", style = { flexGrow = 1, flexBasis = 0 } };
 
 
             // Add the fields
-            box.Add(new Label(capitalizedVar));
             box.Add(labeledValueField);
+            box.Add(new Label("+/-") { style = { unityTextAlign = TextAnchor.MiddleCenter, paddingLeft = 5 } });
             box.Add(labeledVariationField);
 
-            return box;
+            return GetLabeledElement(box, capitalizedVar);
         }
         VisualElement GetSliderField(SerializedProperty floatProp, Vector2 range)
         {
