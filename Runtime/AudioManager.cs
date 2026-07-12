@@ -209,7 +209,7 @@ namespace LeafAudio
                 source.transform.position = origin == null ? offset : origin.position + offset;
 
                 // Cache End Time stamp based on clip length
-                endTime = soundVariant.GetClip().length + Time.time;
+                endTime = source.clip.length / source.pitch + Time.time;
             }
 
             /// <summary>

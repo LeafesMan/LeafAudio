@@ -51,11 +51,12 @@ namespace LeafAudio.Editor
 
             source.Play();
 
-            // Destroy temporary Object after the clips completion
-            if (Application.isPlaying) Object.Destroy(source.gameObject, source.clip.length);
+            // Destroy temporary Object after the clips completion            
+            float duration = source.clip.length / source.pitch;
+            if (Application.isPlaying) Object.Destroy(source.gameObject, duration);
             else
             {
-                double destroyTime = EditorApplication.timeSinceStartup + source.clip.length;
+                double destroyTime = EditorApplication.timeSinceStartup + duration;
                 EditorApplication.update += Cleanup;
 
                 void Cleanup()
