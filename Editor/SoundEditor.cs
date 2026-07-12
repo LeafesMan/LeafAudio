@@ -6,7 +6,6 @@ using System.Linq;
 using System.Collections.Generic;
 using LeafRand.Collections;
 using System;
-using UnityEngine.Categorization;
 using UnityEngine.Audio;
 
 namespace LeafAudio.Editor
@@ -24,11 +23,11 @@ namespace LeafAudio.Editor
 
         public override VisualElement CreateInspectorGUI()
         {
-            // Grab prop
             variantsProp = serializedObject.FindProperty("weightedVariants");
 
             // Create root container and specs container
             VisualElement root = new VisualElement();
+            SetupNoVariantProtection(root);
             variantsListView = GetVariantsListView();
 
             // Populate Root
@@ -61,6 +60,20 @@ namespace LeafAudio.Editor
             root.Add(GetSettingsFoldout());
 
             return root;
+        }
+        void SetupNoVariantProtection(VisualElement root)
+        {   // Protect once on starting the editor then whenever the serialized object changes
+            ProtectAgainstNoVariants();
+            root.TrackSerializedObjectValue(serializedObject, (obj) => ProtectAgainstNoVariants());
+            void ProtectAgainstNoVariants()
+            {
+                if (variantsProp.arraySize == 0)
+                {
+                    variantsProp.arraySize++;
+                    serializedObject.ApplyModifiedProperties();
+                    Debug.LogError($"{target.name} has no SoundVariants! One has been added. Did you remove the last variant via reflection or debug mode?");
+                }
+            }
         }
         VisualElement GetSettingsFoldout()
         {
@@ -136,6 +149,11 @@ namespace LeafAudio.Editor
             variantsListView.bindItem += BindVariantUI;
             variantsListView.makeItem += MakeVariantUI;
             variantsListView.BindProperty(variantsProp);
+
+            // Only allow remove when > 1 element
+            UpdateAllowRemove();
+            variantsListView.TrackPropertyValue(variantsProp, (p) => UpdateAllowRemove());
+            void UpdateAllowRemove() => variantsListView.allowRemove = variantsProp.arraySize > 1;
 
             ShowIfCondition(variantsListView, IsAnyUnique);
 
