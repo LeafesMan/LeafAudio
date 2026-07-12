@@ -5,6 +5,9 @@ using UnityEditor.UIElements;
 using System.Linq;
 using System.Collections.Generic;
 using LeafRand.Collections;
+using System;
+using UnityEngine.Categorization;
+using UnityEngine.Audio;
 
 namespace LeafAudio.Editor
 {
@@ -15,36 +18,101 @@ namespace LeafAudio.Editor
     public class SoundEditor : UnityEditor.Editor
     {
         SerializedProperty variantsProp;
-        SerializedProperty groupProp;
-        SerializedProperty modeProp;
+        event Action VariantUIBinded;
+
+        ListView variantsListView;
 
         public override VisualElement CreateInspectorGUI()
         {
-            // Grab props
+            // Grab prop
             variantsProp = serializedObject.FindProperty("weightedVariants");
-            groupProp = serializedObject.FindProperty("mixerGroup");
-            modeProp = serializedObject.FindProperty("selectionMode");
-
 
             // Create root container and specs container
             VisualElement root = new VisualElement();
-            ListView variantsListView = GetVariantsListView();
+            variantsListView = GetVariantsListView();
 
 
             // Populate Root
             root.Add(GetScriptField());
-            root.Add(new PropertyField(serializedObject.FindProperty("mixerGroup"), "Mixer Group"));
-            root.Add(GetWeightedToggle(variantsListView));
-            if (targets.Length == 1)
-            {
-                root.Add(variantsListView);
-                root.Add(GetTestButton(variantsListView));
-            }
+            root.Add(GetLabeledElement(new ObjectField("") { bindingPath = serializedObject.FindProperty("mixerGroup").propertyPath, objectType = typeof(AudioMixerGroup) }, "Group"));
+            if (targets.Length > 1) return root; // Multi editing stops here!
+
+
+
+            // Make Shared Fields
+            VisualElement sharedClipField = GetLabeledElement(new ObjectField("") { name = "clip", objectType = typeof(AudioClip) }, "Clip");
+            ShowIfCondition(sharedClipField, () => serializedObject.FindProperty("clipType").enumValueIndex == (int)Sound.ValueType.Shared);
+            MakeAllMatchingChildrenShared<UnityEngine.Object>(sharedClipField, "clip");
+
+            VisualElement sharedVolumeField = GetVariedField(Vector2.up, true, "volume", "Volume");
+            MakeAllMatchingChildrenShared<float>(sharedVolumeField, "volume");
+            MakeAllMatchingChildrenShared<float>(sharedVolumeField, "volumeVariation");
+
+            VisualElement sharedPitchField = GetVariedField(new Vector2(-1, 1) * 3, true, "pitch", "Pitch");
+            MakeAllMatchingChildrenShared<float>(sharedPitchField, "pitch");
+            MakeAllMatchingChildrenShared<float>(sharedPitchField, "pitchVariation");
+
+
+
+            root.Add(sharedClipField);
+            root.Add(sharedVolumeField);
+            root.Add(sharedPitchField);
+            root.Add(variantsListView);
+            root.Add(GetTestButton(variantsListView));
+            root.Add(GetSettingsFoldout());
 
             return root;
         }
+        VisualElement GetSettingsFoldout()
+        {
+            Foldout settingsFoldout = new Foldout() { text = "Settings", toggleOnLabelClick = true };
+
+            // Setup settings foldout
+            settingsFoldout.Add(GetPropField("selectionMode"));
+            settingsFoldout.Add(GetPropField("clipType"));
+            settingsFoldout.Add(GetPropField("volumeType"));
+            settingsFoldout.Add(GetPropField("volumeVariationType"));
+            settingsFoldout.Add(GetPropField("pitchType"));
+            settingsFoldout.Add(GetPropField("pitchVariationType"));
+            PropertyField GetPropField(string propName) => new PropertyField(serializedObject.FindProperty(propName));
+
+            return settingsFoldout;
+        }
+        void MakeAllMatchingChildrenShared<T>(VisualElement container, string propName) => container.Query<BaseField<T>>(propName).ForEach((field) => MakeFieldShared(field, propName));
+        void MakeFieldShared<T>(BaseField<T> field, string propName)
+        {
+            string propRelative = $"item.{propName}";
+            SerializedProperty typeProp = serializedObject.FindProperty(propName + "Type");
 
 
+            // Ensure always bound to 0th variants
+            BindToVariant0();
+            variantsListView.itemIndexChanged += (a, b) => BindToVariant0();
+            void BindToVariant0() => field.BindProperty(variantsProp.GetArrayElementAtIndex(0).FindPropertyRelative(propRelative));
+
+
+            // When propType becomes shared
+            // - Update all prop values to shared value
+            field.TrackPropertyValue(typeProp, (typeProp) => UpdatePropertiesToSharedFieldValue(propName, field.value));
+
+            // Ensure all fields are updated to this fields value when Shared is on for this value 
+            field.RegisterValueChangedCallback((evt) => UpdatePropertiesToSharedFieldValue(propName, evt.newValue));
+            void UpdatePropertiesToSharedFieldValue(string pathRelativeToVariant, T newFieldValue)
+            {
+                if (typeProp.enumValueIndex != (int)Sound.ValueType.Shared) return; // If not shared dont distribute values
+
+                for (int i = 0; i < variantsProp.arraySize; i++)
+                {
+                    var variantProp = variantsProp.GetArrayElementAtIndex(i).FindPropertyRelative($"item.{pathRelativeToVariant}");
+
+                    // Account for float/audioclip
+                    object newValObj = newFieldValue;
+                    if (typeof(T) == typeof(float)) variantProp.floatValue = (float)newValObj;
+                    if (typeof(T) == typeof(UnityEngine.Object)) variantProp.boxedValue = newValObj;
+                }
+                serializedObject.ApplyModifiedProperties();
+            }
+        }
         ListView GetVariantsListView()
         {
             ListView variantsListView = new ListView()
@@ -66,15 +134,9 @@ namespace LeafAudio.Editor
 
             return variantsListView;
 
-            void BindVariantUI(VisualElement element, int index) => ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index));
+            void BindVariantUI(VisualElement element, int index) { ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index)); VariantUIBinded?.Invoke(); }
             VisualElement MakeVariantUI()
             {
-                float labelWidth = 69;
-
-                // SerializedProperty weightedAudioSpecProp = variantsProp.GetArrayElementAtIndex();
-                // SerializedProperty audioSpecProp = weightedAudioSpecProp.FindPropertyRelative("item");
-                // SerializedProperty weightProp = weightedAudioSpecProp.FindPropertyRelative("weight");
-
                 // Container
                 var container = new BindableElement(); // Can change this back to foldout if i desire
                 container.style.paddingLeft = new StyleLength(15); // Add padding
@@ -87,53 +149,72 @@ namespace LeafAudio.Editor
 
                 // Weight Field
                 var weightField = GetLabeledElement(new FloatField("") { bindingPath = "weight" }, "Weight", "weight");
-                weightField.style.display = GetWeightFieldDisplayStyle;
+                ShowIfCondition(weightField, () => serializedObject.FindProperty("selectionMode").enumValueIndex == (int)Sound.SelectionMode.WeightedRandom);
 
-                var clipField = GetLabeledElement(new ObjectField("") { bindingPath = "item.clip", objectType = typeof(AudioClip) }, "Clip");
-                var title = new Label() { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 15, marginTop = 3f, overflow = Overflow.Hidden } };
+                var clipField = GetLabeledElement(new ObjectField("") { bindingPath = "item.clip", name = "clip", objectType = typeof(AudioClip) }, "Clip");
+                ShowIfCondition(clipField, () => serializedObject.FindProperty("clipType").enumValueIndex == (int)Sound.ValueType.Unique);
 
-                var volumeElements = GetVariedField("volume", new Vector2(0, 1), 0.5f, labelWidth);
-                var pitchElements = GetVariedField("pitch", new Vector2(-3, 3), 1f, labelWidth);
+                var volumeElements = GetVariedField(new Vector2(0, 1), false, "volume", "Volume");
+                var pitchElements = GetVariedField(new Vector2(-3, 3), false, "pitch", "Pitch");
 
 
 
-                container.Add(title);
                 container.Add(clipField);
                 container.Add(volumeElements);
                 container.Add(pitchElements);
                 container.Add(weightField);
 
 
-
                 // Add the Element to the given container
                 return container;
             }
-            VisualElement GetVariedField(string var, Vector2 valueRange, float varyRange, float labelWidth)
-            {
-                var capitalizedVar = char.ToUpper(var[0]) + var.Substring(1);
+        }
+        VisualElement GetVariedField(Vector2 valueRange, bool showWhenShared, string var = "", string label = "")
+        {
+            VisualElement fieldsElement = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
 
-                VisualElement box = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
+            ClampedFloatField valueField = new ClampedFloatField(valueRange) { bindingPath = $"item.{var}", name = var, style = { flexGrow = 1, maxWidth = 50, flexBasis = 30 } };
+            Slider valueSlider = new Slider(valueRange.x, valueRange.y) { bindingPath = $"item.{var}", name = var, style = { flexGrow = 1 } };
+            VisualElement variationField = new ClampedFloatField(new Vector2(0, Mathf.Infinity), "+/-") { bindingPath = $"item.{var}Variation", name = $"{var}Variation", style = { flexGrow = 1, maxWidth = 65, flexBasis = 45 } };
 
-                ClampedFloatField valueField = new ClampedFloatField(valueRange) { bindingPath = $"item.{var}", style = { flexGrow = 1, maxWidth = 50, flexBasis = 30 } };
-                Slider valueSlider = new Slider(valueRange.x, valueRange.y) { bindingPath = $"item.{var}", style = { flexGrow = 1 } };
-                VisualElement variationField = new ClampedFloatField(new Vector2(0, Mathf.Infinity), "+/-") { bindingPath = $"item.{var}Variation", style = { flexGrow = 1, maxWidth = 65, flexBasis = 45 } };
-                var variationLabel = variationField.Q<Label>();
-                variationLabel.style.flexGrow = 0;
-                variationLabel.style.flexShrink = 0;
-                variationLabel.style.minWidth = 22;
-                var variationText = variationField.Q<VisualElement>(className: "unity-base-field__input");
-                variationText.style.minWidth = 0;
-                variationText.style.flexGrow = 1f;
+            var variationLabel = variationField.Q<Label>();
+            variationLabel.style.flexGrow = 0;
+            variationLabel.style.flexShrink = 0;
+            variationLabel.style.minWidth = 22;
+            var variationText = variationField.Q<VisualElement>(className: "unity-base-field__input");
+            variationText.style.minWidth = 0;
+            variationText.style.flexGrow = 1f;
 
-                // Add the fields
-                //box.Add(new Label("(0.22-0.4)") { style = { unityTextAlign = TextAnchor.MiddleCenter } });
-                box.Add(valueField);
-                box.Add(valueSlider);
-                box.Add(variationField);
+            // Add the fields
+            fieldsElement.Add(valueField);
+            fieldsElement.Add(valueSlider);
+            fieldsElement.Add(variationField);
 
-                return GetLabeledElement(box, capitalizedVar);
-            }
+            var labeledElement = GetLabeledElement(fieldsElement, label);
 
+
+            // Toggle elements
+            Sound.ValueType GetValueType() => (Sound.ValueType)serializedObject.FindProperty($"{var}Type").enumValueIndex;
+            Sound.VariationType GetVariationType() => (Sound.VariationType)serializedObject.FindProperty($"{var}VariationType").enumValueIndex;
+            bool DoShowValue() => (showWhenShared && GetValueType() == Sound.ValueType.Shared) || (!showWhenShared && GetValueType() == Sound.ValueType.Unique);
+            bool DoShowVariation() => (showWhenShared && GetVariationType() == Sound.VariationType.Shared) || (!showWhenShared && GetVariationType() == Sound.VariationType.Unique);
+
+            ShowIfCondition(valueField, DoShowValue);
+            ShowIfCondition(valueSlider, DoShowValue);
+            ShowIfCondition(variationField, DoShowVariation);
+            ShowIfCondition(labeledElement, () => DoShowValue() || DoShowVariation());
+
+            return labeledElement;
+        }
+
+        /// <summary>
+        /// Tracks the serialized object and shows whenever the condition is met
+        /// </summary>
+        void ShowIfCondition(VisualElement element, Func<bool> condition)
+        {
+            UpdateShown();
+            element.TrackSerializedObjectValue(serializedObject, (obj) => UpdateShown());
+            void UpdateShown() => element.style.display = condition() ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         VisualElement GetScriptField()
@@ -147,19 +228,6 @@ namespace LeafAudio.Editor
             scriptField.SetEnabled(false);
             return scriptField;
         }
-        VisualElement GetWeightedToggle(ListView variantsListView)
-        {
-            PropertyField weightToggle = new PropertyField(modeProp, "Selection Mode");
-
-            // Initialize and update weights shown
-            UpdateWeightFieldsShown();
-            weightToggle.RegisterValueChangeCallback((evt) => UpdateWeightFieldsShown());
-
-            return weightToggle;
-
-            void UpdateWeightFieldsShown() { variantsListView.Query<VisualElement>().Name("weight").ToList().ForEach(element => element.style.display = GetWeightFieldDisplayStyle); }
-        }
-        DisplayStyle GetWeightFieldDisplayStyle => ((Sound.SelectionMode)modeProp.enumValueIndex == Sound.SelectionMode.WeightedRandom) ? DisplayStyle.Flex : DisplayStyle.None;
         Button GetTestButton(ListView variantsListView)
         {
             Button button = new Button
@@ -197,19 +265,6 @@ namespace LeafAudio.Editor
 
             return button;
         }
-
-        VisualElement GetSliderField(Vector2 range)
-        {
-            // VALUE FIELD
-            var floatSlider = new Slider(range.x, range.y) { style = { flexGrow = 1, marginLeft = 0 } };
-
-            // Create a TextField to display and edit the float value
-            var floatSliderField = new VisualElement();
-            floatSliderField.style.flexDirection = FlexDirection.Row;
-            floatSliderField.Add(floatSlider);
-
-            return floatSliderField;
-        }
         BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = 55)
         {   // Create and Style Label
             Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
@@ -230,9 +285,9 @@ namespace LeafAudio.Editor
 
             return labeledElement;
         }
+        string GetCapitalized(string str) => char.ToUpper(str[0]) + str[1..];
     }
 }
-
 
 class ClampedFloatField : FloatField
 {

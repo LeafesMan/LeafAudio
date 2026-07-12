@@ -18,6 +18,16 @@ namespace LeafAudio
 
         public enum SelectionMode { UniformRandom, WeightedRandom }
 
+#if UNITY_EDITOR
+        public enum ValueType { Unique, Shared }
+        [SerializeField] ValueType clipType;
+        [SerializeField] ValueType volumeType;
+        [SerializeField] ValueType pitchType;
+
+        public enum VariationType { Unique, Shared, None }
+        [SerializeField] VariationType volumeVariationType;
+        [SerializeField] VariationType pitchVariationType;
+#endif
 
         public void Play(SpatialRolloff spatialSpecs = null) => Audio.Play(this, spatialSpecs);
         public void PlayLooping(float fadeDuration, uint slot) => Audio.PlayLooping(this, fadeDuration, slot);
