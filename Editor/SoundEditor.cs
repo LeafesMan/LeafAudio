@@ -98,7 +98,8 @@ namespace LeafAudio.Editor
             field.RegisterValueChangedCallback((evt) => UpdatePropertiesToSharedFieldValue(propName, evt.newValue));
             void UpdatePropertiesToSharedFieldValue(string pathRelativeToVariant, T newFieldValue)
             {
-                if (typeProp.enumValueIndex != (int)Sound.ValueType.Shared) return; // If not shared dont distribute values
+                if (typeProp.enumValueIndex == (int)Sound.ValueType.Unique) return; // If unique dont distribute values
+                if (typeProp.enumValueIndex == (int)Sound.VariationType.None) newFieldValue = default;
 
                 for (int i = 0; i < variantsProp.arraySize; i++)
                 {
