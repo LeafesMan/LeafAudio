@@ -31,7 +31,6 @@ namespace LeafAudio.Editor
             VisualElement root = new VisualElement();
             variantsListView = GetVariantsListView();
 
-
             // Populate Root
             root.Add(GetScriptField());
             root.Add(GetLabeledElement(new ObjectField("") { bindingPath = serializedObject.FindProperty("mixerGroup").propertyPath, objectType = typeof(AudioMixerGroup) }, "Group"));
@@ -113,6 +112,11 @@ namespace LeafAudio.Editor
                 serializedObject.ApplyModifiedProperties();
             }
         }
+        bool IsAnyUnique()
+        {
+            bool IsUnique(string propName) => serializedObject.FindProperty(propName).enumValueIndex == (int)Sound.ValueType.Unique;
+            return IsUnique("clipType") || IsUnique("volumeType") || IsUnique("volumeVariationType") || IsUnique("pitchType") || IsUnique("pitchVariationType");
+        }
         ListView GetVariantsListView()
         {
             ListView variantsListView = new ListView()
@@ -131,6 +135,8 @@ namespace LeafAudio.Editor
             variantsListView.bindItem += BindVariantUI;
             variantsListView.makeItem += MakeVariantUI;
             variantsListView.BindProperty(variantsProp);
+
+            ShowIfCondition(variantsListView, IsAnyUnique);
 
             return variantsListView;
 
