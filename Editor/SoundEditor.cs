@@ -10,15 +10,10 @@ using UnityEngine.Audio;
 
 namespace LeafAudio.Editor
 {
-    /// <summary>
-    /// Draws an audio definition. Conceals uneeded vars and allows playing any individual spec or group of specs.
-    /// </summary>
     [CustomEditor(typeof(Sound)), CanEditMultipleObjects]
     public class SoundEditor : UnityEditor.Editor
     {
         SerializedProperty variantsProp;
-        event Action VariantUIBinded;
-
         ListView variantsListView;
 
         public override VisualElement CreateInspectorGUI()
@@ -50,17 +45,22 @@ namespace LeafAudio.Editor
             MakeAllMatchingChildrenShared<float>(sharedPitchField, "pitch");
             MakeAllMatchingChildrenShared<float>(sharedPitchField, "pitchVariation");
 
+            VisualElement testButton = GetTestButton(variantsListView);
+            ShowIfCondition(testButton, () => !IsAnyUnique());
 
 
+            root.Add(GetSpacer());
+            root.Add(variantsListView);
+            root.Add(testButton);
             root.Add(sharedClipField);
             root.Add(sharedVolumeField);
             root.Add(sharedPitchField);
-            root.Add(variantsListView);
-            root.Add(GetTestButton(variantsListView));
+            root.Add(GetSpacer());
             root.Add(GetSettingsFoldout());
 
             return root;
         }
+        VisualElement GetSpacer() => new VisualElement() { style = { height = 10 } };
         void SetupNoVariantProtection(VisualElement root)
         {   // Protect once on starting the editor then whenever the serialized object changes
             ProtectAgainstNoVariants();
@@ -139,6 +139,7 @@ namespace LeafAudio.Editor
                 showAddRemoveFooter = true,
                 showBoundCollectionSize = true,
                 showFoldoutHeader = true,
+                showAlternatingRowBackgrounds = AlternatingRowBackground.All,
                 selectionType = SelectionType.Multiple,
                 virtualizationMethod = CollectionVirtualizationMethod.DynamicHeight,
                 reorderMode = ListViewReorderMode.Animated,
@@ -156,9 +157,15 @@ namespace LeafAudio.Editor
 
             ShowIfCondition(variantsListView, IsAnyUnique);
 
+            // Add test button to header
+            VisualElement listViewHeader = variantsListView.Q<VisualElement>(className: "unity-foldout__input");
+            if (listViewHeader == null) throw new Exception("Unity has moved the ListView header element. Use UI Toolkit Debugger to find and assign it again!");
+            listViewHeader.Add(GetTestButton(variantsListView, 6, 66));
+
+
             return variantsListView;
 
-            void BindVariantUI(VisualElement element, int index) { ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index)); VariantUIBinded?.Invoke(); }
+            void BindVariantUI(VisualElement element, int index) => ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index));
             VisualElement MakeVariantUI()
             {
                 // Container
@@ -180,8 +187,6 @@ namespace LeafAudio.Editor
 
                 var volumeElements = GetVariedField(new Vector2(0, 1), false, "volume", "Volume");
                 var pitchElements = GetVariedField(new Vector2(-3, 3), false, "pitch", "Pitch");
-
-
 
                 container.Add(clipField);
                 container.Add(volumeElements);
@@ -252,12 +257,12 @@ namespace LeafAudio.Editor
             scriptField.SetEnabled(false);
             return scriptField;
         }
-        Button GetTestButton(ListView variantsListView)
+        Button GetTestButton(ListView variantsListView, float flexGrow = 1, float marginRight = 0)
         {
             Button button = new Button
             {
                 text = "Test",
-                style = { height = 20, marginTop = 5 }
+                style = { flexGrow = flexGrow, marginLeft = 0, marginRight = marginRight }
             };
             // Disable Test Button if there are no clips asd
             variantsListView.selectedIndicesChanged += (indices) => button.text = "Test" + (indices.Any() ? " Selected" : "");
