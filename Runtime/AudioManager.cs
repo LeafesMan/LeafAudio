@@ -16,7 +16,7 @@ namespace LeafAudio
     {
         #region Vars
         [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")]
-        int poolSize = 30;
+        int poolSize = Settings.instance.GlobalAudioManagerPoolSize;
         /// <summary>
         /// Audio Source Pool. Sorted in ascending order by End Time
         /// </summary>

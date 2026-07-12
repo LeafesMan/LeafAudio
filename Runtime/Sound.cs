@@ -9,7 +9,7 @@ namespace LeafAudio
     /// <summary>
     /// A reusable sound asset containing multiple variants that will be randomly selected from for playback.
     /// </summary>
-    [CreateAssetMenu(fileName = "NewSound", menuName = "FX/Sound")]
+    [CreateAssetMenu(fileName = "NewSound", menuName = "Audio/Sound")]
     public class Sound : ScriptableObject
     {
         [SerializeField] AudioMixerGroup mixerGroup = null;
