@@ -77,7 +77,7 @@ namespace LeafAudio.Editor
         }
         VisualElement GetSettingsFoldout()
         {
-            Foldout settingsFoldout = new Foldout() { text = "Settings", toggleOnLabelClick = true };
+            Foldout settingsFoldout = new Foldout() { text = "Settings", toggleOnLabelClick = true, viewDataKey = "SoundSettingsFoldout" };
 
             // Setup settings foldout
             settingsFoldout.Add(GetPropField("selectionMode"));
@@ -137,7 +137,6 @@ namespace LeafAudio.Editor
             {
                 showBorder = true,
                 showAddRemoveFooter = true,
-                showAlternatingRowBackgrounds = AlternatingRowBackground.ContentOnly,
                 showBoundCollectionSize = true,
                 showFoldoutHeader = true,
                 selectionType = SelectionType.Multiple,
