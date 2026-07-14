@@ -50,10 +50,6 @@ namespace LeafAudio.Editor
             VisualElement testButton = GetTestButton(variantsListView);
             ShowIfCondition(testButton, () => !IsAnyUnique());
 
-            // Update all Variation Preview on Geometry Changed
-            root.RegisterCallback<GeometryChangedEvent>(evt => root.Query<VisualElement>(className: "variedField").ForEach(element => UpdateVariationPreview(element)));
-
-
             root.Add(GetSpacer());
             root.Add(variantsListView);
             root.Add(testButton);
@@ -217,10 +213,15 @@ namespace LeafAudio.Editor
                 container.Add(weightField);
 
 
+
+
+
                 // Add the Element to the given container
                 return container;
             }
         }
+
+
 
         // Prefix is set as the elements userData and thus may be updated to rebind the variation preview
         void BindVariationPreview(SerializedProperty variantProp, VisualElement variedField)
@@ -243,7 +244,6 @@ namespace LeafAudio.Editor
         }
         void UpdateVariationPreview(VisualElement variedElement)
         {
-
             // Grab info from the field
             VariedFieldInfo variedFieldInfo = (VariedFieldInfo)variedElement.userData;
             string variantPropPath = variedFieldInfo.variantPropPath;
@@ -270,6 +270,8 @@ namespace LeafAudio.Editor
             // Apply width and position
             valSliderPreview.style.left = leftOffset + usableWidth * posPercent;
             valSliderPreview.style.width = usableWidth * widthPercent;
+
+
         }
 
         struct VariedFieldInfo
@@ -308,7 +310,7 @@ namespace LeafAudio.Editor
             var sliderPreview = new VisualElement() { name = $"{var}SliderPreview", pickingMode = PickingMode.Ignore, style = { backgroundColor = Settings.instance.SliderVariationColor, position = Position.Absolute, height = 2, width = 1 } };
             var sliderBkg = valueSlider.Q<VisualElement>("unity-tracker");
             sliderBkg.style.overflow = Overflow.Hidden; // Hide preview when off bkg
-
+            valueSlider.RegisterCallback<GeometryChangedEvent>(evt => UpdateVariationPreview(fieldsElement));
 
             // Add the fields
             sliderBkg.Add(sliderPreview);
