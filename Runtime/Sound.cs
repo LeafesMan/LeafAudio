@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using LeafRand.Collections;
 using LeafRand.Global;
 using UnityEngine;
@@ -28,11 +29,6 @@ namespace LeafAudio
         [SerializeField] VariationType volumeVariationType;
         [SerializeField] VariationType pitchVariationType;
 #endif
-
-        public void Play(SpatialRolloff spatialSpecs = null) => Audio.Play(this, spatialSpecs);
-        public void PlayLooping(float fadeDuration, uint slot) => Audio.PlayLooping(this, fadeDuration, slot);
-
-
         /// <summary>
         /// Selects a variant from this sound using this sound's SelectionMode.
         /// </summary>
