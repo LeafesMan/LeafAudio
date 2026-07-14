@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 
 namespace LeafAudio
 {
@@ -9,7 +10,7 @@ namespace LeafAudio
         public int GlobalAudioManagerPoolSize = 30;
 
 #if UNITY_EDITOR
-
+        public Color SliderVariationColor = new Color(68, 136, 202);
 #endif
 
         public void SaveSettings() => Save(true);

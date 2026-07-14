@@ -21,6 +21,7 @@ namespace LeafAudio.Editor
                     VisualElement title = new Label("LeafAudio") { style = { fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold, marginLeft = 6 } };
                     root.Add(title);
                     root.Add(new PropertyField(settings.FindProperty(nameof(Settings.GlobalAudioManagerPoolSize))));
+                    root.Add(new PropertyField(settings.FindProperty(nameof(Settings.SliderVariationColor))));
                     root.Bind(settings);
 
                     title.TrackSerializedObjectValue(settings, s => Settings.instance.SaveSettings());

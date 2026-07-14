@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using LeafRand.Collections;
 using System;
 using UnityEngine.Audio;
+using Codice.CM.Common.Merge;
+using System.Runtime.InteropServices;
 
 namespace LeafAudio.Editor
 {
@@ -47,6 +49,9 @@ namespace LeafAudio.Editor
 
             VisualElement testButton = GetTestButton(variantsListView);
             ShowIfCondition(testButton, () => !IsAnyUnique());
+
+            // Update all Variation Preview on Geometry Changed
+            root.RegisterCallback<GeometryChangedEvent>(evt => root.Query<VisualElement>(className: "variedField").ForEach(element => UpdateVariationPreview(element)));
 
 
             root.Add(GetSpacer());
@@ -93,15 +98,19 @@ namespace LeafAudio.Editor
         void MakeAllMatchingChildrenShared<T>(VisualElement container, string propName) => container.Query<BaseField<T>>(propName).ForEach((field) => MakeFieldShared(field, propName));
         void MakeFieldShared<T>(BaseField<T> field, string propName)
         {
-            string propRelative = $"item.{propName}";
             SerializedProperty typeProp = serializedObject.FindProperty(propName + "Type");
 
 
             // Ensure always bound to 0th variants
             BindToVariant0();
             variantsListView.itemIndexChanged += (a, b) => BindToVariant0();
-            void BindToVariant0() => field.BindProperty(variantsProp.GetArrayElementAtIndex(0).FindPropertyRelative(propRelative));
+            void BindToVariant0()
+            {
+                SerializedProperty variantProp = variantsProp.GetArrayElementAtIndex(0).FindPropertyRelative("item");
+                field.BindProperty(variantProp.FindPropertyRelative(propName));
 
+                if (typeof(T) == typeof(float)) BindVariationPreview(variantProp, field.parent);
+            }
 
             // When propType becomes shared
             // - Update all prop values to shared value
@@ -165,7 +174,21 @@ namespace LeafAudio.Editor
 
             return variantsListView;
 
-            void BindVariantUI(VisualElement element, int index) => ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index));
+            void BindVariantUI(VisualElement element, int index)
+            {
+                ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index));
+
+                // Setup previews
+                var variantProp = variantsProp.GetArrayElementAtIndex(index).FindPropertyRelative("item");
+                var volumeVariedField = element.Q<VisualElement>("volumeVariedField");
+                var pitchVariedField = element.Q<VisualElement>("pitchVariedField");
+                BindVariationPreview(variantProp, volumeVariedField);
+                BindVariationPreview(variantProp, pitchVariedField);
+            }
+
+
+
+
             VisualElement MakeVariantUI()
             {
                 // Container
@@ -198,14 +221,80 @@ namespace LeafAudio.Editor
                 return container;
             }
         }
-        VisualElement GetVariedField(Vector2 valueRange, bool showWhenShared, string var = "", string label = "")
+
+        // Prefix is set as the elements userData and thus may be updated to rebind the variation preview
+        void BindVariationPreview(SerializedProperty variantProp, VisualElement variedField)
         {
-            VisualElement fieldsElement = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
+            VariedFieldInfo newVariedFieldInfo = (VariedFieldInfo)variedField.userData;
+            newVariedFieldInfo.variantPropPath = variantProp.propertyPath + ".";
+            variedField.userData = newVariedFieldInfo;
+            string var = newVariedFieldInfo.var;
 
+            var valSliderPreview = variedField.Q<VisualElement>(var + "SliderPreview");
+
+            var variationProp = variantProp.FindPropertyRelative(var + "Variation");
+            var valueProp = variantProp.FindPropertyRelative(var);
+            valSliderPreview.Unbind(); // Unbinds previous TrackPropertyValue calls
+
+
+
+            valSliderPreview.TrackPropertyValue(valueProp, p => UpdateVariationPreview(variedField));
+            valSliderPreview.TrackPropertyValue(variationProp, p => UpdateVariationPreview(variedField));
+        }
+        void UpdateVariationPreview(VisualElement variedElement)
+        {
+
+            // Grab info from the field
+            VariedFieldInfo variedFieldInfo = (VariedFieldInfo)variedElement.userData;
+            string variantPropPath = variedFieldInfo.variantPropPath;
+            string var = variedFieldInfo.var;
+            Vector2 range = variedFieldInfo.range;
+
+            // Grab required Elements
+            VisualElement valSlider = variedElement.Q<Slider>(var);
+            VisualElement valSliderPreview = variedElement.Q<VisualElement>(var + "SliderPreview");
+            VisualElement dragger = valSlider.Q(className: "unity-base-slider__dragger");
+
+            //  Calculate widths
+            float rangeWidth = range.y - range.x;
+            float draggerWidth = dragger.resolvedStyle.width;
+            float trackWidth = valSlider.resolvedStyle.width;
+            float usableWidth = trackWidth - draggerWidth;
+            float leftOffset = draggerWidth * 0.5f;
+
+            // Determine neccesary dragger width and position of a percent of usable width
+            //                                                     Account for dragger unused width
+            float widthPercent = 2 * serializedObject.FindProperty(variantPropPath + var + "Variation").floatValue / rangeWidth + draggerWidth / trackWidth;
+            float posPercent = (serializedObject.FindProperty(variantPropPath + var).floatValue - range.x) / rangeWidth - widthPercent * 0.5f;
+
+            // Apply width and position
+            valSliderPreview.style.left = leftOffset + usableWidth * posPercent;
+            valSliderPreview.style.width = usableWidth * widthPercent;
+        }
+
+        struct VariedFieldInfo
+        {
+            public string variantPropPath;
+            public string var;
+            public Vector2 range;
+
+            public VariedFieldInfo(string variantPropPath, string var, Vector2 range)
+            {
+                this.variantPropPath = variantPropPath;
+                this.var = var;
+                this.range = range;
+            }
+        }
+        VisualElement GetVariedField(Vector2 valueRange, bool showWhenShared, string var = "", string label = "", string variantPath = "")
+        {
+            VisualElement fieldsElement = new VisualElement() { name = var + "VariedField", style = { flexDirection = FlexDirection.Row } };
+            fieldsElement.AddToClassList("variedField");
+            fieldsElement.userData = new VariedFieldInfo(variantPath, var, valueRange);
+
+
+            // Setup Value and Variation Fields
             ClampedFloatField valueField = new ClampedFloatField(valueRange) { bindingPath = $"item.{var}", name = var, style = { flexGrow = 1, maxWidth = 50, flexBasis = 30 } };
-            Slider valueSlider = new Slider(valueRange.x, valueRange.y) { bindingPath = $"item.{var}", name = var, style = { flexGrow = 1 } };
-            VisualElement variationField = new ClampedFloatField(new Vector2(0, Mathf.Infinity), "+/-") { bindingPath = $"item.{var}Variation", name = $"{var}Variation", style = { flexGrow = 1, maxWidth = 65, flexBasis = 45 } };
-
+            ClampedFloatField variationField = new ClampedFloatField(new Vector2(0, Mathf.Infinity), "+/-") { bindingPath = $"item.{var}Variation", name = $"{var}Variation", style = { flexGrow = 1, maxWidth = 65, flexBasis = 45 } };
             var variationLabel = variationField.Q<Label>();
             variationLabel.style.flexGrow = 0;
             variationLabel.style.flexShrink = 0;
@@ -214,7 +303,15 @@ namespace LeafAudio.Editor
             variationText.style.minWidth = 0;
             variationText.style.flexGrow = 1f;
 
+            // Setup Value slider + Variation preview
+            Slider valueSlider = new Slider(valueRange.x, valueRange.y) { bindingPath = $"item.{var}", name = var, style = { marginLeft = 10, flexGrow = 1 } };
+            var sliderPreview = new VisualElement() { name = $"{var}SliderPreview", pickingMode = PickingMode.Ignore, style = { backgroundColor = Settings.instance.SliderVariationColor, position = Position.Absolute, height = 2, width = 1 } };
+            var sliderBkg = valueSlider.Q<VisualElement>("unity-tracker");
+            sliderBkg.style.overflow = Overflow.Hidden; // Hide preview when off bkg
+
+
             // Add the fields
+            sliderBkg.Add(sliderPreview);
             fieldsElement.Add(valueField);
             fieldsElement.Add(valueSlider);
             fieldsElement.Add(variationField);
