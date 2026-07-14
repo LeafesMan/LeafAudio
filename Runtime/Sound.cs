@@ -14,15 +14,12 @@ namespace LeafAudio
         [SerializeField] AudioMixerGroup mixerGroup;
         [SerializeField] SelectionMode selectionMode;
         [SerializeField] List<Weighted<SoundVariant>> weightedVariants;
+        [SerializeField] Vector2 pitchRange;
 
-        /// <summary>
-        /// Selects a variant from this sound using this sound's SelectionMode.
-        /// </summary>
-        public SoundVariant SelectVariant() => SelectVariant(weightedVariants, selectionMode);
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
         /// </summary>
-        public static SoundVariant SelectVariant(List<Weighted<SoundVariant>> weightedVariants, SelectionMode selectionMode)
+        SoundVariant SelectVariant(List<Weighted<SoundVariant>> weightedVariants)
         {
             switch (selectionMode)
             {
@@ -36,6 +33,29 @@ namespace LeafAudio
         public int VariantCount => weightedVariants.Count;
 
         public enum SelectionMode { UniformRandom, WeightedRandom }
+
+        /// <summary>
+        /// Gets PlaybackSettings from this sound using this sound's selection mode and a variant's variation properties.
+        /// </summary>
+        public PlaybackSettings GetPlaybackSettings() => GetPlaybackSettingsFromVariants(weightedVariants);
+
+        /// <summary>
+        /// Gets PlaybackSettings from this sound but uses the specified weightedVariants
+        /// </summary>
+        internal PlaybackSettings GetPlaybackSettingsFromVariants(List<Weighted<SoundVariant>> weightedVariants)
+        {
+            var variant = SelectVariant(weightedVariants);
+
+            // Clamp Volume/Pitch so that they aren't outside of their respective ranges
+            // * Clamping the variation amount rather than then final value ensures we get uniform distribution across our range
+            Vector2 volumeVariationRange = new Vector2(-variant.volume, 1 - variant.volume); // Volume has a static range of 0,1
+            float volume = variant.volume + Rand.Float(Mathf.Max(-variant.volumeVariation, volumeVariationRange.x), Mathf.Min(variant.volumeVariation, volumeVariationRange.y));
+
+            Vector2 pitchVariationRange = new Vector2(pitchRange.x - variant.pitch, pitchRange.y - variant.pitch);
+            float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
+
+            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup);
+        }
 
 #if UNITY_EDITOR
         // These values are all used in the SoundEditor
@@ -54,6 +74,7 @@ namespace LeafAudio
             mixerGroup = Settings.instance.SoundDefaults.AudioMixerGroup;
             selectionMode = Settings.instance.SoundDefaults.SelectionMode;
             weightedVariants = new() { new Weighted<SoundVariant>(new SoundVariant(), 1) };
+            pitchRange = Settings.instance.SoundDefaults.PitchRange;
 
             clipMode = Settings.instance.SoundDefaults.ClipMode;
             volumeMode = Settings.instance.SoundDefaults.VolumeMode;

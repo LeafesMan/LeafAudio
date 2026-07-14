@@ -26,19 +26,20 @@ namespace LeafAudio.Editor
 
 
                     // Setup Hiding for Volume and Pitch Variation on Mode Change
-                    var volumeElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeVariation)));
+                    var volumeVariationElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeVariation)));
                     var volumeVariationModeProp = soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeVariationMode));
-                    HideWhileNone(volumeElement, volumeVariationModeProp);
+                    HideWhileNone(volumeVariationElement, volumeVariationModeProp);
 
-                    var pitchElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchVariation)));
+                    var pitchVariationElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchVariation)));
                     var pitchVariationModeProp = soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchVariationMode));
-                    HideWhileNone(pitchElement, pitchVariationModeProp);
+                    HideWhileNone(pitchVariationElement, pitchVariationModeProp);
 
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.AudioMixerGroup))));
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.Volume))));
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.Pitch))));
-                    templateFoldout.Add(volumeElement);
-                    templateFoldout.Add(pitchElement);
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchRange))));
+                    templateFoldout.Add(volumeVariationElement);
+                    templateFoldout.Add(pitchVariationElement);
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SelectionMode))));
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.ClipMode))));
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeMode))));

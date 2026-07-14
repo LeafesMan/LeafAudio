@@ -87,6 +87,7 @@ namespace LeafAudio.Editor
             settingsFoldout.Add(GetPropField("volumeVariationMode", "Volume Variation"));
             settingsFoldout.Add(GetPropField("pitchMode", "Pitch"));
             settingsFoldout.Add(GetPropField("pitchVariationMode", "Pitch Variation"));
+            settingsFoldout.Add(GetPropField("pitchRange", "Pitch Range"));
             PropertyField GetPropField(string propName, string label) => new PropertyField(serializedObject.FindProperty(propName), label);
 
             return settingsFoldout;
@@ -205,16 +206,12 @@ namespace LeafAudio.Editor
                 ShowIfCondition(clipField, () => serializedObject.FindProperty("clipMode").enumValueIndex == (int)Sound.ValueMode.Unique);
 
                 var volumeElements = GetVariedField(new Vector2(0, 1), false, "volume", "Volume");
-                var pitchElements = GetVariedField(new Vector2(-3, 3), false, "pitch", "Pitch");
+                var pitchElements = GetVariedField(serializedObject.FindProperty("pitchRange").vector2Value, false, "pitch", "Pitch");
 
                 container.Add(clipField);
                 container.Add(volumeElements);
                 container.Add(pitchElements);
                 container.Add(weightField);
-
-
-
-
 
                 // Add the Element to the given container
                 return container;
@@ -310,7 +307,20 @@ namespace LeafAudio.Editor
             var sliderPreview = new VisualElement() { name = $"{var}SliderPreview", pickingMode = PickingMode.Ignore, style = { backgroundColor = Settings.instance.SliderVariationColor, position = Position.Absolute, height = 2, width = 1 } };
             var sliderBkg = valueSlider.Q<VisualElement>("unity-tracker");
             sliderBkg.style.overflow = Overflow.Hidden; // Hide preview when off bkg
-            valueSlider.RegisterCallback<GeometryChangedEvent>(evt => UpdateVariationPreview(fieldsElement));
+            valueSlider.RegisterCallback<GeometryChangedEvent>(evt => UpdateVariationPreview(fieldsElement)); // Update Preview when size changes
+            if (var == "pitch") fieldsElement.TrackPropertyValue(serializedObject.FindProperty("pitchRange"), pitchRange =>
+            {   // Update the slider range, field range, and the UserData range(for the preview)
+                valueSlider.lowValue = pitchRange.vector2Value.x;
+                valueSlider.highValue = pitchRange.vector2Value.y;
+
+                valueField.ClampRange = pitchRange.vector2Value;
+
+                var newData = (VariedFieldInfo)fieldsElement.userData;
+                newData.range = pitchRange.vector2Value;
+                fieldsElement.userData = newData;
+
+                UpdateVariationPreview(fieldsElement);
+            }); // Update Ranges when range changes
 
             // Add the fields
             sliderBkg.Add(sliderPreview);
@@ -369,25 +379,25 @@ namespace LeafAudio.Editor
             button.RegisterCallback<ClickEvent>(
                 (evt) =>
                 {
-                    Sound audio = target as Sound;
-                    SoundVariant variant;
+                    Sound sound = target as Sound;
+                    PlaybackSettings playbackSettings;
 
                     List<int> selectedIndices = new List<int>();
                     foreach (var index in variantsListView.selectedIndices) selectedIndices.Add(index);
 
                     // No Variants Selected? Use Sounds Variants+SelectionMode
-                    if (selectedIndices.Count == 0) variant = audio.SelectVariant();
+                    if (selectedIndices.Count == 0) playbackSettings = sound.GetPlaybackSettings();
                     else
                     {   // Variants Selected? Use Selected Variants+SoundsSelectionMode
                         // Make a list of only selected variants then use Sound.SelectVariant on them
                         List<Weighted<SoundVariant>> selectedWeightedSoundVariants = new();
                         for (int i = 0; i < selectedIndices.Count; i++) selectedWeightedSoundVariants.Add((Weighted<SoundVariant>)variantsProp.GetArrayElementAtIndex(selectedIndices[i]).boxedValue);
 
-                        variant = Sound.SelectVariant(selectedWeightedSoundVariants, (Sound.SelectionMode)serializedObject.FindProperty("selectionMode").enumValueIndex);
+                        playbackSettings = sound.GetPlaybackSettingsFromVariants(selectedWeightedSoundVariants);
                     }
 
 
-                    SoundTester.Test(variant.GetClip(), variant.GetVolume(), variant.GetPitch());
+                    SoundTester.Test(playbackSettings);
                 }
             );
 
@@ -422,5 +432,9 @@ class ClampedFloatField : FloatField
     public Vector2 ClampRange;
     public ClampedFloatField(Vector2 clampRange, string label = "") { this.ClampRange = clampRange; this.label = label; }
 
-    public override float value { get => base.value; set => base.value = Mathf.Clamp(value, ClampRange.x, ClampRange.y); }
+    public override float value
+    {
+        get => base.value;
+        set { if (ClampRange.x <= ClampRange.y) base.value = Mathf.Clamp(value, ClampRange.x, ClampRange.y); }
+    }
 }

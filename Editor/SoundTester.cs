@@ -17,14 +17,13 @@ namespace LeafAudio.Editor
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
             {
-                Test(asset as AudioClip, Settings.instance.SoundDefaults.Volume, 1);
+                Test(new PlaybackSettings(asset as AudioClip, Settings.instance.SoundDefaults.Volume, 1, null));
                 return true;
             }
             if (asset.GetType() == typeof(Sound))
             {
                 Sound sound = asset as Sound;
-                SoundVariant spec = sound.SelectVariant();
-                Test(spec.GetClip(), spec.GetVolume(), spec.GetPitch());
+                Test(sound.GetPlaybackSettings());
                 return true;
             }
 
@@ -35,9 +34,9 @@ namespace LeafAudio.Editor
         /// <summary>
         /// Tests the clip by creating a temporary gameobject with an audio source on it then destroying it.
         /// </summary>
-        public static void Test(AudioClip clip, float volume, float pitch)
+        public static void Test(PlaybackSettings playbackSettings)
         {
-            if (clip == null) { Debug.LogWarning("Sound Testing Skipped: Can't test null clip!"); return; }
+            if (playbackSettings.clip == null) { Debug.LogWarning("Sound Testing Skipped: Can't test null clip!"); return; }
 
 
             // Create Temp Object and Components
@@ -45,9 +44,10 @@ namespace LeafAudio.Editor
             source.gameObject.hideFlags = HideFlags.DontSave;
 
             // Setup Source
-            source.clip = clip;
-            source.volume = volume;
-            source.pitch = pitch;
+            source.clip = playbackSettings.clip;
+            source.volume = playbackSettings.volume;
+            source.pitch = playbackSettings.pitch;
+            source.outputAudioMixerGroup = playbackSettings.mixerGroup;
 
             source.Play();
 

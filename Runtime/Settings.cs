@@ -19,6 +19,7 @@ namespace LeafAudio
             public float VolumeVariation = 0;
             public float Pitch = 1;
             public float PitchVariation = 0.1f;
+            public Vector2 PitchRange = new Vector2(0, 2);
             public Sound.SelectionMode SelectionMode = Sound.SelectionMode.UniformRandom;
             public Sound.ValueMode ClipMode = Sound.ValueMode.Unique;
             public Sound.ValueMode VolumeMode = Sound.ValueMode.Unique;

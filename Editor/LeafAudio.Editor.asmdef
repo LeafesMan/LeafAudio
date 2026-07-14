@@ -1,6 +1,6 @@
 {
     "name": "LeafAudio.Editor",
-    "rootNamespace": "",
+    "rootNamespace": "LeafAudio.Editor",
     "references": [
         "GUID:e6c26e98c9623ea4081787c5c9dec7a2",
         "GUID:347bb22a9474ff9408ab139a61e78152"

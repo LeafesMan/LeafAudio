@@ -51,13 +51,13 @@ namespace LeafAudio
                 return;
             }
 
-            SoundVariant toPlay = sound.SelectVariant();
+            PlaybackSettings toPlay = sound.GetPlaybackSettings();
 
-            if (toPlay.GetClip() == null) return;
+            if (toPlay.clip == null) return;
 
             // Grab a source, set it up, play it, and sort the sources
             PooledAudioSource pooledSource = GetAudioSource();
-            pooledSource.Setup(toPlay, sound.Group, spatialSpecs);
+            pooledSource.Setup(toPlay, spatialSpecs);
             pooledSource.Play();
             Sort(pooledSource);
         }
@@ -76,11 +76,11 @@ namespace LeafAudio
             StartCoroutine(FadeVolume(loopingPool[slot].Item2, loopingPool[slot].Item2.volume, 0, fadeDuration));
 
             //Fade in faded out Audio Source, replace it's clip with clip to fade in, and set volume to 0
-            var audioSpec = sound.SelectVariant();
-            loopingPool[slot].Item2.clip = audioSpec.GetClip();
-            loopingPool[slot].Item2.pitch = audioSpec.GetPitch();
+            var playbackSettings = sound.GetPlaybackSettings();
+            loopingPool[slot].Item2.clip = playbackSettings.clip;
+            loopingPool[slot].Item2.pitch = playbackSettings.pitch;
             loopingPool[slot].Item2.outputAudioMixerGroup = sound.Group;
-            StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, audioSpec.GetVolume(), fadeDuration));
+            StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, playbackSettings.volume, fadeDuration));
 
             //Swap faded in AudioSource with the faded out AudioSource in the audioSourcePairs tuple
             loopingPool[slot] = new(loopingPool[slot].Item2, loopingPool[slot].Item1);
@@ -166,14 +166,12 @@ namespace LeafAudio
             /// <summary>
             /// Setups a pooled audio source with a new set of parameters
             /// </summary>
-            public void Setup(SoundVariant soundVariant, AudioMixerGroup mixerGroup, SpatialRolloff spatialRolloff)
+            public void Setup(PlaybackSettings playbackSettings, SpatialRolloff spatialRolloff)
             {   // Audio Data
-                source.outputAudioMixerGroup = mixerGroup;
-
-
-                source.clip = soundVariant.GetClip();
-                source.volume = soundVariant.GetVolume();
-                source.pitch = soundVariant.GetPitch();
+                source.outputAudioMixerGroup = playbackSettings.mixerGroup;
+                source.clip = playbackSettings.clip;
+                source.volume = playbackSettings.volume;
+                source.pitch = playbackSettings.pitch;
 
 #if UNITY_EDITOR
                 source.name = source.clip.name; // Soley an editor convenience for easier debugging

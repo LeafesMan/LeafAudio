@@ -1,5 +1,4 @@
 using UnityEngine;
-using LeafRand.Global;
 
 namespace LeafAudio
 {
@@ -9,15 +8,10 @@ namespace LeafAudio
     [System.Serializable]
     public class SoundVariant
     {
-        [SerializeField] AudioClip clip;
-
+        [SerializeField] internal AudioClip clip;
         [SerializeField] internal float volume;
         [SerializeField] internal float volumeVariation;
         [SerializeField] internal float pitch;
         [SerializeField] internal float pitchVariation;
-
-        public AudioClip GetClip() => clip;
-        public float GetVolume() => volume + Rand.Float(-volumeVariation, volumeVariation);
-        public float GetPitch() => pitch + Rand.Float(-pitchVariation, pitchVariation);
     }
 }
