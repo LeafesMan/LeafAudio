@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace LeafAudio
 {
@@ -10,9 +11,26 @@ namespace LeafAudio
         public int GlobalAudioManagerPoolSize = 30;
 
 #if UNITY_EDITOR
+        [System.Serializable]
+        public class SoundTemplate
+        {
+            public AudioMixerGroup AudioMixerGroup = null;
+            public float Volume = 0.5f;
+            public float VolumeVariation = 0;
+            public float Pitch = 1;
+            public float PitchVariation = 0.1f;
+            public Sound.SelectionMode SelectionMode = Sound.SelectionMode.UniformRandom;
+            public Sound.ValueMode ClipMode = Sound.ValueMode.Unique;
+            public Sound.ValueMode VolumeMode = Sound.ValueMode.Unique;
+            public Sound.ValueMode PitchMode = Sound.ValueMode.Unique;
+            public Sound.VariationMode VolumeVariationMode = Sound.VariationMode.None;
+            public Sound.VariationMode PitchVariationMode = Sound.VariationMode.Shared;
+        }
+        public SoundTemplate SoundDefaults;
+        public bool WarnOnPlayNullSound = true;
         public Color SliderVariationColor = new Color(68, 136, 202);
-#endif
 
         public void SaveSettings() => Save(true);
+#endif
     }
 }

@@ -11,15 +11,10 @@ namespace LeafAudio
     {
         [SerializeField] AudioClip clip;
 
-        [SerializeField] float volume = DefaultVolume;
-        [SerializeField] float volumeVariation = DefaultVolumeVariation;
-        [SerializeField] float pitch = DefaultPitch;
-        [SerializeField] float pitchVariation = DefaultPitchVariation;
-
-        public const float DefaultVolume = 0.2f;
-        public const float DefaultVolumeVariation = 0;
-        public const float DefaultPitch = 1;
-        public const float DefaultPitchVariation = 0.2f;
+        [SerializeField] internal float volume;
+        [SerializeField] internal float volumeVariation;
+        [SerializeField] internal float pitch;
+        [SerializeField] internal float pitchVariation;
 
         public AudioClip GetClip() => clip;
         public float GetVolume() => volume + Rand.Float(-volumeVariation, volumeVariation);

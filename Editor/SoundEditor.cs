@@ -36,7 +36,7 @@ namespace LeafAudio.Editor
 
             // Make Shared Fields
             VisualElement sharedClipField = GetLabeledElement(new ObjectField("") { name = "clip", objectType = typeof(AudioClip) }, "Clip");
-            ShowIfCondition(sharedClipField, () => serializedObject.FindProperty("clipType").enumValueIndex == (int)Sound.ValueType.Shared);
+            ShowIfCondition(sharedClipField, () => serializedObject.FindProperty("clipMode").enumValueIndex == (int)Sound.ValueMode.Shared);
             MakeAllMatchingChildrenShared<UnityEngine.Object>(sharedClipField, "clip");
 
             VisualElement sharedVolumeField = GetVariedField(Vector2.up, true, "volume", "Volume");
@@ -85,20 +85,20 @@ namespace LeafAudio.Editor
             Foldout settingsFoldout = new Foldout() { text = "Settings", toggleOnLabelClick = true, viewDataKey = "SoundSettingsFoldout" };
 
             // Setup settings foldout
-            settingsFoldout.Add(GetPropField("selectionMode"));
-            settingsFoldout.Add(GetPropField("clipType"));
-            settingsFoldout.Add(GetPropField("volumeType"));
-            settingsFoldout.Add(GetPropField("volumeVariationType"));
-            settingsFoldout.Add(GetPropField("pitchType"));
-            settingsFoldout.Add(GetPropField("pitchVariationType"));
-            PropertyField GetPropField(string propName) => new PropertyField(serializedObject.FindProperty(propName));
+            settingsFoldout.Add(GetPropField("selectionMode", "Selection"));
+            settingsFoldout.Add(GetPropField("clipMode", "Clip"));
+            settingsFoldout.Add(GetPropField("volumeMode", "Volume"));
+            settingsFoldout.Add(GetPropField("volumeVariationMode", "Volume Variation"));
+            settingsFoldout.Add(GetPropField("pitchMode", "Pitch"));
+            settingsFoldout.Add(GetPropField("pitchVariationMode", "Pitch Variation"));
+            PropertyField GetPropField(string propName, string label) => new PropertyField(serializedObject.FindProperty(propName), label);
 
             return settingsFoldout;
         }
         void MakeAllMatchingChildrenShared<T>(VisualElement container, string propName) => container.Query<BaseField<T>>(propName).ForEach((field) => MakeFieldShared(field, propName));
         void MakeFieldShared<T>(BaseField<T> field, string propName)
         {
-            SerializedProperty typeProp = serializedObject.FindProperty(propName + "Type");
+            SerializedProperty typeProp = serializedObject.FindProperty(propName + "Mode");
 
 
             // Ensure always bound to 0th variants
@@ -112,7 +112,7 @@ namespace LeafAudio.Editor
                 if (typeof(T) == typeof(float)) BindVariationPreview(variantProp, field.parent);
             }
 
-            // When propType becomes shared
+            // When propMode becomes shared
             // - Update all prop values to shared value
             field.TrackPropertyValue(typeProp, (typeProp) => UpdatePropertiesToSharedFieldValue(propName, field.value));
 
@@ -120,8 +120,8 @@ namespace LeafAudio.Editor
             field.RegisterValueChangedCallback((evt) => UpdatePropertiesToSharedFieldValue(propName, evt.newValue));
             void UpdatePropertiesToSharedFieldValue(string pathRelativeToVariant, T newFieldValue)
             {
-                if (typeProp.enumValueIndex == (int)Sound.ValueType.Unique) return; // If unique dont distribute values
-                if (typeProp.enumValueIndex == (int)Sound.VariationType.None) newFieldValue = default;
+                if (typeProp.enumValueIndex == (int)Sound.ValueMode.Unique) return; // If unique dont distribute values
+                if (typeProp.enumValueIndex == (int)Sound.VariationMode.None) newFieldValue = default;
 
                 for (int i = 0; i < variantsProp.arraySize; i++)
                 {
@@ -137,8 +137,8 @@ namespace LeafAudio.Editor
         }
         bool IsAnyUnique()
         {
-            bool IsUnique(string propName) => serializedObject.FindProperty(propName).enumValueIndex == (int)Sound.ValueType.Unique;
-            return IsUnique("clipType") || IsUnique("volumeType") || IsUnique("volumeVariationType") || IsUnique("pitchType") || IsUnique("pitchVariationType");
+            bool IsUnique(string propName) => serializedObject.FindProperty(propName).enumValueIndex == (int)Sound.ValueMode.Unique;
+            return IsUnique("clipMode") || IsUnique("volumeMode") || IsUnique("volumeVariationMode") || IsUnique("pitchMode") || IsUnique("pitchVariationMode");
         }
         ListView GetVariantsListView()
         {
@@ -206,7 +206,7 @@ namespace LeafAudio.Editor
                 ShowIfCondition(weightField, () => serializedObject.FindProperty("selectionMode").enumValueIndex == (int)Sound.SelectionMode.WeightedRandom);
 
                 var clipField = GetLabeledElement(new ObjectField("") { bindingPath = "item.clip", name = "clip", objectType = typeof(AudioClip) }, "Clip");
-                ShowIfCondition(clipField, () => serializedObject.FindProperty("clipType").enumValueIndex == (int)Sound.ValueType.Unique);
+                ShowIfCondition(clipField, () => serializedObject.FindProperty("clipMode").enumValueIndex == (int)Sound.ValueMode.Unique);
 
                 var volumeElements = GetVariedField(new Vector2(0, 1), false, "volume", "Volume");
                 var pitchElements = GetVariedField(new Vector2(-3, 3), false, "pitch", "Pitch");
@@ -320,10 +320,10 @@ namespace LeafAudio.Editor
 
 
             // Toggle elements
-            Sound.ValueType GetValueType() => (Sound.ValueType)serializedObject.FindProperty($"{var}Type").enumValueIndex;
-            Sound.VariationType GetVariationType() => (Sound.VariationType)serializedObject.FindProperty($"{var}VariationType").enumValueIndex;
-            bool DoShowValue() => (showWhenShared && GetValueType() == Sound.ValueType.Shared) || (!showWhenShared && GetValueType() == Sound.ValueType.Unique);
-            bool DoShowVariation() => (showWhenShared && GetVariationType() == Sound.VariationType.Shared) || (!showWhenShared && GetVariationType() == Sound.VariationType.Unique);
+            Sound.ValueMode GetValueMode() => (Sound.ValueMode)serializedObject.FindProperty($"{var}Mode").enumValueIndex;
+            Sound.VariationMode GetVariationMode() => (Sound.VariationMode)serializedObject.FindProperty($"{var}VariationMode").enumValueIndex;
+            bool DoShowValue() => (showWhenShared && GetValueMode() == Sound.ValueMode.Shared) || (!showWhenShared && GetValueMode() == Sound.ValueMode.Unique);
+            bool DoShowVariation() => (showWhenShared && GetVariationMode() == Sound.VariationMode.Shared) || (!showWhenShared && GetVariationMode() == Sound.VariationMode.Unique);
 
             ShowIfCondition(valueField, DoShowValue);
             ShowIfCondition(valueSlider, DoShowValue);

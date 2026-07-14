@@ -42,26 +42,18 @@ namespace LeafAudio
         /// Plays a Clip with the given parameters
         /// </summary>
         public void Play(Sound sound, SpatialRolloff spatialSpecs = null)
-        {   /* Null Audio Check Description
-         * There are three cases where Audio may be null:
-         * - Audio = null
-         * - Audio.AudioSpec[].count = 0
-         * - Audio.AudioSpec[x].clip = null
-         * In all cases we quitely fail to play the audio
-         * - I think this is ideal as we don't want to interrupt program flow with an error
-         * - Theres an argument that the user should be informed of no audio playing
-         *      but we don't want to blow up the console if it is intentional
-         * - It is easy to determine why audio isnt playing dont need a console warning
-         * (Perhaps turning on debug mode could print a warning)
-         */
-            // First and Second Null Audio Check
-            if (sound == null) { Debug.LogWarning("Skipping play request: Received null Audio!"); return; }
-            if (sound.VariantCount == 0) { Debug.LogWarning("Skipping play request: Received Audio without any specs!"); return; }
+        {
+            if (sound == null)
+            {
+#if UNITY_EDITOR
+                if (Settings.instance.WarnOnPlayNullSound) Debug.LogWarning("Failed to play null sound! This is an editor-only warning and may be disabled: ProjectSetting/LeafAudio/WarnOnPlayNullSound");
+#endif
+                return;
+            }
 
-            // Get Spec to Play
             SoundVariant toPlay = sound.SelectVariant();
 
-            if (toPlay.GetClip() == null) { Debug.LogWarning("Skipping play request: Received AudioSpec with a null clip!"); return; }
+            if (toPlay.GetClip() == null) return;
 
             // Grab a source, set it up, play it, and sort the sources
             PooledAudioSource pooledSource = GetAudioSource();
