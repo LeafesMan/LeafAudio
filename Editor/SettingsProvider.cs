@@ -1,3 +1,4 @@
+using Mono.Cecil;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -17,21 +18,55 @@ namespace LeafAudio.Editor
                 activateHandler = (searchContext, root) =>
                 {
                     SerializedObject settings = new SerializedObject(Settings.instance);
+                    SerializedProperty soundTemplate = settings.FindProperty(nameof(Settings.SoundDefaults));
 
                     VisualElement title = new Label("LeafAudio") { style = { fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold, marginLeft = 6 } };
+
+                    Foldout templateFoldout = new Foldout() { text = "Sound Template" };
+
+
+                    // Setup Hiding for Volume and Pitch Variation on Mode Change
+                    var volumeElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeVariation)));
+                    var volumeVariationModeProp = soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeVariationMode));
+                    HideWhileNone(volumeElement, volumeVariationModeProp);
+
+                    var pitchElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchVariation)));
+                    var pitchVariationModeProp = soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchVariationMode));
+                    HideWhileNone(pitchElement, pitchVariationModeProp);
+
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.AudioMixerGroup))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.Volume))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.Pitch))));
+                    templateFoldout.Add(volumeElement);
+                    templateFoldout.Add(pitchElement);
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SelectionMode))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.ClipMode))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeMode))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchMode))));
+                    templateFoldout.Add(new PropertyField(volumeVariationModeProp));
+                    templateFoldout.Add(new PropertyField(pitchVariationModeProp));
 
 
                     root.Add(title);
                     root.Add(new PropertyField(settings.FindProperty(nameof(Settings.GlobalAudioManagerPoolSize))));
                     root.Add(new Label("Editor") { style = { fontSize = 15, marginTop = 5, marginBottom = 2, marginLeft = 6 } });
                     root.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNullSound))));
-                    root.Add(new PropertyField(settings.FindProperty(nameof(Settings.SoundDefaults)), "Sound Template"));
+                    root.Add(templateFoldout);
                     root.Add(new PropertyField(settings.FindProperty(nameof(Settings.SliderVariationColor))));
-
                     root.Bind(settings);
+
                     title.TrackSerializedObjectValue(settings, s => Settings.instance.SaveSettings());
+
+
+                    void HideWhileNone(VisualElement toHide, SerializedProperty modeProp)
+                    {
+                        UpdateHidden();
+                        toHide.TrackSerializedObjectValue(settings, p => UpdateHidden());
+                        void UpdateHidden() => toHide.style.display = modeProp.enumValueIndex == (int)Sound.VariationMode.None ? DisplayStyle.None : DisplayStyle.Flex;
+                    }
                 }
             };
         }
+
     }
 }
