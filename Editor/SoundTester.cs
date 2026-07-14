@@ -42,7 +42,7 @@ namespace LeafAudio.Editor
 
             // Create Temp Object and Components
             AudioSource source = new GameObject("SoundTest").AddComponent<AudioSource>();
-            source.gameObject.hideFlags = HideFlags.HideAndDontSave;
+            source.gameObject.hideFlags = HideFlags.DontSave;
 
             // Setup Source
             source.clip = clip;
