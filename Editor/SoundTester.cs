@@ -5,7 +5,6 @@ namespace LeafAudio.Editor
 {
     public class SoundTester
     {
-
         /// <summary>
         /// Test Audio Clips & Assets on double click 
         /// </summary>
@@ -44,15 +43,11 @@ namespace LeafAudio.Editor
             source.gameObject.hideFlags = HideFlags.DontSave;
 
             // Setup Source
-            source.clip = playbackSettings.clip;
-            source.volume = playbackSettings.volume;
-            source.pitch = playbackSettings.pitch;
-            source.outputAudioMixerGroup = playbackSettings.mixerGroup;
-
+            Audio.ApplyPlaybackSettings(source, playbackSettings);
             source.Play();
 
             // Destroy temporary Object after the clips completion            
-            float duration = source.clip.length / source.pitch;
+            float duration = Audio.GetDuration(playbackSettings);
             if (Application.isPlaying) Object.Destroy(source.gameObject, duration);
             else
             {

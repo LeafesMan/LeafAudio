@@ -167,12 +167,10 @@ namespace LeafAudio
             /// Setups a pooled audio source with a new set of parameters
             /// </summary>
             public void Setup(PlaybackSettings playbackSettings, SpatialRolloff spatialRolloff)
-            {   // Audio Data
-                source.outputAudioMixerGroup = playbackSettings.mixerGroup;
-                source.clip = playbackSettings.clip;
-                source.volume = playbackSettings.volume;
-                source.pitch = playbackSettings.pitch;
+            {
 
+
+                Audio.ApplyPlaybackSettings(source, playbackSettings);
 #if UNITY_EDITOR
                 source.name = source.clip.name; // Soley an editor convenience for easier debugging
 #endif
@@ -199,7 +197,7 @@ namespace LeafAudio
                 source.transform.position = origin == null ? offset : origin.position + offset;
 
                 // Cache End Time stamp based on clip length
-                endTime = source.clip.length / source.pitch + Time.time;
+                endTime = Time.time + Audio.GetDuration(playbackSettings); ;
             }
 
             /// <summary>
