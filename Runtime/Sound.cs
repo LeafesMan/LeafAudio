@@ -68,6 +68,12 @@ namespace LeafAudio
         [SerializeField] VariationMode volumeVariationMode;
         [SerializeField] VariationMode pitchVariationMode;
 
+        void OnValidate()
+        {
+            if (pitchRange.x > pitchRange.y) pitchRange = Vector2.one * pitchRange.x;
+
+            foreach (var variant in weightedVariants) variant.Item.pitch = Mathf.Clamp(variant.Item.pitch, pitchRange.x, pitchRange.y);
+        }
 
         void Reset()
         {
