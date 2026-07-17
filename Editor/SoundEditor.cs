@@ -80,7 +80,13 @@ namespace LeafAudio.Editor
         {
             Foldout settingsFoldout = new Foldout() { text = "Settings", toggleOnLabelClick = true, viewDataKey = "SoundSettingsFoldout" };
 
+            // Setup Set All Modes buttons
+            VisualElement setAllButtonContainer = new VisualElement() { style = { flexDirection = FlexDirection.Row, alignSelf = Align.Stretch, flexGrow = 1, paddingLeft = 0, paddingRight = 0, marginRight = 0, marginLeft = 0 } };
+            setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Shared)) { text = "Set All Shared", style = { flexGrow = 1, marginLeft = 0, paddingLeft = 0, borderLeftWidth = 0 } });
+            setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Unique)) { text = "Set All Unique", style = { flexGrow = 1, marginRight = 0, paddingRight = 0, borderRightWidth = 0 } });
+
             // Setup settings foldout
+            settingsFoldout.Add(setAllButtonContainer);
             settingsFoldout.Add(GetPropField("selectionMode", "Selection"));
             settingsFoldout.Add(GetPropField("clipMode", "Clip"));
             settingsFoldout.Add(GetPropField("volumeMode", "Volume"));
@@ -91,6 +97,16 @@ namespace LeafAudio.Editor
             PropertyField GetPropField(string propName, string label) => new PropertyField(serializedObject.FindProperty(propName), label);
 
             return settingsFoldout;
+
+            void SetAllModes(Sound.ValueMode newMode)
+            {
+                serializedObject.FindProperty("clipMode").enumValueIndex = (int)newMode;
+                serializedObject.FindProperty("volumeMode").enumValueIndex = (int)newMode;
+                serializedObject.FindProperty("volumeVariationMode").enumValueIndex = (int)newMode;
+                serializedObject.FindProperty("pitchMode").enumValueIndex = (int)newMode;
+                serializedObject.FindProperty("pitchVariationMode").enumValueIndex = (int)newMode;
+                serializedObject.ApplyModifiedProperties();
+            }
         }
         void MakeAllMatchingChildrenShared<T>(VisualElement container, string propName) => container.Query<BaseField<T>>(propName).ForEach((field) => MakeFieldShared(field, propName));
         void MakeFieldShared<T>(BaseField<T> field, string propName)
