@@ -72,8 +72,13 @@ namespace LeafAudio
         {
             // Ensure there is a variant
             if (weightedVariants == null) weightedVariants = new();
-            if (weightedVariants.Count == 0) weightedVariants.Add(new Weighted<SoundVariant>(new SoundVariant(), 1));
+            if (weightedVariants.Count == 0)
+            {
+                SoundVariant defaultVariant = new SoundVariant();
+                defaultVariant.Reset();
 
+                weightedVariants.Add(new(defaultVariant));
+            }
             // Ensure pitch range is valid
             if (pitchRange.x > pitchRange.y) pitchRange = Vector2.one * pitchRange.x;
 

@@ -6,7 +6,7 @@ namespace LeafAudio
     /// A single sound variant containing an audio clip and playback parameters.
     /// </summary>
     [System.Serializable]
-    public class SoundVariant
+    internal class SoundVariant
     {
         [SerializeField] internal AudioClip clip;
         [SerializeField] internal float volume;
@@ -14,7 +14,11 @@ namespace LeafAudio
         [SerializeField] internal float pitch;
         [SerializeField] internal float pitchVariation;
 
-        public SoundVariant()
+        //  Don't use a default constructor as Unity will call it before scriptable singletons setup resulting in a null ref error
+        /// <summary>
+        /// Sets values to defaults.
+        /// </summary>
+        internal void Reset()
         {
             volume = Settings.instance.SoundDefaults.Volume;
             volumeVariation = Settings.instance.SoundDefaults.VolumeVariation;
