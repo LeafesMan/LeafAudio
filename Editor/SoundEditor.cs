@@ -20,7 +20,6 @@ namespace LeafAudio.Editor
 
             // Create root container and specs container
             VisualElement root = new VisualElement();
-            SetupNoVariantProtection(root);
             variantsListView = GetVariantsListView();
 
             VisualElement selectionModeField = GetLabeledElement(new PropertyField(serializedObject.FindProperty("selectionMode"), ""), "Selection", tooltip: "How a variant will be selected.");
@@ -63,20 +62,6 @@ namespace LeafAudio.Editor
             return root;
         }
         VisualElement GetSpacer() => new VisualElement() { style = { height = 10 } };
-        void SetupNoVariantProtection(VisualElement root)
-        {   // Protect once on starting the editor then whenever the serialized object changes
-            ProtectAgainstNoVariants();
-            root.TrackSerializedObjectValue(serializedObject, (obj) => ProtectAgainstNoVariants());
-            void ProtectAgainstNoVariants()
-            {
-                if (variantsProp.arraySize == 0)
-                {
-                    variantsProp.arraySize++;
-                    serializedObject.ApplyModifiedProperties();
-                    Debug.LogError($"{target.name} has no SoundVariants! One has been added. Did you remove the last variant via reflection or debug mode?");
-                }
-            }
-        }
         VisualElement GetSettingsFoldout()
         {
             Foldout settingsFoldout = new Foldout() { text = "Data Settings", toggleOnLabelClick = true, viewDataKey = "SettingsFoldout" };
@@ -193,11 +178,6 @@ namespace LeafAudio.Editor
             variantsListView.bindItem += BindVariantUI;
             variantsListView.makeItem += MakeVariantUI;
             variantsListView.BindProperty(variantsProp);
-
-            // Only allow remove when > 1 element
-            UpdateAllowRemove();
-            variantsListView.TrackPropertyValue(variantsProp, (p) => UpdateAllowRemove());
-            void UpdateAllowRemove() => variantsListView.allowRemove = variantsProp.arraySize > 1;
 
             ShowIfCondition(variantsListView, () => HasMultipleVariants());
 
