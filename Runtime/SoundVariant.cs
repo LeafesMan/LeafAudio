@@ -13,5 +13,13 @@ namespace LeafAudio
         [SerializeField] internal float volumeVariation;
         [SerializeField] internal float pitch;
         [SerializeField] internal float pitchVariation;
+
+        public SoundVariant()
+        {
+            volume = Settings.instance.SoundDefaults.Volume;
+            volumeVariation = Settings.instance.SoundDefaults.VolumeVariation;
+            pitch = Settings.instance.SoundDefaults.Pitch;
+            pitchVariation = Settings.instance.SoundDefaults.PitchVariation;
+        }
     }
 }

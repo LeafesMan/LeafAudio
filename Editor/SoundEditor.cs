@@ -6,10 +6,6 @@ using System.Linq;
 using System.Collections.Generic;
 using LeafRand.Collections;
 using System;
-using UnityEngine.Audio;
-using Codice.CM.Common.Merge;
-using System.Runtime.InteropServices;
-
 namespace LeafAudio.Editor
 {
     [CustomEditor(typeof(Sound)), CanEditMultipleObjects]
@@ -27,16 +23,20 @@ namespace LeafAudio.Editor
             SetupNoVariantProtection(root);
             variantsListView = GetVariantsListView();
 
+            VisualElement selectionModeField = GetLabeledElement(new PropertyField(serializedObject.FindProperty("selectionMode"), ""), "Selection", tooltip: "How a variant will be selected.");
+            ShowIfCondition(selectionModeField, HasMultipleVariants);
+
+
             // Populate Root
             root.Add(GetScriptField());
-            root.Add(GetLabeledElement(new ObjectField("") { bindingPath = serializedObject.FindProperty("mixerGroup").propertyPath, objectType = typeof(AudioMixerGroup) }, "Group"));
+            root.Add(GetLabeledElement(new PropertyField(serializedObject.FindProperty("mixerGroup"), ""), "Mixer"));
             if (targets.Length > 1) return root; // Multi editing stops here!
 
 
 
             // Make Shared Fields
             VisualElement sharedClipField = GetLabeledElement(new ObjectField("") { name = "clip", objectType = typeof(AudioClip) }, "Clip");
-            ShowIfCondition(sharedClipField, () => serializedObject.FindProperty("clipMode").enumValueIndex == (int)Sound.ValueMode.Shared);
+            ShowIfCondition(sharedClipField, () => serializedObject.FindProperty("clipMode").enumValueIndex == (int)Sound.ValueMode.Shared || !HasMultipleVariants());
             MakeAllMatchingChildrenShared<UnityEngine.Object>(sharedClipField, "clip");
 
             VisualElement sharedVolumeField = GetVariedField(Vector2.up, true, "volume", "Volume");
@@ -48,14 +48,15 @@ namespace LeafAudio.Editor
             MakeAllMatchingChildrenShared<float>(sharedPitchField, "pitchVariation");
 
             VisualElement testButton = GetTestButton(variantsListView);
-            ShowIfCondition(testButton, () => !IsAnyUnique());
+            ShowIfCondition(testButton, () => !HasMultipleVariants());
 
-            root.Add(GetSpacer());
-            root.Add(variantsListView);
-            root.Add(testButton);
             root.Add(sharedClipField);
             root.Add(sharedVolumeField);
             root.Add(sharedPitchField);
+            root.Add(GetSpacer());
+            root.Add(selectionModeField);
+            root.Add(variantsListView);
+            root.Add(testButton);
             root.Add(GetSpacer());
             root.Add(GetSettingsFoldout());
 
@@ -78,22 +79,42 @@ namespace LeafAudio.Editor
         }
         VisualElement GetSettingsFoldout()
         {
-            Foldout settingsFoldout = new Foldout() { text = "Settings", toggleOnLabelClick = true, viewDataKey = "SoundSettingsFoldout" };
+            Foldout settingsFoldout = new Foldout() { text = "Data Settings", toggleOnLabelClick = true, viewDataKey = "SettingsFoldout" };
 
             // Setup Set All Modes buttons
-            VisualElement setAllButtonContainer = new VisualElement() { style = { flexDirection = FlexDirection.Row, alignSelf = Align.Stretch, flexGrow = 1, paddingLeft = 0, paddingRight = 0, marginRight = 0, marginLeft = 0 } };
-            setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Shared)) { text = "Set All Shared", style = { flexGrow = 1, marginLeft = 0, paddingLeft = 0, borderLeftWidth = 0 } });
+            VisualElement setAllButtonContainer = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
+            setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Shared)) { text = "Set All Shared", style = { flexGrow = 1 } });
             setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Unique)) { text = "Set All Unique", style = { flexGrow = 1, marginRight = 0, paddingRight = 0, borderRightWidth = 0 } });
+            ShowIfCondition(setAllButtonContainer, HasMultipleVariants);
+
+            // Setup Add Variant Button
+            Button addVariantButton = new Button(() => { variantsProp.arraySize++; serializedObject.ApplyModifiedProperties(); });
+            addVariantButton.text = "Add Variant";
+            ShowIfCondition(addVariantButton, () => !HasMultipleVariants());
+
+            // Mode Fields
+            var clipModeField = GetPropField("clipMode", "Clip");
+            var volumeModeField = GetPropField("volumeMode", "Volume");
+            var volumeVariationModeField = GetPropField("volumeVariationMode", "Volume Variation");
+            var pitchModeField = GetPropField("pitchMode", "Pitch");
+            var pitchVariationModeField = GetPropField("pitchVariationMode", "Pitch Variation");
+            var pitchRangeField = GetPropField("pitchRange", "Pitch Range");
+
+            // Hide Certain Mode fields
+            ShowIfCondition(clipModeField, HasMultipleVariants);
+            ShowIfCondition(volumeModeField, HasMultipleVariants);
+            ShowIfCondition(pitchModeField, HasMultipleVariants);
 
             // Setup settings foldout
+            settingsFoldout.Add(addVariantButton);
             settingsFoldout.Add(setAllButtonContainer);
-            settingsFoldout.Add(GetPropField("selectionMode", "Selection"));
-            settingsFoldout.Add(GetPropField("clipMode", "Clip"));
-            settingsFoldout.Add(GetPropField("volumeMode", "Volume"));
-            settingsFoldout.Add(GetPropField("volumeVariationMode", "Volume Variation"));
-            settingsFoldout.Add(GetPropField("pitchMode", "Pitch"));
-            settingsFoldout.Add(GetPropField("pitchVariationMode", "Pitch Variation"));
-            settingsFoldout.Add(GetPropField("pitchRange", "Pitch Range"));
+            settingsFoldout.Add(clipModeField);
+            settingsFoldout.Add(volumeModeField);
+            settingsFoldout.Add(volumeVariationModeField);
+            settingsFoldout.Add(pitchModeField);
+            settingsFoldout.Add(pitchVariationModeField);
+            settingsFoldout.Add(pitchRangeField);
+
             PropertyField GetPropField(string propName, string label) => new PropertyField(serializedObject.FindProperty(propName), label);
 
             return settingsFoldout;
@@ -148,6 +169,7 @@ namespace LeafAudio.Editor
                 serializedObject.ApplyModifiedProperties();
             }
         }
+        bool HasMultipleVariants() => variantsProp.arraySize > 1;
         bool IsAnyUnique()
         {
             bool IsUnique(string propName) => serializedObject.FindProperty(propName).enumValueIndex == (int)Sound.ValueMode.Unique;
@@ -177,12 +199,12 @@ namespace LeafAudio.Editor
             variantsListView.TrackPropertyValue(variantsProp, (p) => UpdateAllowRemove());
             void UpdateAllowRemove() => variantsListView.allowRemove = variantsProp.arraySize > 1;
 
-            ShowIfCondition(variantsListView, IsAnyUnique);
+            ShowIfCondition(variantsListView, () => HasMultipleVariants());
 
             // Add test button to header
             VisualElement listViewHeader = variantsListView.Q<VisualElement>(className: "unity-foldout__input");
             if (listViewHeader == null) throw new Exception("Unity has moved the ListView header element. Use UI Toolkit Debugger to find and assign it again!");
-            listViewHeader.Add(GetTestButton(variantsListView, 6, 66));
+            listViewHeader.Add(GetTestButton(variantsListView, forListView: true));
 
 
             return variantsListView;
@@ -382,15 +404,15 @@ namespace LeafAudio.Editor
             scriptField.SetEnabled(false);
             return scriptField;
         }
-        Button GetTestButton(ListView variantsListView, float flexGrow = 1, float marginRight = 0)
+        Button GetTestButton(ListView variantsListView, bool forListView = false)
         {
             Button button = new Button
             {
                 text = "Test",
-                style = { flexGrow = flexGrow, marginLeft = 0, marginRight = marginRight }
+                style = { flexGrow = forListView ? 6 : 0, marginLeft = 0, marginRight = forListView ? 66 : 0 }
             };
             // Disable Test Button if there are no clips asd
-            variantsListView.selectedIndicesChanged += (indices) => button.text = "Test" + (indices.Any() ? " Selected" : "");
+            variantsListView.selectedIndicesChanged += (indices) => button.text = "Test" + (forListView && indices.Any() ? " Selected" : "");
 
             button.RegisterCallback<ClickEvent>(
                 (evt) =>
@@ -419,7 +441,7 @@ namespace LeafAudio.Editor
 
             return button;
         }
-        BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = 55)
+        BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = 55, string tooltip = "")
         {   // Create and Style Label
             Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
 
@@ -432,6 +454,7 @@ namespace LeafAudio.Editor
             BindableElement labeledElement = new BindableElement()
             {
                 name = name,
+                tooltip = tooltip,
                 style = { flexDirection = FlexDirection.Row, overflow = Overflow.Hidden, paddingRight = 2 }
             };
             labeledElement.Add(label);
