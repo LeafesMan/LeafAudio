@@ -84,8 +84,11 @@ namespace LeafAudio
 
             // Ensure pitches are in pitch range
             foreach (var variant in weightedVariants) variant.Item.pitch = Mathf.Clamp(variant.Item.pitch, pitchRange.x, pitchRange.y);
-        }
 
+
+            // Ensure shared values are shared
+            //foreach(var variant in weightedVariants) 
+        }
         void Reset()
         {
             mixerGroup = Settings.instance.SoundDefaults.AudioMixerGroup;
