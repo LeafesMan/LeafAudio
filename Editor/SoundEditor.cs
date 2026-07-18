@@ -81,14 +81,20 @@ namespace LeafAudio.Editor
             var clipModeField = GetPropField("clipMode", "Clip");
             var volumeModeField = GetPropField("volumeMode", "Volume");
             var volumeVariationModeField = GetPropField("volumeVariationMode", "Volume Variation");
+            var volumeVariationModeToggle = GetVariationModeToggle("volumeVariationMode", "Volume Variation");
             var pitchModeField = GetPropField("pitchMode", "Pitch");
             var pitchVariationModeField = GetPropField("pitchVariationMode", "Pitch Variation");
+            var pitchVariationModeToggle = GetVariationModeToggle("pitchVariationMode", "Pitch Variation");
             var pitchRangeField = GetPropField("pitchRange", "Pitch Range");
 
             // Hide Certain Mode fields
             ShowIfCondition(clipModeField, HasMultipleVariants);
             ShowIfCondition(volumeModeField, HasMultipleVariants);
+            ShowIfCondition(volumeVariationModeField, HasMultipleVariants);
             ShowIfCondition(pitchModeField, HasMultipleVariants);
+            ShowIfCondition(pitchVariationModeField, HasMultipleVariants);
+            ShowIfCondition(volumeVariationModeToggle, () => !HasMultipleVariants());
+            ShowIfCondition(pitchVariationModeToggle, () => !HasMultipleVariants());
 
             // Setup settings foldout
             settingsFoldout.Add(addVariantButton);
@@ -96,14 +102,32 @@ namespace LeafAudio.Editor
             settingsFoldout.Add(clipModeField);
             settingsFoldout.Add(volumeModeField);
             settingsFoldout.Add(volumeVariationModeField);
+            settingsFoldout.Add(volumeVariationModeToggle);
             settingsFoldout.Add(pitchModeField);
             settingsFoldout.Add(pitchVariationModeField);
+            settingsFoldout.Add(pitchVariationModeToggle);
             settingsFoldout.Add(pitchRangeField);
 
             PropertyField GetPropField(string propName, string label) => new PropertyField(serializedObject.FindProperty(propName), label);
 
             return settingsFoldout;
 
+            VisualElement GetVariationModeToggle(string propName, string label)
+            {
+                SerializedProperty prop = serializedObject.FindProperty(propName);
+
+                Toggle modeToggle = new Toggle(label);
+
+                // Set and Update VariationMode and the Toggle
+                modeToggle.RegisterValueChangedCallback(b =>
+                {
+                    prop.enumValueIndex = b.newValue ? (int)Sound.VariationMode.Unique : (int)Sound.VariationMode.None;
+                    serializedObject.ApplyModifiedProperties();
+                });
+                modeToggle.TrackPropertyValue(prop, p => modeToggle.SetValueWithoutNotify(p.enumValueIndex != (int)Sound.VariationMode.None));
+
+                return modeToggle;
+            }
             void SetAllModes(Sound.ValueMode newMode)
             {
                 serializedObject.FindProperty("clipMode").enumValueIndex = (int)newMode;
