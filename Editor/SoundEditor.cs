@@ -11,8 +11,9 @@ namespace LeafAudio.Editor
     [CustomEditor(typeof(Sound)), CanEditMultipleObjects]
     public class SoundEditor : UnityEditor.Editor
     {
-        SerializedProperty variantsProp;
         ListView variantsListView;
+        SerializedProperty variantsProp;
+        bool HasMultipleVariants => variantsProp.arraySize > 1;
 
         public override VisualElement CreateInspectorGUI()
         {
@@ -127,7 +128,6 @@ namespace LeafAudio.Editor
                 serializedObject.ApplyModifiedProperties();
             }
         }
-        bool HasMultipleVariants => variantsProp.arraySize > 1;
         ListView GetVariantsListView()
         {
             ListView variantsListView = new ListView()
@@ -250,8 +250,6 @@ namespace LeafAudio.Editor
             // Apply width and position
             valSliderPreview.style.left = leftOffset + usableWidth * posPercent;
             valSliderPreview.style.width = usableWidth * widthPercent;
-
-
         }
         struct VariedFieldInfo
         {
@@ -325,10 +323,6 @@ namespace LeafAudio.Editor
             ShowIfCondition(labeledElement, () => DoShowValue() || DoShowVariation());
 
             return labeledElement;
-        }
-        void BindVariedField()
-        {
-
         }
         #endregion
         VisualElement GetScriptField()

@@ -87,7 +87,18 @@ namespace LeafAudio
 
 
             // Ensure shared values are shared
-            //foreach(var variant in weightedVariants) 
+            SoundVariant firstVariant = weightedVariants[0].Item;
+            foreach (var weightedVariant in weightedVariants)
+            {
+                SoundVariant variant = weightedVariant.Item;
+
+                // Update Shared Fields
+                if (clipMode == ValueMode.Shared) variant.clip = firstVariant.clip;
+                if (volumeMode == ValueMode.Shared) variant.volume = firstVariant.volume;
+                if (volumeVariationMode == VariationMode.Shared) variant.volumeVariation = firstVariant.volumeVariation;
+                if (pitchMode == ValueMode.Shared) variant.pitch = firstVariant.pitch;
+                if (pitchVariationMode == VariationMode.Shared) variant.pitchVariation = firstVariant.pitchVariation;
+            }
         }
         void Reset()
         {
