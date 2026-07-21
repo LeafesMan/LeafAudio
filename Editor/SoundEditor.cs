@@ -235,6 +235,7 @@ namespace LeafAudio.Editor
             valSliderPreview.Unbind(); // Unbinds previous TrackPropertyValue calls
 
 
+            UpdateVariationPreview(variedField);
 
             valSliderPreview.TrackPropertyValue(valueProp, p => UpdateVariationPreview(variedField));
             valSliderPreview.TrackPropertyValue(variationProp, p => UpdateVariationPreview(variedField));
@@ -315,8 +316,6 @@ namespace LeafAudio.Editor
                 var newData = (VariedFieldInfo)fieldsElement.userData;
                 newData.range = pitchRange.vector2Value;
                 fieldsElement.userData = newData;
-
-                UpdateVariationPreview(fieldsElement);
             }); // Update Ranges when range changes
 
             // Add the fields

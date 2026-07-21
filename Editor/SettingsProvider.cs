@@ -62,7 +62,6 @@ namespace LeafAudio.Editor
                     templateFoldout.Add(new PropertyField(useSpatialSettingsProp, "Spatial Settings"));
                     templateFoldout.Add(new PropertyField(useReverbMixProp, "Reverb Mix"));
 
-
                     root.Add(title);
                     root.Add(new PropertyField(settings.FindProperty(nameof(Settings.GlobalAudioManagerPoolSize))));
                     root.Add(new Label("Editor") { style = { fontSize = 15, marginTop = 5, marginBottom = 2, marginLeft = 6 } });
