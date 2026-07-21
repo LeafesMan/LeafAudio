@@ -47,12 +47,13 @@ namespace LeafAudio.Editor
                     templateFoldout.Add(volumeVariationElement);
                     templateFoldout.Add(pitchVariationElement);
                     templateFoldout.Add(reverbMixElement);
-                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SelectionMode))));
-                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.ClipMode))));
-                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.VolumeMode))));
-                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchMode))));
                     templateFoldout.Add(new PropertyField(volumeVariationModeProp));
                     templateFoldout.Add(new PropertyField(pitchVariationModeProp));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SelectionMode))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.ShareClip))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.ShareVolume))));
+                    templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SharePitch))));
+
                     templateFoldout.Add(new PropertyField(useReverbMixProp));
 
 

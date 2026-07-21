@@ -19,21 +19,21 @@ namespace LeafAudio.Editor
 
         public override VisualElement CreateInspectorGUI()
         {
-            variantsProp = serializedObject.FindProperty("weightedVariants");
+            variantsProp = serializedObject.FindProperty(nameof(Sound.weightedVariants));
 
             // Create root container and specs container
             VisualElement root = new VisualElement();
             variantsListView = GetVariantsListView();
 
-            VisualElement selectionModeField = GetPropField("selectionMode", "Selection");
+            VisualElement selectionModeField = GetPropField(nameof(Sound.selectionMode), "Selection");
             ShowIfCondition(selectionModeField, () => HasMultipleVariants);
 
-            VisualElement reverbField = GetPropField("reverbMix", "Reverb");
+            VisualElement reverbField = GetPropField(nameof(Sound.reverbMix), "Reverb");
             ShowIfCondition(reverbField, () => serializedObject.FindProperty("useReverbMix").boolValue);
 
             // Populate Root
             root.Add(GetScriptField());
-            root.Add(GetPropField("mixerGroup", "Mixer"));
+            root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
             if (targets.Length > 1) return root; // Multi editing stops here!
 
 
@@ -61,8 +61,8 @@ namespace LeafAudio.Editor
 
             // Setup Set All Modes buttons
             VisualElement setAllButtonContainer = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
-            setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Shared)) { text = "Set All Shared", style = { flexGrow = 1 } });
-            setAllButtonContainer.Add(new Button(() => SetAllModes(Sound.ValueMode.Unique)) { text = "Set All Unique", style = { flexGrow = 1, marginRight = 0, paddingRight = 0, borderRightWidth = 0 } });
+            setAllButtonContainer.Add(new Button(() => SetAllShared(true)) { text = "Set All Shared", style = { flexGrow = 1 } });
+            setAllButtonContainer.Add(new Button(() => SetAllShared(false)) { text = "Set All Unique", style = { flexGrow = 1, marginRight = 0, paddingRight = 0, borderRightWidth = 0 } });
             ShowIfCondition(setAllButtonContainer, () => HasMultipleVariants);
 
             // Setup Add Variant Button
@@ -73,21 +73,22 @@ namespace LeafAudio.Editor
             // Mode Fields
             float shortLabelWidth = 100;
             float longLabelWidth = 115;
-            var clipModeField = GetPropField("clipMode", "Clip", longLabelWidth);
-            var volumeModeField = GetPropField("volumeMode", "Volume", longLabelWidth);
-            var volumeVariationModeField = GetPropField("volumeVariationMode", "Volume Variation", longLabelWidth);
-            var volumeVariationModeToggle = GetVariationModeToggle("volumeVariationMode", "Volume Variation", longLabelWidth);
-            var pitchModeField = GetPropField("pitchMode", "Pitch", longLabelWidth);
-            var pitchVariationModeField = GetPropField("pitchVariationMode", "Pitch Variation", longLabelWidth);
-            var pitchVariationModeToggle = GetVariationModeToggle("pitchVariationMode", "Pitch Variation", longLabelWidth);
-            var reverbMixToggle = GetPropField("useReverbMix", "Reverb", longLabelWidth);
-            var pitchRangeField = GetPropField("pitchRange", "Pitch Range", shortLabelWidth);
+            var shareClipField = GetPropField(nameof(Sound.shareClip), "Share Clip", longLabelWidth);
+            var shareVolumeField = GetPropField(nameof(Sound.shareVolume), "Share Volume", longLabelWidth);
+            var sharePitchField = GetPropField(nameof(Sound.sharePitch), "Share Pitch", longLabelWidth);
+            var reverbMixToggle = GetPropField(nameof(Sound.useReverbMix), "Reverb", longLabelWidth);
+            var pitchRangeField = GetPropField(nameof(Sound.pitchRange), "Pitch Range", shortLabelWidth);
+            var volumeVariationModeField = GetPropField(nameof(Sound.volumeVariationMode), "Volume Variation", longLabelWidth);
+            var volumeVariationModeToggle = GetVariationModeToggle(nameof(Sound.volumeVariationMode), "Volume Variation", longLabelWidth);
+            var pitchVariationModeField = GetPropField(nameof(Sound.pitchVariationMode), "Pitch Variation", longLabelWidth);
+            var pitchVariationModeToggle = GetVariationModeToggle(nameof(Sound.pitchVariationMode), "Pitch Variation", longLabelWidth);
+
 
             // Hide Certain Mode fields
-            ShowIfCondition(clipModeField, () => HasMultipleVariants);
-            ShowIfCondition(volumeModeField, () => HasMultipleVariants);
+            ShowIfCondition(shareClipField, () => HasMultipleVariants);
+            ShowIfCondition(shareVolumeField, () => HasMultipleVariants);
             ShowIfCondition(volumeVariationModeField, () => HasMultipleVariants);
-            ShowIfCondition(pitchModeField, () => HasMultipleVariants);
+            ShowIfCondition(sharePitchField, () => HasMultipleVariants);
             ShowIfCondition(pitchVariationModeField, () => HasMultipleVariants);
             ShowIfCondition(volumeVariationModeToggle, () => !HasMultipleVariants);
             ShowIfCondition(pitchVariationModeToggle, () => !HasMultipleVariants);
@@ -95,15 +96,16 @@ namespace LeafAudio.Editor
             // Setup settings foldout
             settingsFoldout.Add(addVariantButton);
             settingsFoldout.Add(setAllButtonContainer);
-            settingsFoldout.Add(clipModeField);
-            settingsFoldout.Add(volumeModeField);
             settingsFoldout.Add(volumeVariationModeField);
             settingsFoldout.Add(volumeVariationModeToggle);
-            settingsFoldout.Add(pitchModeField);
             settingsFoldout.Add(pitchVariationModeField);
             settingsFoldout.Add(pitchVariationModeToggle);
+            settingsFoldout.Add(shareClipField);
+            settingsFoldout.Add(shareVolumeField);
+            settingsFoldout.Add(sharePitchField);
             settingsFoldout.Add(reverbMixToggle);
             settingsFoldout.Add(pitchRangeField);
+
 
 
             return settingsFoldout;
@@ -126,13 +128,13 @@ namespace LeafAudio.Editor
                 return GetLabeledElement(modeToggle, label, labelWidth: labelWidth);
                 void UpdateToggleValue() => modeToggle.SetValueWithoutNotify(prop.enumValueIndex != (int)Sound.VariationMode.None);
             }
-            void SetAllModes(Sound.ValueMode newMode)
+            void SetAllShared(bool doShare)
             {
-                serializedObject.FindProperty("clipMode").enumValueIndex = (int)newMode;
-                serializedObject.FindProperty("volumeMode").enumValueIndex = (int)newMode;
-                serializedObject.FindProperty("volumeVariationMode").enumValueIndex = (int)newMode;
-                serializedObject.FindProperty("pitchMode").enumValueIndex = (int)newMode;
-                serializedObject.FindProperty("pitchVariationMode").enumValueIndex = (int)newMode;
+                serializedObject.FindProperty(nameof(Sound.shareClip)).boolValue = doShare;
+                serializedObject.FindProperty(nameof(Sound.shareVolume)).boolValue = doShare;
+                serializedObject.FindProperty(nameof(Sound.volumeVariationMode)).enumValueIndex = doShare ? 1 : 0;
+                serializedObject.FindProperty(nameof(Sound.sharePitch)).boolValue = doShare;
+                serializedObject.FindProperty(nameof(Sound.pitchVariationMode)).enumValueIndex = doShare ? 1 : 0;
                 serializedObject.ApplyModifiedProperties();
             }
         }
@@ -172,14 +174,14 @@ namespace LeafAudio.Editor
 
             // Weight Field
             var weightField = GetLabeledElement(new FloatField("") { bindingPath = "weight" }, "Weight", "weight");
-            ShowIfCondition(weightField, () => serializedObject.FindProperty("selectionMode").enumValueIndex == (int)Sound.SelectionMode.WeightedRandom);
+            ShowIfCondition(weightField, () => serializedObject.FindProperty(nameof(Sound.selectionMode)).enumValueIndex == (int)Sound.SelectionMode.WeightedRandom);
 
             var clipField = GetLabeledElement(new ObjectField("") { bindingPath = "item.clip", name = "clip", objectType = typeof(AudioClip) }, "Clip");
-            var clipModeProp = serializedObject.FindProperty("clipMode");
-            ShowIfCondition(clipField, () => !HasMultipleVariants || (clipModeProp.enumValueIndex == (int)Sound.ValueMode.Unique && !isSharedField) || (clipModeProp.enumValueIndex == (int)Sound.ValueMode.Shared && isSharedField));
+            var shareClipProp = serializedObject.FindProperty(nameof(Sound.shareClip));
+            ShowIfCondition(clipField, () => !HasMultipleVariants || (shareClipProp.boolValue == isSharedField));
 
             var volumeElements = GetVariedField(new Vector2(0, 1), isSharedField, "volume", "Volume");
-            var pitchElements = GetVariedField(serializedObject.FindProperty("pitchRange").vector2Value, isSharedField, "pitch", "Pitch");
+            var pitchElements = GetVariedField(serializedObject.FindProperty(nameof(Sound.pitchRange)).vector2Value, isSharedField, "pitch", "Pitch");
 
             container.Add(clipField);
             container.Add(volumeElements);
@@ -321,9 +323,9 @@ namespace LeafAudio.Editor
 
 
             // Toggle elements
-            Sound.ValueMode GetValueMode() => (Sound.ValueMode)serializedObject.FindProperty($"{var}Mode").enumValueIndex;
+            bool IsValueShared() => serializedObject.FindProperty($"share{char.ToUpper(var[0]) + var[1..]}").boolValue;
             Sound.VariationMode GetVariationMode() => (Sound.VariationMode)serializedObject.FindProperty($"{var}VariationMode").enumValueIndex;
-            bool DoShowValue() => !HasMultipleVariants || (isSharedField && GetValueMode() == Sound.ValueMode.Shared) || (!isSharedField && GetValueMode() == Sound.ValueMode.Unique);
+            bool DoShowValue() => !HasMultipleVariants || (isSharedField == IsValueShared());
             bool DoShowVariation() => GetVariationMode() != Sound.VariationMode.None && (!HasMultipleVariants || (isSharedField && GetVariationMode() == Sound.VariationMode.Shared) || (!isSharedField && GetVariationMode() == Sound.VariationMode.Unique));
 
             ShowIfCondition(valueField, DoShowValue);

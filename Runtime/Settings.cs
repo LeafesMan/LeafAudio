@@ -23,9 +23,9 @@ namespace LeafAudio
             public float ReverbMix = 0;
             public Vector2 PitchRange = new Vector2(0, 2);
             public Sound.SelectionMode SelectionMode = Sound.SelectionMode.UniformRandom;
-            public Sound.ValueMode ClipMode = Sound.ValueMode.Unique;
-            public Sound.ValueMode VolumeMode = Sound.ValueMode.Unique;
-            public Sound.ValueMode PitchMode = Sound.ValueMode.Unique;
+            public bool ShareClip = false;
+            public bool ShareVolume = false;
+            public bool SharePitch = false;
             public Sound.VariationMode VolumeVariationMode = Sound.VariationMode.None;
             public Sound.VariationMode PitchVariationMode = Sound.VariationMode.Shared;
             public bool UseReverbMix = false;

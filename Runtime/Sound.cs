@@ -11,11 +11,11 @@ namespace LeafAudio
     [CreateAssetMenu(fileName = "NewSound", menuName = "Audio/Sound")]
     public class Sound : ScriptableObject
     {
-        [SerializeField] AudioMixerGroup mixerGroup;
-        [SerializeField] SelectionMode selectionMode;
-        [SerializeField] List<Weighted<SoundVariant>> weightedVariants;
-        [SerializeField] Vector2 pitchRange;
-        [SerializeField] float reverbMix;
+        [SerializeField] internal AudioMixerGroup mixerGroup;
+        [SerializeField] internal SelectionMode selectionMode;
+        [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants;
+        [SerializeField] internal Vector2 pitchRange;
+        [SerializeField] internal float reverbMix;
 
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
@@ -60,16 +60,18 @@ namespace LeafAudio
 
 #if UNITY_EDITOR
         // These values are all used in the SoundEditor
-        public enum ValueMode { Unique, Shared }
-        [SerializeField] ValueMode clipMode;
-        [SerializeField] ValueMode volumeMode;
-        [SerializeField] ValueMode pitchMode;
 
-        [SerializeField] bool useReverbMix;
+        // Whether values are shared between variants
+        [SerializeField] internal bool shareClip;
+        [SerializeField] internal bool shareVolume;
+        [SerializeField] internal bool sharePitch;
+
+        // Whether ReverbMix will be non-zero and shown
+        [SerializeField] internal bool useReverbMix;
 
         public enum VariationMode { Unique, Shared, None }
-        [SerializeField] VariationMode volumeVariationMode;
-        [SerializeField] VariationMode pitchVariationMode;
+        [SerializeField] internal VariationMode volumeVariationMode;
+        [SerializeField] internal VariationMode pitchVariationMode;
 
         void OnValidate()
         {
@@ -99,10 +101,10 @@ namespace LeafAudio
                 SoundVariant variant = weightedVariant.Item;
 
                 // Update Shared Fields
-                if (clipMode == ValueMode.Shared) variant.clip = firstVariant.clip;
-                if (volumeMode == ValueMode.Shared) variant.volume = firstVariant.volume;
+                if (shareClip) variant.clip = firstVariant.clip;
+                if (shareVolume) variant.volume = firstVariant.volume;
                 if (volumeVariationMode == VariationMode.Shared) variant.volumeVariation = firstVariant.volumeVariation;
-                if (pitchMode == ValueMode.Shared) variant.pitch = firstVariant.pitch;
+                if (sharePitch) variant.pitch = firstVariant.pitch;
                 if (pitchVariationMode == VariationMode.Shared) variant.pitchVariation = firstVariant.pitchVariation;
             }
         }
@@ -113,9 +115,9 @@ namespace LeafAudio
             weightedVariants = new() { new Weighted<SoundVariant>(new SoundVariant(), 1) };
             pitchRange = Settings.instance.SoundDefaults.PitchRange;
 
-            clipMode = Settings.instance.SoundDefaults.ClipMode;
-            volumeMode = Settings.instance.SoundDefaults.VolumeMode;
-            pitchMode = Settings.instance.SoundDefaults.PitchMode;
+            shareClip = Settings.instance.SoundDefaults.ShareClip;
+            shareVolume = Settings.instance.SoundDefaults.ShareVolume;
+            sharePitch = Settings.instance.SoundDefaults.SharePitch;
             volumeVariationMode = Settings.instance.SoundDefaults.VolumeVariationMode;
             pitchVariationMode = Settings.instance.SoundDefaults.PitchVariationMode;
             useReverbMix = Settings.instance.SoundDefaults.UseReverbMix;
