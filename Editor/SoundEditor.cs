@@ -175,7 +175,8 @@ namespace LeafAudio.Editor
             ShowIfCondition(weightField, () => serializedObject.FindProperty("selectionMode").enumValueIndex == (int)Sound.SelectionMode.WeightedRandom);
 
             var clipField = GetLabeledElement(new ObjectField("") { bindingPath = "item.clip", name = "clip", objectType = typeof(AudioClip) }, "Clip");
-            ShowIfCondition(clipField, () => serializedObject.FindProperty("clipMode").enumValueIndex == (int)Sound.ValueMode.Unique);
+            var clipModeProp = serializedObject.FindProperty("clipMode");
+            ShowIfCondition(clipField, () => !HasMultipleVariants || (clipModeProp.enumValueIndex == (int)Sound.ValueMode.Unique && !isSharedField) || (clipModeProp.enumValueIndex == (int)Sound.ValueMode.Shared && isSharedField));
 
             var volumeElements = GetVariedField(new Vector2(0, 1), isSharedField, "volume", "Volume");
             var pitchElements = GetVariedField(serializedObject.FindProperty("pitchRange").vector2Value, isSharedField, "pitch", "Pitch");
