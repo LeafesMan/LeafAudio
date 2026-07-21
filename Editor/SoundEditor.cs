@@ -28,12 +28,16 @@ namespace LeafAudio.Editor
             VisualElement selectionModeField = GetPropField(nameof(Sound.selectionMode), "Selection");
             ShowIfCondition(selectionModeField, () => HasMultipleVariants);
 
+            VisualElement spatialSettingsField = GetPropField(nameof(Sound.spatialSettings), "Spatial");
+            ShowIfCondition(spatialSettingsField, () => serializedObject.FindProperty(nameof(Sound.useSpatialSettings)).boolValue);
+
             VisualElement reverbField = GetPropField(nameof(Sound.reverbMix), "Reverb");
-            ShowIfCondition(reverbField, () => serializedObject.FindProperty("useReverbMix").boolValue);
+            ShowIfCondition(reverbField, () => serializedObject.FindProperty(nameof(Sound.useReverbMix)).boolValue);
 
             // Populate Root
             root.Add(GetScriptField());
             root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
+            root.Add(spatialSettingsField);
             if (targets.Length > 1) return root; // Multi editing stops here!
 
 
@@ -76,7 +80,8 @@ namespace LeafAudio.Editor
             var shareClipField = GetPropField(nameof(Sound.shareClip), "Share Clip", longLabelWidth);
             var shareVolumeField = GetPropField(nameof(Sound.shareVolume), "Share Volume", longLabelWidth);
             var sharePitchField = GetPropField(nameof(Sound.sharePitch), "Share Pitch", longLabelWidth);
-            var reverbMixToggle = GetPropField(nameof(Sound.useReverbMix), "Reverb", longLabelWidth);
+            var useSpatialSettingsToggle = GetPropField(nameof(Sound.useSpatialSettings), "Spatial Settings", longLabelWidth);
+            var useReverbMixToggle = GetPropField(nameof(Sound.useReverbMix), "Reverb Mix", longLabelWidth);
             var pitchRangeField = GetPropField(nameof(Sound.pitchRange), "Pitch Range", shortLabelWidth);
             var volumeVariationModeField = GetPropField(nameof(Sound.volumeVariationMode), "Volume Variation", longLabelWidth);
             var volumeVariationModeToggle = GetVariationModeToggle(nameof(Sound.volumeVariationMode), "Volume Variation", longLabelWidth);
@@ -103,7 +108,8 @@ namespace LeafAudio.Editor
             settingsFoldout.Add(shareClipField);
             settingsFoldout.Add(shareVolumeField);
             settingsFoldout.Add(sharePitchField);
-            settingsFoldout.Add(reverbMixToggle);
+            settingsFoldout.Add(useSpatialSettingsToggle);
+            settingsFoldout.Add(useReverbMixToggle);
             settingsFoldout.Add(pitchRangeField);
 
 

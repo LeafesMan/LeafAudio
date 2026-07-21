@@ -12,6 +12,7 @@ namespace LeafAudio
     public class Sound : ScriptableObject
     {
         [SerializeField] internal AudioMixerGroup mixerGroup;
+        [SerializeField] internal SpatialSettings spatialSettings;
         [SerializeField] internal SelectionMode selectionMode;
         [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants;
         [SerializeField] internal Vector2 pitchRange;
@@ -68,6 +69,7 @@ namespace LeafAudio
 
         // Whether ReverbMix will be non-zero and shown
         [SerializeField] internal bool useReverbMix;
+        [SerializeField] internal bool useSpatialSettings;
 
         public enum VariationMode { Unique, Shared, None }
         [SerializeField] internal VariationMode volumeVariationMode;
@@ -94,6 +96,9 @@ namespace LeafAudio
             if (!useReverbMix) reverbMix = 0;
             else reverbMix = Mathf.Clamp(reverbMix, 0, 1.1f);
 
+            // Ensure spatial settings is accurate
+            if (!useSpatialSettings) spatialSettings = null;
+
             // Ensure shared values are shared
             SoundVariant firstVariant = weightedVariants[0].Item;
             foreach (var weightedVariant in weightedVariants)
@@ -111,6 +116,7 @@ namespace LeafAudio
         void Reset()
         {
             mixerGroup = Settings.instance.SoundDefaults.AudioMixerGroup;
+            spatialSettings = Settings.instance.SoundDefaults.SpatialSettings;
             selectionMode = Settings.instance.SoundDefaults.SelectionMode;
             weightedVariants = new() { new Weighted<SoundVariant>(new SoundVariant(), 1) };
             pitchRange = Settings.instance.SoundDefaults.PitchRange;
@@ -121,6 +127,8 @@ namespace LeafAudio
             volumeVariationMode = Settings.instance.SoundDefaults.VolumeVariationMode;
             pitchVariationMode = Settings.instance.SoundDefaults.PitchVariationMode;
             useReverbMix = Settings.instance.SoundDefaults.UseReverbMix;
+            useSpatialSettings = Settings.instance.SoundDefaults.UseSpatialSettings;
+
 
             // Set Pitch/Volume and Variations
             var mainVariant = weightedVariants[0].Item;

@@ -16,6 +16,7 @@ namespace LeafAudio
         public class SoundTemplate
         {
             public AudioMixerGroup AudioMixerGroup = null;
+            public SpatialSettings SpatialSettings = null;
             public float Volume = 0.5f;
             public float VolumeVariation = 0;
             public float Pitch = 1;
@@ -28,6 +29,7 @@ namespace LeafAudio
             public bool SharePitch = false;
             public Sound.VariationMode VolumeVariationMode = Sound.VariationMode.None;
             public Sound.VariationMode PitchVariationMode = Sound.VariationMode.Shared;
+            public bool UseSpatialSettings = false;
             public bool UseReverbMix = false;
         }
         public SoundTemplate SoundDefaults;
