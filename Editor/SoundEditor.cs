@@ -15,6 +15,8 @@ namespace LeafAudio.Editor
         SerializedProperty variantsProp;
         bool HasMultipleVariants => variantsProp.arraySize > 1;
 
+        const float DefaultLabelWidth = 55;
+
         public override VisualElement CreateInspectorGUI()
         {
             variantsProp = serializedObject.FindProperty("weightedVariants");
@@ -23,13 +25,15 @@ namespace LeafAudio.Editor
             VisualElement root = new VisualElement();
             variantsListView = GetVariantsListView();
 
-            VisualElement selectionModeField = GetLabeledElement(new PropertyField(serializedObject.FindProperty("selectionMode"), ""), "Selection", tooltip: "How a variant will be selected.");
+            VisualElement selectionModeField = GetPropField("selectionMode", "Selection");
             ShowIfCondition(selectionModeField, () => HasMultipleVariants);
 
+            VisualElement reverbField = GetPropField("reverbMix", "Reverb");
+            ShowIfCondition(reverbField, () => serializedObject.FindProperty("useReverbMix").boolValue);
 
             // Populate Root
             root.Add(GetScriptField());
-            root.Add(GetLabeledElement(new PropertyField(serializedObject.FindProperty("mixerGroup"), ""), "Mixer"));
+            root.Add(GetPropField("mixerGroup", "Mixer"));
             if (targets.Length > 1) return root; // Multi editing stops here!
 
 
@@ -41,6 +45,7 @@ namespace LeafAudio.Editor
             ShowIfCondition(testButton, () => !HasMultipleVariants);
 
             root.Add(firstVariantField);
+            root.Add(reverbField);
             root.Add(GetSpacer());
             root.Add(selectionModeField);
             root.Add(variantsListView);
@@ -66,14 +71,17 @@ namespace LeafAudio.Editor
             ShowIfCondition(addVariantButton, () => !HasMultipleVariants);
 
             // Mode Fields
-            var clipModeField = GetPropField("clipMode", "Clip");
-            var volumeModeField = GetPropField("volumeMode", "Volume");
-            var volumeVariationModeField = GetPropField("volumeVariationMode", "Volume Variation");
-            var volumeVariationModeToggle = GetVariationModeToggle("volumeVariationMode", "Volume Variation");
-            var pitchModeField = GetPropField("pitchMode", "Pitch");
-            var pitchVariationModeField = GetPropField("pitchVariationMode", "Pitch Variation");
-            var pitchVariationModeToggle = GetVariationModeToggle("pitchVariationMode", "Pitch Variation");
-            var pitchRangeField = GetPropField("pitchRange", "Pitch Range");
+            float shortLabelWidth = 100;
+            float longLabelWidth = 115;
+            var clipModeField = GetPropField("clipMode", "Clip", longLabelWidth);
+            var volumeModeField = GetPropField("volumeMode", "Volume", longLabelWidth);
+            var volumeVariationModeField = GetPropField("volumeVariationMode", "Volume Variation", longLabelWidth);
+            var volumeVariationModeToggle = GetVariationModeToggle("volumeVariationMode", "Volume Variation", longLabelWidth);
+            var pitchModeField = GetPropField("pitchMode", "Pitch", longLabelWidth);
+            var pitchVariationModeField = GetPropField("pitchVariationMode", "Pitch Variation", longLabelWidth);
+            var pitchVariationModeToggle = GetVariationModeToggle("pitchVariationMode", "Pitch Variation", longLabelWidth);
+            var reverbMixToggle = GetPropField("useReverbMix", "Reverb", longLabelWidth);
+            var pitchRangeField = GetPropField("pitchRange", "Pitch Range", shortLabelWidth);
 
             // Hide Certain Mode fields
             ShowIfCondition(clipModeField, () => HasMultipleVariants);
@@ -94,17 +102,17 @@ namespace LeafAudio.Editor
             settingsFoldout.Add(pitchModeField);
             settingsFoldout.Add(pitchVariationModeField);
             settingsFoldout.Add(pitchVariationModeToggle);
+            settingsFoldout.Add(reverbMixToggle);
             settingsFoldout.Add(pitchRangeField);
 
-            PropertyField GetPropField(string propName, string label) => new PropertyField(serializedObject.FindProperty(propName), label);
 
             return settingsFoldout;
 
-            VisualElement GetVariationModeToggle(string propName, string label)
+            VisualElement GetVariationModeToggle(string propName, string label, float labelWidth)
             {
                 SerializedProperty prop = serializedObject.FindProperty(propName);
 
-                Toggle modeToggle = new Toggle(label);
+                Toggle modeToggle = new Toggle("");
 
                 // Set and Update VariationMode and the Toggle
                 modeToggle.RegisterValueChangedCallback(b =>
@@ -115,7 +123,7 @@ namespace LeafAudio.Editor
                 modeToggle.TrackPropertyValue(prop, p => UpdateToggleValue());
                 UpdateToggleValue();
 
-                return modeToggle;
+                return GetLabeledElement(modeToggle, label, labelWidth: labelWidth);
                 void UpdateToggleValue() => modeToggle.SetValueWithoutNotify(prop.enumValueIndex != (int)Sound.VariationMode.None);
             }
             void SetAllModes(Sound.ValueMode newMode)
@@ -373,7 +381,7 @@ namespace LeafAudio.Editor
 
             return button;
         }
-        BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = 55, string tooltip = "")
+        BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = DefaultLabelWidth, string tooltip = "")
         {   // Create and Style Label
             Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
 
@@ -404,6 +412,7 @@ namespace LeafAudio.Editor
             void UpdateShown() => element.style.display = condition() ? DisplayStyle.Flex : DisplayStyle.None;
         }
         VisualElement GetSpacer() => new VisualElement() { style = { height = 10 } };
+        VisualElement GetPropField(string propName, string label, float labelWidth = DefaultLabelWidth) => GetLabeledElement(new PropertyField(serializedObject.FindProperty(propName), ""), label, labelWidth: labelWidth);
     }
     class ClampedFloatField : FloatField
     {

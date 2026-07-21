@@ -15,6 +15,7 @@ namespace LeafAudio
         [SerializeField] SelectionMode selectionMode;
         [SerializeField] List<Weighted<SoundVariant>> weightedVariants;
         [SerializeField] Vector2 pitchRange;
+        [SerializeField] float reverbMix;
 
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
@@ -54,7 +55,7 @@ namespace LeafAudio
             Vector2 pitchVariationRange = new Vector2(pitchRange.x - variant.pitch, pitchRange.y - variant.pitch);
             float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
 
-            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup);
+            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, reverbMix);
         }
 
 #if UNITY_EDITOR
@@ -63,6 +64,8 @@ namespace LeafAudio
         [SerializeField] ValueMode clipMode;
         [SerializeField] ValueMode volumeMode;
         [SerializeField] ValueMode pitchMode;
+
+        [SerializeField] bool useReverbMix;
 
         public enum VariationMode { Unique, Shared, None }
         [SerializeField] VariationMode volumeVariationMode;
@@ -85,6 +88,9 @@ namespace LeafAudio
             // Ensure pitches are in pitch range
             foreach (var variant in weightedVariants) variant.Item.pitch = Mathf.Clamp(variant.Item.pitch, pitchRange.x, pitchRange.y);
 
+            // Ensure reverb zone mix is accurate
+            if (!useReverbMix) reverbMix = 0;
+            else reverbMix = Mathf.Clamp(reverbMix, 0, 1.1f);
 
             // Ensure shared values are shared
             SoundVariant firstVariant = weightedVariants[0].Item;
@@ -112,6 +118,7 @@ namespace LeafAudio
             pitchMode = Settings.instance.SoundDefaults.PitchMode;
             volumeVariationMode = Settings.instance.SoundDefaults.VolumeVariationMode;
             pitchVariationMode = Settings.instance.SoundDefaults.PitchVariationMode;
+            useReverbMix = Settings.instance.SoundDefaults.UseReverbMix;
 
             // Set Pitch/Volume and Variations
             var mainVariant = weightedVariants[0].Item;
@@ -120,6 +127,7 @@ namespace LeafAudio
             // Only set Variation when mode is not none
             if (volumeVariationMode != VariationMode.None) mainVariant.volumeVariation = Settings.instance.SoundDefaults.VolumeVariation;
             if (pitchVariationMode != VariationMode.None) mainVariant.pitchVariation = Settings.instance.SoundDefaults.PitchVariation;
+            if (useReverbMix) reverbMix = Settings.instance.SoundDefaults.ReverbMix;
         }
 #endif
     }

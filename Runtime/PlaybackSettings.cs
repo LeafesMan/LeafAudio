@@ -11,12 +11,14 @@ namespace LeafAudio
         public AudioClip clip;
         public float volume;
         public float pitch;
-        public PlaybackSettings(AudioClip clip, float volume, float pitch, AudioMixerGroup mixerGroup)
+        public float reverbMix;
+        public PlaybackSettings(AudioClip clip, float volume, float pitch, AudioMixerGroup mixerGroup, float reverbMix)
         {
             this.mixerGroup = mixerGroup;
             this.clip = clip;
             this.volume = volume;
             this.pitch = pitch;
+            this.reverbMix = reverbMix;
         }
     }
 }

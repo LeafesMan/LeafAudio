@@ -30,6 +30,7 @@ namespace LeafAudio
             source.volume = playbackSettings.volume;
             source.pitch = playbackSettings.pitch;
             source.outputAudioMixerGroup = playbackSettings.mixerGroup;
+            source.reverbZoneMix = playbackSettings.reverbMix;
             if (source.pitch < 0) source.time = source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error
         }
         /// <summary>

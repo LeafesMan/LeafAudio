@@ -16,7 +16,7 @@ namespace LeafAudio.Editor
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
             {
-                Test(new PlaybackSettings(asset as AudioClip, Settings.instance.SoundDefaults.Volume, 1, null));
+                Test(new PlaybackSettings(asset as AudioClip, Settings.instance.SoundDefaults.Volume, 1, null, 0));
                 return true;
             }
             if (asset.GetType() == typeof(Sound))
