@@ -40,12 +40,12 @@ namespace LeafAudio.Editor
                     var useReverbMixProp = soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.UseReverbMix));
                     ShowIfCondition(reverbMixElement, () => useReverbMixProp.boolValue);
 
-                    var spatialSettingsElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SpatialSettings)));
+                    //var spatialSettingsElement = new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.SpatialSettings)));
                     var useSpatialSettingsProp = soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.UseSpatialSettings));
                     ShowIfCondition(reverbMixElement, () => useSpatialSettingsProp.boolValue);
 
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.AudioMixerGroup))));
-                    templateFoldout.Add(spatialSettingsElement);
+                    //templateFoldout.Add(spatialSettingsElement);
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.Volume))));
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.Pitch))));
                     templateFoldout.Add(new PropertyField(soundTemplate.FindPropertyRelative(nameof(Settings.SoundTemplate.PitchRange))));

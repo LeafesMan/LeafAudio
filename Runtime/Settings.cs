@@ -16,7 +16,7 @@ namespace LeafAudio
         public class SoundTemplate
         {
             public AudioMixerGroup AudioMixerGroup = null;
-            public SpatialSettings SpatialSettings = null;
+            //public SpatialSettings SpatialSettings = null;
             public float Volume = 0.5f;
             public float VolumeVariation = 0;
             public float Pitch = 1;

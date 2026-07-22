@@ -12,7 +12,6 @@ namespace LeafAudio
     public class Sound : ScriptableObject
     {
         [SerializeField] internal AudioMixerGroup mixerGroup;
-        [SerializeField] internal SpatialSettings spatialSettings;
         [SerializeField] internal SelectionMode selectionMode;
         [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants;
         [SerializeField] internal Vector2 pitchRange;
@@ -97,7 +96,7 @@ namespace LeafAudio
             else reverbMix = Mathf.Clamp(reverbMix, 0, 1.1f);
 
             // Ensure spatial settings is accurate
-            if (!useSpatialSettings) spatialSettings = null;
+            //if (!useSpatialSettings) spatialSettings = null;
 
             // Ensure shared values are shared
             SoundVariant firstVariant = weightedVariants[0].Item;
@@ -116,7 +115,7 @@ namespace LeafAudio
         void Reset()
         {
             mixerGroup = Settings.instance.SoundDefaults.AudioMixerGroup;
-            spatialSettings = Settings.instance.SoundDefaults.SpatialSettings;
+            //spatialSettings = Settings.instance.SoundDefaults.SpatialSettings;
             selectionMode = Settings.instance.SoundDefaults.SelectionMode;
             weightedVariants = new() { new Weighted<SoundVariant>(new SoundVariant(), 1) };
             pitchRange = Settings.instance.SoundDefaults.PitchRange;

@@ -28,8 +28,8 @@ namespace LeafAudio.Editor
             VisualElement selectionModeField = GetPropField(nameof(Sound.selectionMode), "Selection");
             ShowIfCondition(selectionModeField, () => HasMultipleVariants);
 
-            VisualElement spatialSettingsField = GetPropField(nameof(Sound.spatialSettings), "Spatial");
-            ShowIfCondition(spatialSettingsField, () => serializedObject.FindProperty(nameof(Sound.useSpatialSettings)).boolValue);
+            //VisualElement spatialSettingsField = GetPropField(nameof(Sound.spatialSettings), "Spatial");
+            //ShowIfCondition(spatialSettingsField, () => serializedObject.FindProperty(nameof(Sound.useSpatialSettings)).boolValue);
 
             VisualElement reverbField = GetPropField(nameof(Sound.reverbMix), "Reverb");
             ShowIfCondition(reverbField, () => serializedObject.FindProperty(nameof(Sound.useReverbMix)).boolValue);
@@ -37,7 +37,7 @@ namespace LeafAudio.Editor
             // Populate Root
             root.Add(GetScriptField());
             root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
-            root.Add(spatialSettingsField);
+            //root.Add(spatialSettingsField);
             if (targets.Length > 1) return root; // Multi editing stops here!
 
 
@@ -389,7 +389,7 @@ namespace LeafAudio.Editor
 
             return button;
         }
-        BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = DefaultLabelWidth, string tooltip = "")
+        internal static BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = DefaultLabelWidth, string tooltip = "")
         {   // Create and Style Label
             Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
 
