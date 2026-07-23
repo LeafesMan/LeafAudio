@@ -6,6 +6,6 @@ namespace LeafAudio
     internal class SpatialProfile : DistanceProfile
     {
         internal override Vector2 CurveRange => Vector2.up;
-        internal override bool GetCanShowAsValue() => true;
+        internal override bool CanShowAsValue => false;
     }
 }

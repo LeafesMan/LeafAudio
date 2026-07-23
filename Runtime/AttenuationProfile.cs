@@ -5,7 +5,7 @@ namespace LeafAudio
     public class AttenuationProfile : DistanceProfile
     {
 #if UNITY_EDITOR
-        internal override bool GetCanShowAsValue() => false;
+        internal override bool CanShowAsValue => false;
         internal override Vector2 CurveRange => Vector2.up;
 #endif
     }

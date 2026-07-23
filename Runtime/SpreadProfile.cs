@@ -5,7 +5,7 @@ namespace LeafAudio
     public class SpreadProfile : DistanceProfile
     {
 #if UNITY_EDITOR
-        internal override bool GetCanShowAsValue() => true;
+        internal override bool CanShowAsValue => true;
         internal override Vector2 CurveRange => Vector2.up;
 #endif
     }

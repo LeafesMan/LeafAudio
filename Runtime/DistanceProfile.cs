@@ -9,12 +9,22 @@ namespace LeafAudio
 #if UNITY_EDITOR
         [SerializeField] internal Vector2 curveDomain = new Vector2(0, 100);
         const float RequiredDomainSize = 0.01f;
-        internal abstract bool GetCanShowAsValue();
+        [SerializeField] internal bool useCurve = true;
+        internal abstract bool CanShowAsValue { get; }
         internal abstract Vector2 CurveRange { get; }
 
         void OnValidate()
         {
             curveDomain = ValidateCurveDomain(curveDomain);
+
+            // When showing as value
+            // - Enforce a single keyframe
+            // - Ensure that keyframe is at time 0 with no tangents set
+            if (CanShowAsValue && !useCurve)
+            {
+                if (curve.keys.Length == 1) curve.SetKeys(new Keyframe[] { new(0, curve.keys[0].value) });
+                else curve.SetKeys(new Keyframe[] { new(0, 0) });
+            }
         }
         /// <summary>
         /// Returns a Validated CurveDomain ensuring y >= x and both >= 0
