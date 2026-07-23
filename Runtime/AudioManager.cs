@@ -6,21 +6,14 @@ using System;
 namespace LeafAudio
 {
     /// <summary>
-    /// Script for playing and pooling audio. <br></br>
-    /// - Attach this component to one object in your scene to listen for and handle audio events. <br></br>
-    /// - Updated to automatically initialize a pool <br></br>
-    /// - Instance is required for updating positions and running Coroutines 
+    /// Handles the positioning and pooling of all played Sounds
     /// </summary>
     public class AudioManager : MonoBehaviour
     {
         #region Vars
-        [SerializeField, Tooltip("How many audio sources may be pooled.\nThis number has no bearing on looping audio sources.\nFeel free to edit this value")]
-        int poolSize = Settings.instance.GlobalAudioManagerPoolSize;
-        /// <summary>
-        /// Audio Source Pool. Sorted in ascending order by End Time
-        /// </summary>
         [SerializeField]
-        List<PooledAudioSource> pool = new();
+        List<PooledAudioSource> activeSources = new();
+        Stack<PooledAudioSource> freeSources = new();
         /// <summary>
         /// Each Looping audio source element has two audio sources for fading in a new looping clip
         /// </summary>
@@ -28,13 +21,21 @@ namespace LeafAudio
         #endregion
         void Update()
         {
-            foreach (PooledAudioSource pooledSource in pool)
+            for (int i = activeSources.Count - 1; i >= 0; i--)
             {
-                bool isDone = pooledSource.IsDone;
-                if (!isDone) pooledSource.UpdatePosition();
-#if UNITY_EDITOR
-                pooledSource.ToggleSourceGameObject(!isDone); // This is purely visual for editor debugging can see what all is playing in inspector
-#endif
+                PooledAudioSource sourceToUpdate = activeSources[i];
+                sourceToUpdate.UpdatePosition();
+
+                // Free up the source and toggle it off
+                if (activeSources[i].IsDone)
+                {
+                    sourceToUpdate.ToggleSourceGameObject(false);
+
+                    (activeSources[^1], activeSources[i]) = (activeSources[i], activeSources[^1]);
+                    activeSources.RemoveAt(activeSources.Count - 1);
+
+                    freeSources.Push(sourceToUpdate);
+                }
             }
         }
         /// <summary>
@@ -58,7 +59,6 @@ namespace LeafAudio
             PooledAudioSource pooledSource = GetAudioSource();
             pooledSource.Setup(playbackSettings, position, origin);
             pooledSource.Play();
-            Sort(pooledSource);
         }
         public void PlayLooping(Sound sound, float fadeDuration, uint slot)
         {   // If Audio Source pair hasnt been created for this slot create it
@@ -104,43 +104,17 @@ namespace LeafAudio
             source.volume = to;
         }
         PooledAudioSource GetAudioSource()
-        {   // Grabs a Pooled audio source to use for playing a sound
-            // Uses free sources when possible
-            // When there are no free sources creates a new one
-            // OR   uses the oldest used source if the pool is full
-            PooledAudioSource toReturn;
-
-            // Pool has Available Source --> Return it
-            if (pool.Count != 0 && pool[0].IsDone)
-                toReturn = pool[0];
-            // Pool Full --> Return Source that is closest to complete
-            else if (pool.Count >= poolSize)
-                toReturn = pool[0];
-            // Pool Not Full --> Create new Source
+        {
+            // Pool has Free Source --> Return it
+            if (freeSources.Count > 0) return freeSources.Pop();
+            // Pool has no Free Sources --> Create a new Source
             else
             {   // Create and  reparent an audio source
                 AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
                 audioSource.transform.SetParent(transform);
 
-                toReturn = new PooledAudioSource(audioSource);
+                return new PooledAudioSource(audioSource);
             }
-
-            return toReturn;
-        }
-        /// <summary>
-        /// Sorts the pool by ascending end time.<br></br>
-        /// ***Assumes the PooledSource passed in is the only one that has changed
-        /// </summary>
-        void Sort(PooledAudioSource toInsert)
-        {
-            pool.Remove(toInsert);
-
-            int i = 0;
-            for (; i < pool.Count; i++)
-                if (pool[i].EndTime > toInsert.EndTime)
-                    break;
-
-            pool.Insert(i, toInsert);
         }
         #region Pooled Audio Source Class
         /// <summary>
@@ -194,14 +168,10 @@ namespace LeafAudio
             public bool IsDone => Time.time > endTime;
             public float EndTime => endTime;
             public void UpdatePosition()
-            {   // If no origin assume origin is (0, 0, 0)
-                // Position is origin position + offset
-                if (origin == null) return;
-                source.transform.position = origin.position + offset;
+            {   // Final position is origin + offset
+                if (origin != null) source.transform.position = origin.position + offset;
             }
-#if UNITY_EDITOR
             public void ToggleSourceGameObject(bool on) => source.gameObject.SetActive(on);
-#endif
         }
         #endregion
     }

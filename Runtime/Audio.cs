@@ -16,7 +16,6 @@ namespace LeafAudio
         }
 
         public static void Play(Sound sound, Vector3? position = null, Transform origin = null) => Audio.GlobalManager.Play(sound, position, origin);
-        public static void PlayLooping(Sound sound, float fadeDuration, uint slot) => GlobalManager.PlayLooping(sound, fadeDuration, slot);
 
 
         /// <summary>
