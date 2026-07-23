@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System;
+using System.Linq;
 
 namespace LeafAudio
 {
@@ -15,6 +16,25 @@ namespace LeafAudio
         List<PooledAudioSource> activeSources = new();
         Stack<PooledAudioSource> freeSources = new();
 
+        /// <summary>
+        /// The spatial curve used for all spatial sounds. Will use the profile defined in ProjectSettings or a default flat value of 1 if no curve is defined.
+        /// </summary>
+        static AnimationCurve GlobalSpatialCurve;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void SetupGlobalSpatialProfile()
+        {
+
+            // Find spatial profile based on whether in editor or not
+            SpatialProfile globalSpatialProfile;
+#if UNITY_EDITOR
+            globalSpatialProfile = UnityEditor.PlayerSettings.GetPreloadedAssets().OfType<SpatialProfile>().FirstOrDefault();
+#else
+            globalSpatialProfile = Resources.FindObjectsOfTypeAll<SpatialProfile>().FirstOrDefault();
+#endif
+
+            // Apply the found profile or default to 1
+            GlobalSpatialCurve = globalSpatialProfile != null ? globalSpatialProfile.curve : new AnimationCurve(new Keyframe(0, 1));
+        }
 # if UNITY_EDITOR
         internal static bool WarnOnPlayNullSound;
 #endif
@@ -127,7 +147,7 @@ namespace LeafAudio
                 // Setup spatial settings
                 if (position != null || origin != null)
                 {
-                    source.spatialBlend = 1;
+                    source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, GlobalSpatialCurve);
 
                     this.origin = origin;
                     offset = position ?? Vector3.zero;

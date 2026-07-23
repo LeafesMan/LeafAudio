@@ -11,19 +11,17 @@ namespace LeafAudio
     [CreateAssetMenu(fileName = "NewSound", menuName = "Audio/Sound", order = -2)]
     public class Sound : ScriptableObject
     {
-        [SerializeField] internal AudioMixerGroup mixerGroup;
-        [SerializeField] internal AttenuationProfile attenuation;
-        [SerializeField] internal SpreadProfile spread;
-        [SerializeField] internal ReverbProfile reverb;
-        [SerializeField] internal SelectionMode selectionMode;
-        [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants;
-        [SerializeField] internal Vector2 pitchRange;
+        [SerializeField] internal AudioMixerGroup mixerGroup = null;
+        [SerializeField] internal AttenuationProfile attenuation = null;
+        [SerializeField] internal SpreadProfile spread = null;
+        [SerializeField] internal ReverbProfile reverb = null;
+        [SerializeField] internal SelectionMode selectionMode = SelectionMode.UniformRandom;
+        [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants = new() { new() };
+        [SerializeField] internal Vector2 pitchRange = new Vector2(0, 2);
 
         readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, 1));
         readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, 1));
         readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, 0));
-
-        internal static Sound Template;
 
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
@@ -74,17 +72,17 @@ namespace LeafAudio
         // These values are all used in the SoundEditor
 
         // Whether values are shared between variants
-        [SerializeField] internal bool shareClip;
-        [SerializeField] internal bool shareVolume;
-        [SerializeField] internal bool sharePitch;
+        [SerializeField] internal bool shareClip = false;
+        [SerializeField] internal bool shareVolume = false;
+        [SerializeField] internal bool sharePitch = false;
 
         // Whether ReverbMix will be non-zero and shown
         [SerializeField] internal bool useReverbMix;
         [SerializeField] internal bool useSpatialSettings;
 
         public enum VariationMode { Unique, Shared, None }
-        [SerializeField] internal VariationMode volumeVariationMode;
-        [SerializeField] internal VariationMode pitchVariationMode;
+        [SerializeField] internal VariationMode volumeVariationMode = VariationMode.None;
+        [SerializeField] internal VariationMode pitchVariationMode = VariationMode.Unique;
 
         void OnValidate()
         {
@@ -123,34 +121,6 @@ namespace LeafAudio
                 if (pitchVariationMode == VariationMode.Shared) variant.pitchVariation = firstVariant.pitchVariation;
             }
         }
-        void Reset()
-        {
-            mixerGroup = Template.mixerGroup;
-            selectionMode = Template.selectionMode;
-            pitchRange = Template.pitchRange;
-            shareClip = Template.shareClip;
-            shareVolume = Template.shareVolume;
-            sharePitch = Template.sharePitch;
-            volumeVariationMode = Template.volumeVariationMode;
-            pitchVariationMode = Template.pitchVariationMode;
-            useReverbMix = Template.useReverbMix;
-            useSpatialSettings = Template.useSpatialSettings;
-
-
-            weightedVariants = new();
-            for (int i = 0; i < Template.weightedVariants.Count; i++) AddVariantCopy(i);
-            void AddVariantCopy(int i)
-            {
-                SoundVariant variant = new SoundVariant();
-                variant.volume = Template.weightedVariants[i].Item.volume;
-                variant.volumeVariation = Template.weightedVariants[i].Item.volumeVariation;
-                variant.pitch = Template.weightedVariants[i].Item.pitch;
-                variant.pitchVariation = Template.weightedVariants[i].Item.pitchVariation;
-
-                weightedVariants.Add(new(variant));
-            }
-        }
-
 #endif
     }
 }

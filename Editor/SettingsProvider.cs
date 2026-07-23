@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -14,47 +16,51 @@ namespace LeafAudio.Editor
         }
 
 
-        UnityEditor.Editor cachedSoundEditor;
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
 
-            SerializedObject settings = new SerializedObject(Settings.instance);
-            SerializedProperty soundTemplate = settings.FindProperty(nameof(Settings.SoundTemplate));
+            // Wrap to prevent editor hang on error anywhere inside OnActivate
+            try
+            {
+                SerializedObject settings = new SerializedObject(Settings.instance);
 
-            VisualElement title = new Label("LeafAudio") { style = { fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold, marginLeft = 6 } };
+                VisualElement title = new Label("LeafAudio") { style = { fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold, marginLeft = 6 } };
 
-            // Create Sound Template Editor
-            Foldout templateFoldout = new Foldout() { text = "Sound Template" };
-            cachedSoundEditor = UnityEditor.Editor.CreateEditor(Settings.instance.SoundTemplate);
-            VisualElement soundField = cachedSoundEditor.CreateInspectorGUI();
-            templateFoldout.Add(soundField);
-            soundField.Bind(cachedSoundEditor.serializedObject);
+                // Var Setup Spatial Profile Field
+                var spatialProfileField = new ObjectField
+                {
+                    objectType = typeof(SpatialProfile),
+                };
+                spatialProfileField.SetValueWithoutNotify(PlayerSettings.GetPreloadedAssets().OfType<SpatialProfile>().FirstOrDefault());
+                spatialProfileField.RegisterValueChangedCallback(evt =>
+                {
+                    var newPreloads = PlayerSettings.GetPreloadedAssets().ToList();
+
+                    for (int i = newPreloads.Count - 1; i >= 0; i--) if (newPreloads[i] is SpatialProfile) newPreloads.RemoveAt(i);
+
+                    if (evt.newValue != null) newPreloads.Add(evt.newValue);
+
+                    PlayerSettings.SetPreloadedAssets(newPreloads.ToArray());
+                });
 
 
+                // Populate root
+                rootElement.Add(title);
+                rootElement.Add(GetSpacer());
+                rootElement.Add(spatialProfileField);
+                rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.SliderVariationColor))));
+                rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNullSound))));
+                rootElement.Add(GetSpacer());
+                rootElement.Bind(settings);
 
-            // Populate root
-            rootElement.Add(title);
-            rootElement.Add(GetSpacer());
-            rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.SliderVariationColor))));
-            rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNullSound))));
-            rootElement.Add(GetSpacer());
-            rootElement.Add(templateFoldout);
-            rootElement.Bind(settings);
 
+                title.TrackSerializedObjectValue(settings, s => Settings.instance.SaveSettings());
+            }
+            catch { }
 
-            title.TrackSerializedObjectValue(settings, s => Settings.instance.SaveSettings());
 
 
             base.OnActivate(searchContext, rootElement);
-        }
-        public override void OnDeactivate()
-        {
-            base.OnDeactivate();
-            if (cachedSoundEditor != null)
-            {
-                UnityEngine.Object.DestroyImmediate(cachedSoundEditor);
-                cachedSoundEditor = null;
-            }
         }
         [SettingsProvider]
         public static SettingsProvider CreateProvider()

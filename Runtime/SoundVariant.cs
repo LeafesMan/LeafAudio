@@ -8,10 +8,10 @@ namespace LeafAudio
     [System.Serializable]
     internal class SoundVariant
     {
-        [SerializeField] internal AudioClip clip;
-        [SerializeField] internal float volume;
-        [SerializeField] internal float volumeVariation;
-        [SerializeField] internal float pitch;
-        [SerializeField] internal float pitchVariation;
+        [SerializeField] internal AudioClip clip = null;
+        [SerializeField] internal float volume = 0.5f;
+        [SerializeField] internal float volumeVariation = 0;
+        [SerializeField] internal float pitch = 1;
+        [SerializeField] internal float pitchVariation = 0.05f;
     }
 }
