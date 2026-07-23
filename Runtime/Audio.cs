@@ -15,7 +15,7 @@ namespace LeafAudio
             Object.DontDestroyOnLoad(GlobalManager.gameObject);
         }
 
-        public static void Play(Sound sound, Vector3? position = null, Transform origin = null) => Audio.GlobalManager.Play(sound, position, origin);
+        public static void Play(Sound sound, Vector3? position = null, Transform origin = null, float loops = 1) => GlobalManager.Play(sound, position, origin, loops);
 
 
         /// <summary>

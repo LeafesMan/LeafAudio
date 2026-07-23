@@ -6,6 +6,6 @@ namespace LeafAudio
     /// </summary>
     public static class AudioExtensions
     {
-        public static void Play(this Sound sound, Vector3? position = null, Transform origin = null) => Audio.GlobalManager.Play(sound, position, origin);
+        public static void Play(this Sound sound, Vector3? position = null, Transform origin = null, float loops = 1) => Audio.GlobalManager.Play(sound, position, origin, loops);
     }
 }

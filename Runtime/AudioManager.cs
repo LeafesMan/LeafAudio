@@ -14,10 +14,6 @@ namespace LeafAudio
         [SerializeField]
         List<PooledAudioSource> activeSources = new();
         Stack<PooledAudioSource> freeSources = new();
-        /// <summary>
-        /// Each Looping audio source element has two audio sources for fading in a new looping clip
-        /// </summary>
-        Dictionary<uint, (AudioSource, AudioSource)> loopingPool = new();
         #endregion
         void Update()
         {
@@ -39,9 +35,19 @@ namespace LeafAudio
             }
         }
         /// <summary>
-        /// Plays a Clip with the given parameters
+        /// Plays a Clip with the given parameters.<br/>Note that when either position or origin are set the sound will be played spatially.
         /// </summary>
-        public void Play(Sound sound, Vector3? position = null, Transform origin = null)
+        /// <param name="sound"> The Sound asset to play</param>
+        /// <param name="position"> The world-space position to play the Sound at.<br/>If an origin is provided,
+        /// this is treated as an offset from the origin.<br/>If this value is non-null the sound will play spatially. </param>
+        /// <param name="origin">
+        /// The sound will follow origin as if it were parented.<br/>
+        /// When this value is set position will be treated as an offset from this.<br/>
+        /// If this value is non-null the sound will play spatially.</param>
+        /// <param name="loops">
+        /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
+        /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
+        public void Play(Sound sound, Vector3? position = null, Transform origin = null, float loops = 1)
         {
             if (sound == null)
             {
@@ -57,35 +63,8 @@ namespace LeafAudio
 
             // Grab a source, set it up, play it, and sort the sources
             PooledAudioSource pooledSource = GetAudioSource();
-            pooledSource.Setup(playbackSettings, position, origin);
+            pooledSource.Setup(playbackSettings, position, origin, loops);
             pooledSource.Play();
-        }
-        public void PlayLooping(Sound sound, float fadeDuration, uint slot)
-        {   // If Audio Source pair hasnt been created for this slot create it
-            if (!loopingPool.ContainsKey(slot))
-            {
-                loopingPool.Add(slot, new(gameObject.AddComponent<AudioSource>(), gameObject.AddComponent<AudioSource>()));
-                loopingPool[slot].Item1.loop = true;
-                loopingPool[slot].Item2.loop = true;
-            }
-
-
-
-            //Start fading out the faded in AudioSource
-            StartCoroutine(FadeVolume(loopingPool[slot].Item2, loopingPool[slot].Item2.volume, 0, fadeDuration));
-
-            //Fade in faded out Audio Source, replace it's clip with clip to fade in, and set volume to 0
-            var playbackSettings = sound.GetPlaybackSettings();
-            loopingPool[slot].Item2.clip = playbackSettings.clip;
-            loopingPool[slot].Item2.pitch = playbackSettings.pitch;
-            loopingPool[slot].Item2.outputAudioMixerGroup = sound.Group;
-            StartCoroutine(FadeVolume(loopingPool[slot].Item2, 0, playbackSettings.volume, fadeDuration));
-
-            //Swap faded in AudioSource with the faded out AudioSource in the audioSourcePairs tuple
-            loopingPool[slot] = new(loopingPool[slot].Item2, loopingPool[slot].Item1);
-
-            loopingPool[slot].Item1.Play();
-            loopingPool[slot].Item2.Play();
         }
         /// <summary>
         /// Fades volume from current value to targetVolume over duration.
@@ -128,14 +107,13 @@ namespace LeafAudio
             [SerializeField] Vector3 offset;
             [SerializeField] float endTime;
 
-
             public PooledAudioSource(AudioSource source) => this.source = source;
-
             /// <summary>
             /// Setups a pooled audio source with a new set of parameters
             /// </summary>
-            public void Setup(PlaybackSettings playbackSettings, Vector3? position, Transform origin)
+            public void Setup(PlaybackSettings playbackSettings, Vector3? position, Transform origin, float loops)
             {
+                ToggleSourceGameObject(true);
                 playbackSettings.ApplyToSource(source);
 
 #if UNITY_EDITOR
@@ -143,25 +121,25 @@ namespace LeafAudio
 #endif
 
                 // Setup spatial settings
-                if (position != null)
+                if (position != null || origin != null)
                 {
                     source.spatialBlend = 1;
 
                     this.origin = origin;
-                    offset = position.Value;
+                    offset = position ?? Vector3.zero;
                     source.transform.position = origin == null ? offset : origin.position + offset;
                 }
                 else source.spatialBlend = 0;
 
-                // Cache End Time stamp based on clip length
-                endTime = Time.time + Audio.GetDuration(playbackSettings); ;
+                // Cache End Time stamp based on clip length and Loops value
+                // negative loops results in infinite looping
+                if (loops >= 0) endTime = Time.time + Audio.GetDuration(playbackSettings) * loops;
+                else endTime = Mathf.Infinity;
             }
-
             /// <summary>
             /// Plays the pooled audio source.
             /// </summary>
             public void Play() => source.Play();
-
             /// <summary>
             /// Whether the pooled audio source has finished its clip
             /// </summary>
