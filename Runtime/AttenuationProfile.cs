@@ -1,7 +1,7 @@
 using UnityEngine;
 namespace LeafAudio
 {
-    [CreateAssetMenu(fileName = "NewAttenuationProfile", menuName = "Audio/Attenuation Profile")]
+    [CreateAssetMenu(fileName = "NewAttenuationProfile", menuName = "Audio/Attenuation Profile", order = -1)]
     public class AttenuationProfile : DistanceProfile
     {
 #if UNITY_EDITOR
