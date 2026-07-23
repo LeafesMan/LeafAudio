@@ -62,7 +62,7 @@ namespace LeafAudio
             float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
 
             AnimationCurve attenuationCurve = attenuation == null ? DefaultAttenuationCurve : attenuation.curve;
-            AnimationCurve spreadCurve = spread == null ? DefaultAttenuationCurve : attenuation.curve;
+            AnimationCurve spreadCurve = spread == null ? DefaultSpreadCurve : attenuation.curve;
             AnimationCurve reverbCurve = reverb == null ? DefaultReverbCurve : reverb.curve;
 
             return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, attenuationCurve, spreadCurve, reverbCurve);

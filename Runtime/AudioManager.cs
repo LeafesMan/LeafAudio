@@ -114,6 +114,7 @@ namespace LeafAudio
             else
             {   // Create and  reparent an audio source
                 AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
+                audioSource.loop = true;
                 audioSource.transform.SetParent(transform);
 
                 return new PooledAudioSource(audioSource);
