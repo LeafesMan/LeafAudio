@@ -21,24 +21,33 @@ namespace LeafAudio.Editor
         {
             variantsProp = serializedObject.FindProperty(nameof(Sound.weightedVariants));
 
-            // Create root container and specs container
-            VisualElement root = new VisualElement();
+
             variantsListView = GetVariantsListView();
+
+            VisualElement mixerField = GetPropField(nameof(Sound.mixerGroup), "Mixer");
+
+            VisualElement attenuationField = GetPropField(nameof(Sound.attenuation), "Attenuation");
+            ShowIfCondition(attenuationField, () => serializedObject.FindProperty(nameof(Sound.useAttenuation)).boolValue);
+
+            VisualElement reverbField = GetPropField(nameof(Sound.reverb), "Reverb");
+            ShowIfCondition(reverbField, () => serializedObject.FindProperty(nameof(Sound.useReverb)).boolValue);
+
+            VisualElement spreadField = GetPropField(nameof(Sound.spread), "Spread");
+            ShowIfCondition(spreadField, () => serializedObject.FindProperty(nameof(Sound.useSpread)).boolValue);
 
             VisualElement selectionModeField = GetPropField(nameof(Sound.selectionMode), "Selection");
             ShowIfCondition(selectionModeField, () => HasMultipleVariants);
 
-            // Populate Root
-            root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
+
+            // Create root container and populate it
+            VisualElement root = new VisualElement();
+            root.Add(mixerField);
+            root.Add(attenuationField);
+            root.Add(reverbField);
+            root.Add(spreadField);
             if (targets.Length > 1) return root; // Multi editing stops here!
 
-
-
-            // Variant
-            VisualElement firstVariantField = GetFirstVariantField();
-
-
-            root.Add(firstVariantField);
+            root.Add(GetFirstVariantField());
             root.Add(GetSpacer());
             root.Add(selectionModeField);
             root.Add(variantsListView);
@@ -69,8 +78,9 @@ namespace LeafAudio.Editor
             var shareClipField = GetPropField(nameof(Sound.shareClip), "Share Clip", longLabelWidth);
             var shareVolumeField = GetPropField(nameof(Sound.shareVolume), "Share Volume", longLabelWidth);
             var sharePitchField = GetPropField(nameof(Sound.sharePitch), "Share Pitch", longLabelWidth);
-            var useSpatialSettingsToggle = GetPropField(nameof(Sound.useSpatialSettings), "Spatial Settings", longLabelWidth);
-            var useReverbMixToggle = GetPropField(nameof(Sound.useReverbMix), "Reverb Mix", longLabelWidth);
+            var useAttenuationToggle = GetPropField(nameof(Sound.useAttenuation), "Attenuation", longLabelWidth);
+            var useReverbToggle = GetPropField(nameof(Sound.useReverb), "Reverb", longLabelWidth);
+            var useSpreadToggle = GetPropField(nameof(Sound.useSpread), "Spread", longLabelWidth);
             var pitchRangeField = GetPropField(nameof(Sound.pitchRange), "Pitch Range", shortLabelWidth);
             var volumeVariationModeField = GetPropField(nameof(Sound.volumeVariationMode), "Volume Variation", longLabelWidth);
             var volumeVariationModeToggle = GetVariationModeToggle(nameof(Sound.volumeVariationMode), "Volume Variation", longLabelWidth);
@@ -97,9 +107,12 @@ namespace LeafAudio.Editor
             settingsFoldout.Add(shareClipField);
             settingsFoldout.Add(shareVolumeField);
             settingsFoldout.Add(sharePitchField);
-            settingsFoldout.Add(useSpatialSettingsToggle);
-            settingsFoldout.Add(useReverbMixToggle);
+            settingsFoldout.Add(GetSpacer());
             settingsFoldout.Add(pitchRangeField);
+            settingsFoldout.Add(GetSpacer());
+            settingsFoldout.Add(useAttenuationToggle);
+            settingsFoldout.Add(useReverbToggle);
+            settingsFoldout.Add(useSpreadToggle);
 
 
 

@@ -76,9 +76,10 @@ namespace LeafAudio
         [SerializeField] internal bool shareVolume = false;
         [SerializeField] internal bool sharePitch = false;
 
-        // Whether ReverbMix will be non-zero and shown
-        [SerializeField] internal bool useReverbMix;
-        [SerializeField] internal bool useSpatialSettings;
+        // Whether the following fields will be shown and used 
+        [SerializeField] internal bool useAttenuation = false;
+        [SerializeField] internal bool useReverb = false;
+        [SerializeField] internal bool useSpread = false;
 
         public enum VariationMode { Unique, Shared, None }
         [SerializeField] internal VariationMode volumeVariationMode = VariationMode.None;
@@ -100,12 +101,10 @@ namespace LeafAudio
             // Ensure pitches are in pitch range
             foreach (var variant in weightedVariants) variant.Item.pitch = Mathf.Clamp(variant.Item.pitch, pitchRange.x, pitchRange.y);
 
-            // Ensure reverb zone mix is accurate
-            //if (!useReverbMix) reverbMix = 0;
-            //else reverbMix = Mathf.Clamp(reverbMix, 0, 1.1f);
-
-            // Ensure spatial settings is accurate
-            //if (!useSpatialSettings) spatialSettings = null;
+            // Ensure Spatial Fields are nullified if not using
+            if (!useAttenuation) attenuation = null;
+            if (!useReverb) reverb = null;
+            if (!useSpread) spread = null;
 
             // Ensure shared values are shared
             SoundVariant firstVariant = weightedVariants[0].Item;
