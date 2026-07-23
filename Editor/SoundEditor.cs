@@ -416,7 +416,7 @@ namespace LeafAudio.Editor
             void UpdateShown() => element.style.display = condition() ? DisplayStyle.Flex : DisplayStyle.None;
         }
         VisualElement GetSpacer() => new VisualElement() { style = { height = 10 } };
-        VisualElement GetPropField(string propName, string label, float labelWidth = DefaultLabelWidth) => GetLabeledElement(new PropertyField(serializedObject.FindProperty(propName), ""), label, labelWidth: labelWidth);
+        VisualElement GetPropField(string propName, string label, float labelWidth = DefaultLabelWidth) => GetLabeledElement(new PropertyField() { label = "", bindingPath = propName }, label, labelWidth: labelWidth);
     }
     class ClampedFloatField : FloatField
     {

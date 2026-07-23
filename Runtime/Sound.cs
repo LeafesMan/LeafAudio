@@ -23,6 +23,8 @@ namespace LeafAudio
         readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, 1));
         readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, 0));
 
+        internal static Sound Template;
+
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
         /// </summary>
@@ -91,7 +93,6 @@ namespace LeafAudio
             if (weightedVariants.Count == 0)
             {
                 SoundVariant defaultVariant = new SoundVariant();
-                defaultVariant.Reset();
 
                 weightedVariants.Add(new(defaultVariant));
             }
@@ -124,30 +125,32 @@ namespace LeafAudio
         }
         void Reset()
         {
-            mixerGroup = Settings.instance.SoundDefaults.AudioMixerGroup;
-            //spatialSettings = Settings.instance.SoundDefaults.SpatialSettings;
-            selectionMode = Settings.instance.SoundDefaults.SelectionMode;
-            weightedVariants = new() { new Weighted<SoundVariant>(new SoundVariant(), 1) };
-            pitchRange = Settings.instance.SoundDefaults.PitchRange;
-
-            shareClip = Settings.instance.SoundDefaults.ShareClip;
-            shareVolume = Settings.instance.SoundDefaults.ShareVolume;
-            sharePitch = Settings.instance.SoundDefaults.SharePitch;
-            volumeVariationMode = Settings.instance.SoundDefaults.VolumeVariationMode;
-            pitchVariationMode = Settings.instance.SoundDefaults.PitchVariationMode;
-            useReverbMix = Settings.instance.SoundDefaults.UseReverbMix;
-            useSpatialSettings = Settings.instance.SoundDefaults.UseSpatialSettings;
+            mixerGroup = Template.mixerGroup;
+            selectionMode = Template.selectionMode;
+            pitchRange = Template.pitchRange;
+            shareClip = Template.shareClip;
+            shareVolume = Template.shareVolume;
+            sharePitch = Template.sharePitch;
+            volumeVariationMode = Template.volumeVariationMode;
+            pitchVariationMode = Template.pitchVariationMode;
+            useReverbMix = Template.useReverbMix;
+            useSpatialSettings = Template.useSpatialSettings;
 
 
-            // Set Pitch/Volume and Variations
-            var mainVariant = weightedVariants[0].Item;
-            mainVariant.volume = Settings.instance.SoundDefaults.Volume;
-            mainVariant.pitch = Settings.instance.SoundDefaults.Pitch;
-            // Only set Variation when mode is not none
-            if (volumeVariationMode != VariationMode.None) mainVariant.volumeVariation = Settings.instance.SoundDefaults.VolumeVariation;
-            if (pitchVariationMode != VariationMode.None) mainVariant.pitchVariation = Settings.instance.SoundDefaults.PitchVariation;
-            //if (useReverbMix) reverbMix = Settings.instance.SoundDefaults.ReverbMix;
+            weightedVariants = new();
+            for (int i = 0; i < Template.weightedVariants.Count; i++) AddVariantCopy(i);
+            void AddVariantCopy(int i)
+            {
+                SoundVariant variant = new SoundVariant();
+                variant.volume = Template.weightedVariants[i].Item.volume;
+                variant.volumeVariation = Template.weightedVariants[i].Item.volumeVariation;
+                variant.pitch = Template.weightedVariants[i].Item.pitch;
+                variant.pitchVariation = Template.weightedVariants[i].Item.pitchVariation;
+
+                weightedVariants.Add(new(variant));
+            }
         }
+
 #endif
     }
 }

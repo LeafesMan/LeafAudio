@@ -13,17 +13,5 @@ namespace LeafAudio
         [SerializeField] internal float volumeVariation;
         [SerializeField] internal float pitch;
         [SerializeField] internal float pitchVariation;
-
-        //  Don't use a default constructor as Unity will call it before scriptable singletons setup resulting in a null ref error
-        /// <summary>
-        /// Sets values to defaults.
-        /// </summary>
-        internal void Reset()
-        {
-            volume = Settings.instance.SoundDefaults.Volume;
-            volumeVariation = Settings.instance.SoundDefaults.VolumeVariation;
-            pitch = Settings.instance.SoundDefaults.Pitch;
-            pitchVariation = Settings.instance.SoundDefaults.PitchVariation;
-        }
     }
 }

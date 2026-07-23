@@ -14,6 +14,10 @@ namespace LeafAudio
         [SerializeField]
         List<PooledAudioSource> activeSources = new();
         Stack<PooledAudioSource> freeSources = new();
+
+# if UNITY_EDITOR
+        internal static bool WarnOnPlayNullSound;
+#endif
         #endregion
         void Update()
         {
@@ -52,7 +56,7 @@ namespace LeafAudio
             if (sound == null)
             {
 #if UNITY_EDITOR
-                if (Settings.instance.WarnOnPlayNullSound) Debug.LogWarning("Failed to play null sound! This is an editor-only warning and may be disabled: ProjectSetting/LeafAudio/WarnOnPlayNullSound");
+                if (WarnOnPlayNullSound) Debug.LogWarning("Failed to play null sound! This is an editor-only warning and may be disabled: ProjectSetting/LeafAudio/WarnOnPlayNullSound");
 #endif
                 return;
             }
