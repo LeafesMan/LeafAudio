@@ -32,7 +32,7 @@ namespace LeafAudio.Editor
             //ShowIfCondition(spatialSettingsField, () => serializedObject.FindProperty(nameof(Sound.useSpatialSettings)).boolValue);
 
             // Populate Root
-            root.Add(GetScriptField());
+            if (AssetDatabase.Contains(target)) root.Add(GetScriptField());
             root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
             //root.Add(spatialSettingsField);
             if (targets.Length > 1) return root; // Multi editing stops here!
@@ -42,14 +42,12 @@ namespace LeafAudio.Editor
             // Variant
             VisualElement firstVariantField = GetFirstVariantField();
 
-            VisualElement testButton = GetTestButton(variantsListView);
-            ShowIfCondition(testButton, () => !HasMultipleVariants);
 
             root.Add(firstVariantField);
             root.Add(GetSpacer());
             root.Add(selectionModeField);
             root.Add(variantsListView);
-            root.Add(testButton);
+            if (AssetDatabase.Contains(target)) root.Add(GetTestButton(variantsListView));
             root.Add(GetSpacer());
             root.Add(GetSettingsFoldout());
 
@@ -164,7 +162,7 @@ namespace LeafAudio.Editor
             // Add test button to header
             VisualElement listViewHeader = variantsListView.Q<VisualElement>(className: "unity-foldout__input");
             if (listViewHeader == null) throw new Exception("Unity has moved the ListView header element. Use UI Toolkit Debugger to find and assign it again!");
-            listViewHeader.Add(GetTestButton(variantsListView, forListView: true));
+            if (AssetDatabase.Contains(target)) listViewHeader.Add(GetTestButton(variantsListView, forListView: true));
 
             return variantsListView;
         }
@@ -382,6 +380,8 @@ namespace LeafAudio.Editor
                     SoundTester.Test(playbackSettings);
                 }
             );
+
+            if (!forListView) ShowIfCondition(button, () => !HasMultipleVariants);
 
             return button;
         }

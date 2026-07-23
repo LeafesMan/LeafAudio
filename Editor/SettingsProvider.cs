@@ -23,17 +23,22 @@ namespace LeafAudio.Editor
 
             VisualElement title = new Label("LeafAudio") { style = { fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold, marginLeft = 6 } };
 
+            // Create Sound Template Editor
             Foldout templateFoldout = new Foldout() { text = "Sound Template" };
-
             cachedSoundEditor = UnityEditor.Editor.CreateEditor(Settings.instance.SoundTemplate);
             VisualElement soundField = cachedSoundEditor.CreateInspectorGUI();
-            soundField.Bind(cachedSoundEditor.serializedObject);
             templateFoldout.Add(soundField);
+            soundField.Bind(cachedSoundEditor.serializedObject);
 
+
+
+            // Populate root
             rootElement.Add(title);
-            rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNullSound))));
-            rootElement.Add(templateFoldout);
+            rootElement.Add(GetSpacer());
             rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.SliderVariationColor))));
+            rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNullSound))));
+            rootElement.Add(GetSpacer());
+            rootElement.Add(templateFoldout);
             rootElement.Bind(settings);
 
 
@@ -55,6 +60,11 @@ namespace LeafAudio.Editor
         public static SettingsProvider CreateProvider()
         {
             return new LeafAudioSettingsProvider("Project/LeafAudio", SettingsScope.Project);
+        }
+
+        VisualElement GetSpacer()
+        {
+            return new VisualElement() { style = { marginBottom = 5 } };
         }
     }
 }
