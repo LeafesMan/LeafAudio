@@ -108,8 +108,10 @@ namespace LeafAudio
         }
         PooledAudioSource GetAudioSource()
         {
+            PooledAudioSource toReturn;
+
             // Pool has Free Source --> Return it
-            if (freeSources.Count > 0) return freeSources.Pop();
+            if (freeSources.Count > 0) toReturn = freeSources.Pop();
             // Pool has no Free Sources --> Create a new Source
             else
             {   // Create and  reparent an audio source
@@ -117,8 +119,11 @@ namespace LeafAudio
                 audioSource.loop = true;
                 audioSource.transform.SetParent(transform);
 
-                return new PooledAudioSource(audioSource);
+                toReturn = new PooledAudioSource(audioSource);
             }
+
+            activeSources.Add(toReturn);
+            return toReturn;
         }
         #region Pooled Audio Source Class
         /// <summary>
