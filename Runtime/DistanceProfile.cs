@@ -7,7 +7,7 @@ namespace LeafAudio
         [SerializeField] internal AnimationCurve curve;
 
 #if UNITY_EDITOR
-        [SerializeField] internal Vector2 curveDomain;
+        [SerializeField] internal Vector2 curveDomain = new Vector2(0, 100);
         const float RequiredDomainSize = 0.01f;
         internal abstract bool GetCanShowAsValue();
         internal abstract Vector2 CurveRange { get; }
