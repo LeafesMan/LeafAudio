@@ -12,6 +12,7 @@ namespace LeafAudio
 
 #if UNITY_EDITOR
 
+        public Sound soundTemplate;
         [System.Serializable]
         public class SoundTemplate
         {

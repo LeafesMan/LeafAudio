@@ -2,7 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System;
-using UnityEngine.Audio;
 
 namespace LeafAudio
 {
@@ -41,7 +40,7 @@ namespace LeafAudio
         /// <summary>
         /// Plays a Clip with the given parameters
         /// </summary>
-        public void Play(Sound sound, SpatialRolloff spatialSpecs = null)
+        public void Play(Sound sound, Vector3? position = null, Transform origin = null)
         {
             if (sound == null)
             {
@@ -51,13 +50,13 @@ namespace LeafAudio
                 return;
             }
 
-            PlaybackSettings toPlay = sound.GetPlaybackSettings();
-
-            if (toPlay.clip == null) return;
+            // Exit early if clip is null
+            PlaybackSettings playbackSettings = sound.GetPlaybackSettings();
+            if (playbackSettings.clip == null) return;
 
             // Grab a source, set it up, play it, and sort the sources
             PooledAudioSource pooledSource = GetAudioSource();
-            pooledSource.Setup(toPlay, spatialSpecs);
+            pooledSource.Setup(playbackSettings, position, origin);
             pooledSource.Play();
             Sort(pooledSource);
         }
@@ -111,7 +110,6 @@ namespace LeafAudio
             // OR   uses the oldest used source if the pool is full
             PooledAudioSource toReturn;
 
-
             // Pool has Available Source --> Return it
             if (pool.Count != 0 && pool[0].IsDone)
                 toReturn = pool[0];
@@ -124,11 +122,7 @@ namespace LeafAudio
                 AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
                 audioSource.transform.SetParent(transform);
 
-                //print($"Creating pooled source with source: {audioSource}");
-
                 toReturn = new PooledAudioSource(audioSource);
-
-                //print($"Created pooled source with source: {toReturn.source}");
             }
 
             return toReturn;
@@ -166,35 +160,24 @@ namespace LeafAudio
             /// <summary>
             /// Setups a pooled audio source with a new set of parameters
             /// </summary>
-            public void Setup(PlaybackSettings playbackSettings, SpatialRolloff spatialRolloff)
+            public void Setup(PlaybackSettings playbackSettings, Vector3? position, Transform origin)
             {
+                playbackSettings.ApplyToSource(source);
 
-
-                Audio.ApplyPlaybackSettings(source, playbackSettings);
 #if UNITY_EDITOR
                 source.name = source.clip.name; // Soley an editor convenience for easier debugging
 #endif
 
                 // Setup spatial settings
-                if (spatialRolloff != null)
+                if (position != null)
                 {
-                    origin = spatialRolloff.origin;
-                    offset = spatialRolloff.offset;
-
                     source.spatialBlend = 1;
-                    source.rolloffMode = AudioRolloffMode.Custom;
-                    source.maxDistance = spatialRolloff.range.y;
-                    source.dopplerLevel = 0;
-                    float curveLength = source.maxDistance - source.minDistance;
-                    var rolloffCurve = new AnimationCurve(new Keyframe(spatialRolloff.range.x, 1, 0, -spatialRolloff.power / curveLength), new Keyframe(spatialRolloff.range.y, 0));
-                    source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, rolloffCurve);
+
+                    this.origin = origin;
+                    offset = position.Value;
+                    source.transform.position = origin == null ? offset : origin.position + offset;
                 }
-                else
-                    source.spatialBlend = 0;
-
-
-                // Init position
-                source.transform.position = origin == null ? offset : origin.position + offset;
+                else source.spatialBlend = 0;
 
                 // Cache End Time stamp based on clip length
                 endTime = Time.time + Audio.GetDuration(playbackSettings); ;

@@ -12,10 +12,16 @@ namespace LeafAudio
     public class Sound : ScriptableObject
     {
         [SerializeField] internal AudioMixerGroup mixerGroup;
+        [SerializeField] internal AttenuationProfile attenuation;
+        [SerializeField] internal SpreadProfile spread;
+        [SerializeField] internal ReverbProfile reverb;
         [SerializeField] internal SelectionMode selectionMode;
         [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants;
         [SerializeField] internal Vector2 pitchRange;
-        [SerializeField] internal float reverbMix;
+
+        readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, 1));
+        readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, 1));
+        readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, 0));
 
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
@@ -55,7 +61,11 @@ namespace LeafAudio
             Vector2 pitchVariationRange = new Vector2(pitchRange.x - variant.pitch, pitchRange.y - variant.pitch);
             float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
 
-            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, reverbMix);
+            AnimationCurve attenuationCurve = attenuation == null ? DefaultAttenuationCurve : attenuation.curve;
+            AnimationCurve spreadCurve = spread == null ? DefaultAttenuationCurve : attenuation.curve;
+            AnimationCurve reverbCurve = reverb == null ? DefaultReverbCurve : reverb.curve;
+
+            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, attenuationCurve, spreadCurve, reverbCurve);
         }
 
 #if UNITY_EDITOR
@@ -92,8 +102,8 @@ namespace LeafAudio
             foreach (var variant in weightedVariants) variant.Item.pitch = Mathf.Clamp(variant.Item.pitch, pitchRange.x, pitchRange.y);
 
             // Ensure reverb zone mix is accurate
-            if (!useReverbMix) reverbMix = 0;
-            else reverbMix = Mathf.Clamp(reverbMix, 0, 1.1f);
+            //if (!useReverbMix) reverbMix = 0;
+            //else reverbMix = Mathf.Clamp(reverbMix, 0, 1.1f);
 
             // Ensure spatial settings is accurate
             //if (!useSpatialSettings) spatialSettings = null;
@@ -136,7 +146,7 @@ namespace LeafAudio
             // Only set Variation when mode is not none
             if (volumeVariationMode != VariationMode.None) mainVariant.volumeVariation = Settings.instance.SoundDefaults.VolumeVariation;
             if (pitchVariationMode != VariationMode.None) mainVariant.pitchVariation = Settings.instance.SoundDefaults.PitchVariation;
-            if (useReverbMix) reverbMix = Settings.instance.SoundDefaults.ReverbMix;
+            //if (useReverbMix) reverbMix = Settings.instance.SoundDefaults.ReverbMix;
         }
 #endif
     }

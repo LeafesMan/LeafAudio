@@ -31,9 +31,6 @@ namespace LeafAudio.Editor
             //VisualElement spatialSettingsField = GetPropField(nameof(Sound.spatialSettings), "Spatial");
             //ShowIfCondition(spatialSettingsField, () => serializedObject.FindProperty(nameof(Sound.useSpatialSettings)).boolValue);
 
-            VisualElement reverbField = GetPropField(nameof(Sound.reverbMix), "Reverb");
-            ShowIfCondition(reverbField, () => serializedObject.FindProperty(nameof(Sound.useReverbMix)).boolValue);
-
             // Populate Root
             root.Add(GetScriptField());
             root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
@@ -49,7 +46,6 @@ namespace LeafAudio.Editor
             ShowIfCondition(testButton, () => !HasMultipleVariants);
 
             root.Add(firstVariantField);
-            root.Add(reverbField);
             root.Add(GetSpacer());
             root.Add(selectionModeField);
             root.Add(variantsListView);

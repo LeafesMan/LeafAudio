@@ -6,7 +6,7 @@ namespace LeafAudio
     {
 #if UNITY_EDITOR
         internal override bool GetCanShowAsValue() => true;
-        internal override Vector2 CurveRange => Vector2.up * 360;
+        internal override Vector2 CurveRange => Vector2.up;
 #endif
     }
 }

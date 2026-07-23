@@ -16,7 +16,7 @@ namespace LeafAudio.Editor
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
             {
-                Test(new PlaybackSettings(asset as AudioClip, Settings.instance.SoundDefaults.Volume, 1, null, 0));
+                Test(new PlaybackSettings(asset as AudioClip, Settings.instance.SoundDefaults.Volume, 1, null, null, null, null));
                 return true;
             }
             if (asset.GetType() == typeof(Sound))
@@ -43,7 +43,7 @@ namespace LeafAudio.Editor
             source.gameObject.hideFlags = HideFlags.DontSave;
 
             // Setup Source
-            Audio.ApplyPlaybackSettings(source, playbackSettings);
+            playbackSettings.ApplyToSource(source);
             source.Play();
 
             // Destroy temporary Object after the clips completion            

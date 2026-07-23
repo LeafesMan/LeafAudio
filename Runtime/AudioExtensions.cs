@@ -1,3 +1,4 @@
+using UnityEngine;
 namespace LeafAudio
 {
     /// <summary>
@@ -5,7 +6,7 @@ namespace LeafAudio
     /// </summary>
     public static class AudioExtensions
     {
-        public static void Play(this Sound sound, SpatialRolloff spatialSpecs = null) => Audio.Play(sound, spatialSpecs);
+        public static void Play(this Sound sound, Vector3? position = null, Transform origin = null) => Audio.GlobalManager.Play(sound, position, origin);
         public static void PlayLooping(this Sound sound, float fadeDuration, uint slot) => Audio.PlayLooping(sound, fadeDuration, slot);
     }
 }
