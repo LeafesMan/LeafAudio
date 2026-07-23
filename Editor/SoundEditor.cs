@@ -28,13 +28,8 @@ namespace LeafAudio.Editor
             VisualElement selectionModeField = GetPropField(nameof(Sound.selectionMode), "Selection");
             ShowIfCondition(selectionModeField, () => HasMultipleVariants);
 
-            //VisualElement spatialSettingsField = GetPropField(nameof(Sound.spatialSettings), "Spatial");
-            //ShowIfCondition(spatialSettingsField, () => serializedObject.FindProperty(nameof(Sound.useSpatialSettings)).boolValue);
-
             // Populate Root
-            if (AssetDatabase.Contains(target)) root.Add(GetScriptField());
             root.Add(GetPropField(nameof(Sound.mixerGroup), "Mixer"));
-            //root.Add(spatialSettingsField);
             if (targets.Length > 1) return root; // Multi editing stops here!
 
 
