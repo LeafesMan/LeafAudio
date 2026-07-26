@@ -1,5 +1,3 @@
-using System.Linq;
-using Mono.Cecil.Cil;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -7,14 +5,14 @@ using UnityEngine.UIElements;
 
 namespace LeafAudio.Editor
 {
-    [CustomEditor(typeof(DistanceProfile), editorForChildClasses: true)]
-    public class DistanceProfileEditor : UnityEditor.Editor
+    [CustomEditor(typeof(SpatialSettings))]
+    public class SpatialSettingsEditor : UnityEditor.Editor
     {
         Vector2 prevDomain;
         public override VisualElement CreateInspectorGUI()
         {   // Grab Props and Vars from field
             VisualElement root = new VisualElement();
-            SerializedProperty curveProp = serializedObject.FindProperty(nameof(DistanceProfile.curve));
+            /*SerializedProperty curveProp = serializedObject.FindProperty(nameof(DistanceProfile.curve));
             SerializedProperty curveDomainProp = serializedObject.FindProperty(nameof(DistanceProfile.curveDomain));
             Vector2 curveRange = (target as DistanceProfile).CurveRange; // This value is set and thus not a prop
 
@@ -73,9 +71,44 @@ namespace LeafAudio.Editor
 
                 curveField.ranges = new Rect(curveDomain.x, 0, curveDomain.y - curveDomain.x, curveRange.y - curveRange.x);
             }
-            curveField.RegisterValueChangedCallback(evt => { curveProp.animationCurveValue = curveField.value; serializedObject.ApplyModifiedProperties(); }); // Update prop
-            curveField.TrackPropertyValue(curveProp, p => curveField.SetValueWithoutNotify(p.animationCurveValue)); // Update field
-            curveField.SetValueWithoutNotify(curveProp.animationCurveValue); // Initialize field
+            curveField.RegisterValueChangedCallback(evt =>
+            {
+                float maxDistance = DistanceProfile.MAX_DISTANCE; // or however you're tracking it
+                AnimationCurve display = evt.newValue;
+                AnimationCurve normalized = new AnimationCurve();
+
+                for (int i = 0; i < display.length; i++)
+                {
+                    Keyframe k = display[i];
+                    k.time = k.time / maxDistance;
+                    k.inTangent *= maxDistance;
+                    k.outTangent *= maxDistance;
+                    normalized.AddKey(k);
+
+
+                    Debug.Log($"{k.time}, {k.value}, in:{k.inTangent}, out:{k.outTangent}");
+                }
+                curveProp.animationCurveValue = normalized;
+                serializedObject.ApplyModifiedProperties();
+            });
+            void DrawCurveFromProperty()
+            {
+                float maxDistance = DistanceProfile.MAX_DISTANCE;
+                AnimationCurve normalized = curveProp.animationCurveValue;
+                AnimationCurve display = new AnimationCurve();
+                for (int i = 0; i < normalized.length; i++)
+                {
+                    Keyframe k = normalized[i];
+                    k.time = k.time * maxDistance;
+                    k.inTangent /= maxDistance;
+                    k.outTangent /= maxDistance;
+                    display.AddKey(k);
+                    Debug.Log($"{k.time}, {k.value}, in:{k.inTangent}, out:{k.outTangent}");
+                }
+                curveField.SetValueWithoutNotify(display);
+            }
+            curveField.TrackPropertyValue(curveProp, p => DrawCurveFromProperty()); // Update field
+            DrawCurveFromProperty();
             curveField.style.width = new StyleLength(Length.Percent(100));
             curveField.style.flexShrink = 0;
             // Prop Change Update Value
@@ -142,9 +175,15 @@ namespace LeafAudio.Editor
                 root.Add(useCurveToggle);
             }
 
-
+*/
 
             return root;
+        }
+
+
+        void GetCurveEditor(string var, bool canBeValue)
+        {
+
         }
     }
 }

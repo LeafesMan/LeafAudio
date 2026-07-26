@@ -16,25 +16,6 @@ namespace LeafAudio
         List<PooledAudioSource> activeSources = new();
         Stack<PooledAudioSource> freeSources = new();
 
-        /// <summary>
-        /// The spatial curve used for all spatial sounds. Will use the profile defined in ProjectSettings or a default flat value of 1 if no curve is defined.
-        /// </summary>
-        static AnimationCurve GlobalSpatialCurve;
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void SetupGlobalSpatialProfile()
-        {
-
-            // Find spatial profile based on whether in editor or not
-            SpatialProfile globalSpatialProfile;
-#if UNITY_EDITOR
-            globalSpatialProfile = UnityEditor.PlayerSettings.GetPreloadedAssets().OfType<SpatialProfile>().FirstOrDefault();
-#else
-            globalSpatialProfile = Resources.FindObjectsOfTypeAll<SpatialProfile>().FirstOrDefault();
-#endif
-
-            // Apply the found profile or default to 1
-            GlobalSpatialCurve = globalSpatialProfile != null ? globalSpatialProfile.curve : new AnimationCurve(new Keyframe(0, 1));
-        }
 # if UNITY_EDITOR
         internal static bool WarnOnPlayNullSound;
 #endif
@@ -116,6 +97,7 @@ namespace LeafAudio
             else
             {   // Create and  reparent an audio source
                 AudioSource audioSource = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
+                audioSource.rolloffMode = AudioRolloffMode.Custom;
                 audioSource.loop = true;
                 audioSource.transform.SetParent(transform);
 
@@ -151,15 +133,9 @@ namespace LeafAudio
 #endif
 
                 // Setup spatial settings
-                if (position != null || origin != null)
-                {
-                    source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, GlobalSpatialCurve);
-
-                    this.origin = origin;
-                    offset = position ?? Vector3.zero;
-                    source.transform.position = origin == null ? offset : origin.position + offset;
-                }
-                else source.spatialBlend = 0;
+                this.origin = origin;
+                offset = position ?? Vector3.zero;
+                source.transform.position = origin == null ? offset : (origin.position + offset);
 
                 // Cache End Time stamp based on clip length and Loops value
                 // negative loops results in infinite looping

@@ -12,16 +12,10 @@ namespace LeafAudio
     public class Sound : ScriptableObject
     {
         [SerializeField] internal AudioMixerGroup mixerGroup = null;
-        [SerializeField] internal AttenuationProfile attenuation = null;
-        [SerializeField] internal SpreadProfile spread = null;
-        [SerializeField] internal ReverbProfile reverb = null;
+        [SerializeField] internal SpatialSettings spatialSettings = null;
         [SerializeField] internal SelectionMode selectionMode = SelectionMode.UniformRandom;
         [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants = new() { new() };
         [SerializeField] internal Vector2 pitchRange = new Vector2(0, 2);
-
-        readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, 1));
-        readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, 1));
-        readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, 0));
 
         /// <summary>
         /// Selects a variant from WeightedVariants using the specified SelectionMode.
@@ -61,11 +55,8 @@ namespace LeafAudio
             Vector2 pitchVariationRange = new Vector2(pitchRange.x - variant.pitch, pitchRange.y - variant.pitch);
             float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
 
-            AnimationCurve attenuationCurve = attenuation == null ? DefaultAttenuationCurve : attenuation.curve;
-            AnimationCurve spreadCurve = spread == null ? DefaultSpreadCurve : attenuation.curve;
-            AnimationCurve reverbCurve = reverb == null ? DefaultReverbCurve : reverb.curve;
 
-            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, attenuationCurve, spreadCurve, reverbCurve);
+            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, spatialSettings);
         }
 
 #if UNITY_EDITOR
@@ -77,9 +68,7 @@ namespace LeafAudio
         [SerializeField] internal bool sharePitch = false;
 
         // Whether the following fields will be shown and used 
-        [SerializeField] internal bool useAttenuation = false;
-        [SerializeField] internal bool useReverb = false;
-        [SerializeField] internal bool useSpread = false;
+        [SerializeField] internal bool useSpatialSettings = false;
 
         public enum VariationMode { Unique, Shared, None }
         [SerializeField] internal VariationMode volumeVariationMode = VariationMode.None;
@@ -102,9 +91,7 @@ namespace LeafAudio
             foreach (var variant in weightedVariants) variant.Item.pitch = Mathf.Clamp(variant.Item.pitch, pitchRange.x, pitchRange.y);
 
             // Ensure Spatial Fields are nullified if not using
-            if (!useAttenuation) attenuation = null;
-            if (!useReverb) reverb = null;
-            if (!useSpread) spread = null;
+            if (!useSpatialSettings) spatialSettings = null;
 
             // Ensure shared values are shared
             SoundVariant firstVariant = weightedVariants[0].Item;
