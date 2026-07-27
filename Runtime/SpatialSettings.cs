@@ -20,13 +20,12 @@ namespace LeafAudio
         internal static readonly Vector2 DopplerRange = new(0, 5);
 
 #if UNITY_EDITOR
-        // The possible ways a Unity's curve values may be driven
-        internal enum CurveValueType { Curve, Value, None }
-        internal bool useAttenuation = true;
-        internal bool useSpatial = false;
-        internal CurveValueType reverbType = CurveValueType.None;
-        internal CurveValueType spreadType = CurveValueType.None;
-
+        [SerializeField] internal bool useAttenuation = true;
+        [SerializeField] internal bool useSpatial = false;
+        [SerializeField] internal bool useDoppler = false;
+        [SerializeField] internal CurveValueType reverbType = CurveValueType.None;
+        [SerializeField] internal CurveValueType spreadType = CurveValueType.None;
+        internal enum CurveValueType { Curve, Value, None }// The possible ways a Unity's curve values may be driven
 
         public static float ValidateMaxDistance(float maxDistance) => Mathf.Max(1, maxDistance);
         public static float ValidateDoppler(float doppler) => Mathf.Clamp(doppler, DopplerRange.x, DopplerRange.y);

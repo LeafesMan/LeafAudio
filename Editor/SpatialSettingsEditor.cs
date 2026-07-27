@@ -1,5 +1,4 @@
 using System;
-using PlasticPipe.PlasticProtocol.Messages;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -15,7 +14,7 @@ namespace LeafAudio.Editor
 
         public override VisualElement CreateInspectorGUI()
         {   // Grab Props and Vars from field
-            VisualElement root = new VisualElement();
+            BindableElement root = new BindableElement();
 
             maxDistanceProp = serializedObject.FindProperty(nameof(SpatialSettings.maxDistance));
             FloatField maxDistanceField = new FloatField("");
@@ -37,6 +36,7 @@ namespace LeafAudio.Editor
             dopplerElement.Add(dopplerFloatField);
             dopplerElement.Add(dopplerSlider);
             dopplerElement = Util.GetLabeledElement(dopplerElement, "Doppler", labelWidth: 110);
+            Util.ShowIfCondition(serializedObject, dopplerElement, () => serializedObject.FindProperty(nameof(SpatialSettings.useDoppler)).boolValue);
 
 
             root.Add(maxDistanceElement);
@@ -45,10 +45,28 @@ namespace LeafAudio.Editor
             root.Add(GetCurveElement(nameof(SpatialSettings.spatial), canBeValue: false));
             root.Add(GetCurveElement(nameof(SpatialSettings.spread), canBeValue: true));
             root.Add(GetCurveElement(nameof(SpatialSettings.reverb), canBeValue: true, 1.1f));
+            root.Add(GetDataSettingsElement());
+
+            root.Bind(serializedObject);
 
             return root;
         }
 
+        VisualElement GetDataSettingsElement()
+        {
+            Foldout root = new Foldout();
+            root.text = "Data Settings";
+            root.viewDataKey = nameof(SpatialSettingsEditor) + "DataSettings";
+
+            float labelWidth = 90;
+            root.Add(Util.GetPropField(nameof(SpatialSettings.useAttenuation), "Attenuation", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialSettings.useSpatial), "Spatial", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialSettings.useDoppler), "Doppler", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialSettings.spreadType), "Spread", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialSettings.reverbType), "Reverb", labelWidth));
+
+            return root;
+        }
         VisualElement GetCurveElement(string var, bool canBeValue, float range = 1)
         {
             // Grab the curve prop and make an element for it
@@ -175,12 +193,10 @@ namespace LeafAudio.Editor
             root.Add(curveElement);
 
 
-            // Setup toggle curve
-            // (Only if the Distance profile can be represented as a value)
-            /*if ((target as DistanceProfile).CanShowAsValue)
+            // Setup Display as Value
+            if (canBeValue)
             {
-                SerializedProperty useCurveProp = serializedObject.FindProperty(nameof(DistanceProfile.useCurve));
-
+                SerializedProperty curveType = serializedObject.FindProperty(var + "Type");
 
 
                 // Make Value Field
@@ -190,7 +206,7 @@ namespace LeafAudio.Editor
                 UpdateValueField();
                 void UpdateCurveProp()
                 {
-                    if (useCurveProp.boolValue) return; // Dont lock if using curve
+                    if (curveType.enumValueIndex != (int)SpatialSettings.CurveValueType.Value) return; // Dont lock if not using value
                     curveProp.animationCurveValue = new AnimationCurve(new Keyframe(0, valueField.value));
                     serializedObject.ApplyModifiedProperties();
                 }
@@ -199,26 +215,15 @@ namespace LeafAudio.Editor
                     var animationCurve = curveProp.animationCurveValue;
                     valueField.value = animationCurve.keys[0].value;
                 }
-                VisualElement labeledValueField = SoundEditor.GetLabeledElement(valueField, "Value");
+                VisualElement valueElement = Util.GetLabeledElement(valueField, Util.CaptializeFirstLetter(var));
 
-
-                // Make Toggle Field                
-                VisualElement useCurveToggle = new PropertyField(useCurveProp, "");
-                useCurveToggle = SoundEditor.GetLabeledElement(useCurveToggle, "Curve");
-                UpdateCurveFieldsShown();
-                root.TrackPropertyValue(useCurveProp, p => UpdateCurveFieldsShown());
-                void UpdateCurveFieldsShown()
-                {
-                    DisplayStyle GetStyle(bool show) => show ? DisplayStyle.Flex : DisplayStyle.None;
-
-                    curveField.style.display = GetStyle(useCurveProp.boolValue);
-                    labeledCurveDomainField.style.display = GetStyle(useCurveProp.boolValue);
-                    labeledValueField.style.display = GetStyle(!useCurveProp.boolValue);
-                }
-
-                root.Add(labeledValueField);
-                root.Add(useCurveToggle);
-            }*/
+                root.Add(valueElement);
+                // Show Curve if on Curve Mode
+                // Show Value if on Value Mode
+                Util.ShowIfCondition(serializedObject, curveElement, () => curveType.enumValueIndex == (int)SpatialSettings.CurveValueType.Curve);
+                Util.ShowIfCondition(serializedObject, valueElement, () => curveType.enumValueIndex == (int)SpatialSettings.CurveValueType.Value);
+            }
+            else Util.ShowIfCondition(serializedObject, curveElement, () => serializedObject.FindProperty("use" + Util.CaptializeFirstLetter(var)).boolValue);
 
 
             return root;
