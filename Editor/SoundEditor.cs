@@ -97,9 +97,10 @@ namespace LeafAudio.Editor
             settingsFoldout.Add(shareVolumeField);
             settingsFoldout.Add(sharePitchField);
             settingsFoldout.Add(Util.GetSpacer());
-            settingsFoldout.Add(pitchRangeField);
-            settingsFoldout.Add(Util.GetSpacer());
             settingsFoldout.Add(useAttenuationToggle);
+            settingsFoldout.Add(Util.GetSpacer());
+            settingsFoldout.Add(pitchRangeField);
+
 
 
             return settingsFoldout;
@@ -316,7 +317,7 @@ namespace LeafAudio.Editor
 
 
             // Toggle elements
-            bool IsValueShared() => serializedObject.FindProperty($"share{char.ToUpper(var[0]) + var[1..]}").boolValue;
+            bool IsValueShared() => serializedObject.FindProperty($"share{Util.CaptializeFirstLetter(var)}").boolValue;
             Sound.VariationMode GetVariationMode() => (Sound.VariationMode)serializedObject.FindProperty($"{var}VariationMode").enumValueIndex;
             bool DoShowValue() => !HasMultipleVariants || (isSharedField == IsValueShared());
             bool DoShowVariation() => GetVariationMode() != Sound.VariationMode.None && (!HasMultipleVariants || (isSharedField && GetVariationMode() == Sound.VariationMode.Shared) || (!isSharedField && GetVariationMode() == Sound.VariationMode.Unique));

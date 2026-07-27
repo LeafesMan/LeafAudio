@@ -6,20 +6,20 @@ using UnityEngine.UIElements;
 
 namespace LeafAudio.Editor
 {
-    public static class Util
+    internal static class Util
     {
-        public const float DefaultLabelWidth = 55;
+        internal const float DefaultLabelWidth = 55;
         /// <summary>
         /// Tracks the serialized object and shows whenever the condition is met
         /// </summary>
-        public static void ShowIfCondition(SerializedObject serializedObjectToTrack, VisualElement elementToHide, Func<bool> condition)
+        internal static void ShowIfCondition(SerializedObject serializedObjectToTrack, VisualElement elementToHide, Func<bool> condition)
         {
             UpdateShown();
             elementToHide.TrackSerializedObjectValue(serializedObjectToTrack, (obj) => UpdateShown());
             void UpdateShown() => elementToHide.style.display = condition() ? DisplayStyle.Flex : DisplayStyle.None;
         }
-        public static VisualElement GetSpacer() => new VisualElement() { style = { height = 10 } };
-        public static VisualElement GetPropField(string propName, string label, float labelWidth = DefaultLabelWidth) => GetLabeledElement(new PropertyField() { label = "", bindingPath = propName }, label, labelWidth: labelWidth);
+        internal static VisualElement GetSpacer() => new VisualElement() { style = { height = 10 } };
+        internal static VisualElement GetPropField(string propName, string label, float labelWidth = DefaultLabelWidth) => GetLabeledElement(new PropertyField() { label = "", bindingPath = propName }, label, labelWidth: labelWidth);
         internal static BindableElement GetLabeledElement(VisualElement toLabel, string text, string name = "", float labelWidth = DefaultLabelWidth, string tooltip = "")
         {   // Create and Style Label
             Label label = new(text) { style = { width = labelWidth, unityTextAlign = TextAnchor.MiddleLeft } };
@@ -41,5 +41,6 @@ namespace LeafAudio.Editor
 
             return labeledElement;
         }
+        internal static string CaptializeFirstLetter(string str) => char.ToUpper(str[0]) + str[1..];
     }
 }

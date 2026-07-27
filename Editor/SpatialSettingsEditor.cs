@@ -1,3 +1,5 @@
+using System;
+using PlasticPipe.PlasticProtocol.Messages;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -8,19 +10,55 @@ namespace LeafAudio.Editor
     [CustomEditor(typeof(SpatialSettings))]
     public class SpatialSettingsEditor : UnityEditor.Editor
     {
-        Vector2 prevDomain;
+        SerializedProperty maxDistanceProp;
+        Action MaxDistanceChanged;
+
         public override VisualElement CreateInspectorGUI()
         {   // Grab Props and Vars from field
             VisualElement root = new VisualElement();
-            /*SerializedProperty curveProp = serializedObject.FindProperty(nameof(DistanceProfile.curve));
-            SerializedProperty curveDomainProp = serializedObject.FindProperty(nameof(DistanceProfile.curveDomain));
-            Vector2 curveRange = (target as DistanceProfile).CurveRange; // This value is set and thus not a prop
+
+            maxDistanceProp = serializedObject.FindProperty(nameof(SpatialSettings.maxDistance));
+            FloatField maxDistanceField = new FloatField("");
+            maxDistanceField.BindProperty(maxDistanceProp);
+            maxDistanceField.TrackPropertyValue(maxDistanceProp, p => MaxDistanceChanged?.Invoke());
+            maxDistanceField.RegisterValueChangedCallback(evt => maxDistanceField.SetValueWithoutNotify(SpatialSettings.ValidateMaxDistance(evt.newValue)));
+            VisualElement maxDistanceElement = Util.GetLabeledElement(maxDistanceField, "Max Distance", labelWidth: 110);
+
+            // Set up doppler fields
+            SerializedProperty dopplerProp = serializedObject.FindProperty(nameof(SpatialSettings.doppler));
+            Slider dopplerSlider = new Slider("") { lowValue = SpatialSettings.DopplerRange.x, highValue = SpatialSettings.DopplerRange.y, style = { flexGrow = 3 } };
+            dopplerSlider.BindProperty(dopplerProp);
+
+            FloatField dopplerFloatField = new FloatField("") { style = { flexGrow = 0.9f, flexBasis = 0, marginRight = 7 } };
+            dopplerFloatField.BindProperty(dopplerProp);
+            dopplerFloatField.RegisterValueChangedCallback(evt => dopplerFloatField.SetValueWithoutNotify(SpatialSettings.ValidateDoppler(evt.newValue)));
+
+            VisualElement dopplerElement = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
+            dopplerElement.Add(dopplerFloatField);
+            dopplerElement.Add(dopplerSlider);
+            dopplerElement = Util.GetLabeledElement(dopplerElement, "Doppler", labelWidth: 110);
+
+
+            root.Add(maxDistanceElement);
+            root.Add(dopplerElement);
+            root.Add(GetCurveElement(nameof(SpatialSettings.attenuation), canBeValue: false));
+            root.Add(GetCurveElement(nameof(SpatialSettings.spatial), canBeValue: false));
+            root.Add(GetCurveElement(nameof(SpatialSettings.spread), canBeValue: true));
+            root.Add(GetCurveElement(nameof(SpatialSettings.reverb), canBeValue: true, 1.1f));
+
+            return root;
+        }
+
+        VisualElement GetCurveElement(string var, bool canBeValue, float range = 1)
+        {
+            // Grab the curve prop and make an element for it
+            SerializedProperty curveProp = serializedObject.FindProperty(var);
+            VisualElement root = new VisualElement() { style = { flexDirection = FlexDirection.Column } };
 
             // Setup Max Distance Field
-            var curveDomainField = new Vector2Field();
-            curveDomainField.Query<VisualElement>(classes: "unity-base-field__label--with-dragger").ForEach(element => element.RegisterCallback<MouseUpEvent>(e => UpdateDomainValue()));
-            curveDomainField.RegisterCallback<BlurEvent>(e => UpdateDomainValue());
-            void UpdateDomainValue()
+            // curveDomainField.Query<VisualElement>(classes: "unity-base-field__label--with-dragger").ForEach(element => element.RegisterCallback<MouseUpEvent>(e => UpdateDomainValue()));
+            //curveDomainField.RegisterCallback<BlurEvent>(e => UpdateDomainValue());
+            /*void UpdateDomainValue()
             {
                 Vector2 newDomain = DistanceProfile.ValidateCurveDomain(curveDomainField.value);
 
@@ -51,88 +89,95 @@ namespace LeafAudio.Editor
                 curveProp.animationCurveValue = newCurve;
 
                 serializedObject.ApplyModifiedProperties();
-            }
-            UpdateUIValue(); // Initialize UI Values
-            curveDomainField.TrackPropertyValue(curveDomainProp, p => UpdateUIValue()); // Update UI Values
-            void UpdateUIValue()
-            {
-                curveDomainField.SetValueWithoutNotify(curveDomainProp.vector2Value); // Initialize field value
-                prevDomain = curveDomainProp.vector2Value; // Update prev value
-            }
-            var labeledCurveDomainField = SoundEditor.GetLabeledElement(curveDomainField, "Distance");
+            }*/
+
 
 
             // Setup Curve Field
-            var curveField = new CurveField();
-            UpdateCurveFieldRange();
-            void UpdateCurveFieldRange()
+            VisualElement curveElement = new VisualElement() { style = { marginTop = 5 } };
+            Label curveLabel = new Label(Util.CaptializeFirstLetter(var)) { style = { fontSize = 12, backgroundColor = Color.gray1, flexGrow = 0, flexShrink = 0, borderTopLeftRadius = 3, borderTopRightRadius = 3, marginBottom = 0, paddingBottom = 0, borderBottomWidth = 0, paddingLeft = 3 } };
+            CurveField curveField = new CurveField() { name = var, style = { width = new StyleLength(Length.Percent(100)), flexShrink = 0, marginLeft = 0, marginTop = 0, paddingTop = 0 } };
+            curveField.Q<VisualElement>(className: "unity-curve-field__input").style.marginTop = 0;
+
+            curveField.RegisterCallback<GeometryChangedEvent>(evt => // Maintains Square CurveField
             {
-                Vector2 curveDomain = curveDomainProp.vector2Value;
-
-                curveField.ranges = new Rect(curveDomain.x, 0, curveDomain.y - curveDomain.x, curveRange.y - curveRange.x);
-            }
-            curveField.RegisterValueChangedCallback(evt =>
-            {
-                float maxDistance = DistanceProfile.MAX_DISTANCE; // or however you're tracking it
-                AnimationCurve display = evt.newValue;
-                AnimationCurve normalized = new AnimationCurve();
-
-                for (int i = 0; i < display.length; i++)
-                {
-                    Keyframe k = display[i];
-                    k.time = k.time / maxDistance;
-                    k.inTangent *= maxDistance;
-                    k.outTangent *= maxDistance;
-                    normalized.AddKey(k);
-
-
-                    Debug.Log($"{k.time}, {k.value}, in:{k.inTangent}, out:{k.outTangent}");
-                }
-                curveProp.animationCurveValue = normalized;
-                serializedObject.ApplyModifiedProperties();
+                float width = evt.newRect.width;
+                if (width > 0f && !Mathf.Approximately(curveField.resolvedStyle.height, width)) curveField.style.height = width;
             });
-            void DrawCurveFromProperty()
+            AnimationCurve Denormalize(AnimationCurve normalized)
             {
-                float maxDistance = DistanceProfile.MAX_DISTANCE;
-                AnimationCurve normalized = curveProp.animationCurveValue;
-                AnimationCurve display = new AnimationCurve();
+                AnimationCurve denormalized = new AnimationCurve();
+
+                float maxDistance = maxDistanceProp.floatValue;
                 for (int i = 0; i < normalized.length; i++)
                 {
                     Keyframe k = normalized[i];
                     k.time = k.time * maxDistance;
                     k.inTangent /= maxDistance;
                     k.outTangent /= maxDistance;
-                    display.AddKey(k);
-                    Debug.Log($"{k.time}, {k.value}, in:{k.inTangent}, out:{k.outTangent}");
+                    denormalized.AddKey(k);
                 }
-                curveField.SetValueWithoutNotify(display);
+                return denormalized;
             }
-            curveField.TrackPropertyValue(curveProp, p => DrawCurveFromProperty()); // Update field
-            DrawCurveFromProperty();
-            curveField.style.width = new StyleLength(Length.Percent(100));
-            curveField.style.flexShrink = 0;
-            // Prop Change Update Value
-            curveField.TrackPropertyValue(curveDomainProp, p =>
+            AnimationCurve Normalize(AnimationCurve denormalized)
             {
-                UpdateCurveFieldRange();
-            });
-            // Keep it square: height tracks whatever width layout gives it
-            curveField.RegisterCallback<GeometryChangedEvent>(evt =>
+                AnimationCurve normalized = new AnimationCurve();
+
+                float maxDistance = maxDistanceProp.floatValue;
+                for (int i = 0; i < denormalized.length; i++)
+                {
+                    Keyframe k = denormalized[i];
+                    k.time = k.time / maxDistance;
+                    k.inTangent *= maxDistance;
+                    k.outTangent *= maxDistance;
+                    normalized.AddKey(k);
+                }
+
+                return normalized;
+            }
+            void ApplyPropertyToCurveField()
             {
-                float width = evt.newRect.width;
-                if (width > 0f && !Mathf.Approximately(curveField.resolvedStyle.height, width))
-                    curveField.style.height = width;
-            });
+                curveField.ranges = new Rect(0, 0, maxDistanceProp.floatValue, range);
+                curveField.SetValueWithoutNotify(Denormalize(curveProp.animationCurveValue));
+            }
+            void ApplyCurveFieldToProperty()
+            {
+                curveProp.animationCurveValue = Normalize(curveField.value);
+                serializedObject.ApplyModifiedProperties();
+            }
+
+            ApplyPropertyToCurveField();
+            curveField.TrackPropertyValue(curveProp, p => ApplyPropertyToCurveField());
+            curveField.RegisterValueChangedCallback(evt => ApplyCurveFieldToProperty());
+            MaxDistanceChanged += ApplyPropertyToCurveField;
+
+
+            curveElement.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                evt.menu.AppendAction("Copy", _ => EditorGUIUtility.systemCopyBuffer = "AC:" + JsonUtility.ToJson(new CurveClipboardData(curveProp.animationCurveValue)));
+
+                evt.menu.AppendAction("Paste", _ =>
+                {
+                    var clip = EditorGUIUtility.systemCopyBuffer;
+                    if (!clip.StartsWith("AC:")) return;
+                    var wrapper = JsonUtility.FromJson<CurveClipboardData>(clip.Substring(3));
+                    var normalizedCurve = wrapper.ToCurve();
+                    curveProp.animationCurveValue = normalizedCurve; // triggers your change callback
+                    serializedObject.ApplyModifiedProperties();
+                }, clip => EditorGUIUtility.systemCopyBuffer.StartsWith("AC:")
+                    ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            }));
 
 
 
-            root.Add(curveField);
-            root.Add(labeledCurveDomainField);
+            curveElement.Add(curveLabel);
+            curveElement.Add(curveField);
+            root.Add(curveElement);
 
 
             // Setup toggle curve
             // (Only if the Distance profile can be represented as a value)
-            if ((target as DistanceProfile).CanShowAsValue)
+            /*if ((target as DistanceProfile).CanShowAsValue)
             {
                 SerializedProperty useCurveProp = serializedObject.FindProperty(nameof(DistanceProfile.useCurve));
 
@@ -173,17 +218,46 @@ namespace LeafAudio.Editor
 
                 root.Add(labeledValueField);
                 root.Add(useCurveToggle);
-            }
+            }*/
 
-*/
 
             return root;
         }
+    }
 
 
-        void GetCurveEditor(string var, bool canBeValue)
+
+    [Serializable]
+    internal struct CurveClipboardData
+    {
+        public float[] times;
+        public float[] values;
+        public float[] inTangents;
+        public float[] outTangents;
+
+        public CurveClipboardData(AnimationCurve curve)
         {
+            int n = curve.length;
+            times = new float[n];
+            values = new float[n];
+            inTangents = new float[n];
+            outTangents = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                var k = curve[i];
+                times[i] = k.time;
+                values[i] = k.value;
+                inTangents[i] = k.inTangent;
+                outTangents[i] = k.outTangent;
+            }
+        }
 
+        public AnimationCurve ToCurve()
+        {
+            var keys = new Keyframe[times.Length];
+            for (int i = 0; i < times.Length; i++)
+                keys[i] = new Keyframe(times[i], values[i], inTangents[i], outTangents[i]);
+            return new AnimationCurve(keys);
         }
     }
 }
