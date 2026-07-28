@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using UnityEngine;
 
 namespace LeafAudio
@@ -39,21 +38,19 @@ namespace LeafAudio
 
         public static float ValidateMaxDistance(float maxDistance) => Mathf.Max(1, maxDistance);
         public static float ValidateDoppler(float doppler) => Mathf.Clamp(doppler, DopplerRange.x, DopplerRange.y);
-        AnimationCurve ValidateCurve(AnimationCurve curve, float range = 1)
+        void ValidateCurve(AnimationCurve curve, float range = 1)
         {
             var keys = curve.keys;
 
-            if (keys.Length == 0)
 
-                for (int i = 0; i < keys.Length; i++)
-                {
-                    keys[i].time = Mathf.Clamp01(keys[i].time);
-                    keys[i].value = Mathf.Clamp(keys[i].value, 0f, range);
-                }
+            for (int i = 0; i < keys.Length; i++)
+            {
+                keys[i].time = Mathf.Clamp01(keys[i].time);
+                keys[i].value = Mathf.Clamp(keys[i].value, 0f, range);
+            }
             curve.keys = keys;
-            return curve;
         }
-        AnimationCurve ValidateValueCurve(AnimationCurve curve, float range = 1)
+        void ValidateValueCurve(AnimationCurve curve, float range = 1)
         {   // Ensure only one keyframe with timestamp 0
 
             Keyframe firstKeyFrame = curve.keys[0];
@@ -63,19 +60,27 @@ namespace LeafAudio
             curve.ClearKeys();
             curve.AddKey(firstKeyFrame);
 
-            return ValidateCurve(curve, range);
+            ValidateCurve(curve, range);
         }
-        AnimationCurve GetNewFlatCurve(float value) => new AnimationCurve(new Keyframe(0, value));
+        void MakeCurveFlat(AnimationCurve curve, float value) { curve.ClearKeys(); curve.AddKey(new Keyframe(0, value)); }
 
         void OnValidate()
         {
             maxDistance = ValidateMaxDistance(maxDistance);
             doppler = useDoppler ? ValidateDoppler(doppler) : 1;
 
-            attenuation = useAttenuation ? ValidateCurve(attenuation) : GetNewFlatCurve(DefaultAttenuation);
-            spatial = useSpatial ? ValidateCurve(attenuation) : GetNewFlatCurve(DefaultSpatial);
-            reverb = reverbType == CurveValueType.Curve ? ValidateCurve(reverb, 1.1f) : (reverbType == CurveValueType.Value ? ValidateValueCurve(reverb, 1.1f) : GetNewFlatCurve(0));
-            spread = spreadType == CurveValueType.Curve ? ValidateCurve(spread) : (spreadType == CurveValueType.Value ? ValidateValueCurve(spread) : GetNewFlatCurve(0));
+            if (useAttenuation) ValidateCurve(attenuation);
+            else MakeCurveFlat(attenuation, DefaultAttenuation);
+
+            if (useSpatial) ValidateCurve(spatial);
+            else MakeCurveFlat(spatial, DefaultSpatial);
+            if (reverbType == CurveValueType.Curve) ValidateCurve(reverb, 1.1f);
+            else if (reverbType == CurveValueType.Value) ValidateValueCurve(reverb, 1.1f);
+            else MakeCurveFlat(reverb, 0);
+
+            if (spreadType == CurveValueType.Curve) ValidateCurve(spread);
+            else if (spreadType == CurveValueType.Value) ValidateValueCurve(spread);
+            else MakeCurveFlat(spread, 0);
         }
         void Reset()
         {
