@@ -12,6 +12,8 @@ namespace LeafAudio.Editor
         SerializedProperty maxDistanceProp;
         Action MaxDistanceChanged;
 
+        const float LabelWidth = 110;
+
         public override VisualElement CreateInspectorGUI()
         {   // Grab Props and Vars from field
             BindableElement root = new BindableElement();
@@ -21,7 +23,7 @@ namespace LeafAudio.Editor
             maxDistanceField.BindProperty(maxDistanceProp);
             maxDistanceField.TrackPropertyValue(maxDistanceProp, p => MaxDistanceChanged?.Invoke());
             maxDistanceField.RegisterValueChangedCallback(evt => maxDistanceField.SetValueWithoutNotify(SpatialSettings.ValidateMaxDistance(evt.newValue)));
-            VisualElement maxDistanceElement = Util.GetLabeledElement(maxDistanceField, "Max Distance", labelWidth: 110);
+            VisualElement maxDistanceElement = Util.GetLabeledElement(maxDistanceField, "Max Distance", labelWidth: LabelWidth);
 
             // Set up doppler fields
             SerializedProperty dopplerProp = serializedObject.FindProperty(nameof(SpatialSettings.doppler));
@@ -35,16 +37,23 @@ namespace LeafAudio.Editor
             VisualElement dopplerElement = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
             dopplerElement.Add(dopplerFloatField);
             dopplerElement.Add(dopplerSlider);
-            dopplerElement = Util.GetLabeledElement(dopplerElement, "Doppler", labelWidth: 110);
+            dopplerElement = Util.GetLabeledElement(dopplerElement, "Doppler", labelWidth: LabelWidth);
             Util.ShowIfCondition(serializedObject, dopplerElement, () => serializedObject.FindProperty(nameof(SpatialSettings.useDoppler)).boolValue);
 
 
+            var attenuationElements = GetCurveElements(nameof(SpatialSettings.attenuation), canBeValue: false);
+            var spatialElements = GetCurveElements(nameof(SpatialSettings.spatial), canBeValue: false);
+            var spreadElements = GetCurveElements(nameof(SpatialSettings.spread), canBeValue: true);
+            var reverbElements = GetCurveElements(nameof(SpatialSettings.reverb), canBeValue: true);
+
             root.Add(maxDistanceElement);
+            root.Add(spreadElements.valueElement);
+            root.Add(reverbElements.valueElement);
             root.Add(dopplerElement);
-            root.Add(GetCurveElement(nameof(SpatialSettings.attenuation), canBeValue: false));
-            root.Add(GetCurveElement(nameof(SpatialSettings.spatial), canBeValue: false));
-            root.Add(GetCurveElement(nameof(SpatialSettings.spread), canBeValue: true));
-            root.Add(GetCurveElement(nameof(SpatialSettings.reverb), canBeValue: true, 1.1f));
+            root.Add(attenuationElements.curveElement);
+            root.Add(spatialElements.curveElement);
+            root.Add(spreadElements.curveElement);
+            root.Add(reverbElements.curveElement);
             root.Add(GetDataSettingsElement());
 
             root.Bind(serializedObject);
@@ -67,11 +76,10 @@ namespace LeafAudio.Editor
 
             return root;
         }
-        VisualElement GetCurveElement(string var, bool canBeValue, float range = 1)
+        (VisualElement curveElement, VisualElement valueElement) GetCurveElements(string var, bool canBeValue, float range = 1)
         {
             // Grab the curve prop and make an element for it
             SerializedProperty curveProp = serializedObject.FindProperty(var);
-            VisualElement root = new VisualElement() { style = { flexDirection = FlexDirection.Column } };
 
             // Setup Max Distance Field
             // curveDomainField.Query<VisualElement>(classes: "unity-base-field__label--with-dragger").ForEach(element => element.RegisterCallback<MouseUpEvent>(e => UpdateDomainValue()));
@@ -112,8 +120,7 @@ namespace LeafAudio.Editor
 
 
             // Setup Curve Field
-            VisualElement curveElement = new VisualElement() { style = { marginTop = 5 } };
-            Label curveLabel = new Label(Util.CaptializeFirstLetter(var)) { style = { fontSize = 12, backgroundColor = Color.gray1, flexGrow = 0, flexShrink = 0, borderTopLeftRadius = 3, borderTopRightRadius = 3, marginBottom = 0, paddingBottom = 0, borderBottomWidth = 0, paddingLeft = 3 } };
+            VisualElement curveElement = new Foldout() { text = Util.CaptializeFirstLetter(var), viewDataKey = var + "CurveField" };
             CurveField curveField = new CurveField() { showMixedValue = false, name = var, style = { width = new StyleLength(Length.Percent(100)), flexShrink = 0, marginLeft = 0, marginTop = 0, paddingTop = 0 } };
             curveField.Q<VisualElement>(className: "unity-curve-field__input").style.marginTop = 0;
 
@@ -188,12 +195,11 @@ namespace LeafAudio.Editor
 
 
 
-            curveElement.Add(curveLabel);
             curveElement.Add(curveField);
-            root.Add(curveElement);
 
 
             // Setup Display as Value
+            VisualElement valueElement = null;
             if (canBeValue)
             {
                 SerializedProperty curveType = serializedObject.FindProperty(var + "Type");
@@ -215,9 +221,8 @@ namespace LeafAudio.Editor
                     var animationCurve = curveProp.animationCurveValue;
                     valueField.SetValueWithoutNotify(animationCurve.keys[0].value);
                 }
-                VisualElement valueElement = Util.GetLabeledElement(valueField, Util.CaptializeFirstLetter(var));
+                valueElement = Util.GetLabeledElement(valueField, Util.CaptializeFirstLetter(var), labelWidth: LabelWidth);
 
-                root.Add(valueElement);
                 // Show Curve if on Curve Mode
                 // Show Value if on Value Mode
                 Util.ShowIfCondition(serializedObject, curveElement, () => curveType.enumValueIndex == (int)SpatialSettings.CurveValueType.Curve);
@@ -226,7 +231,7 @@ namespace LeafAudio.Editor
             else Util.ShowIfCondition(serializedObject, curveElement, () => serializedObject.FindProperty("use" + Util.CaptializeFirstLetter(var)).boolValue);
 
 
-            return root;
+            return (curveElement, valueElement);
         }
     }
 
