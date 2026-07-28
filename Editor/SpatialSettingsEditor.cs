@@ -114,7 +114,7 @@ namespace LeafAudio.Editor
             // Setup Curve Field
             VisualElement curveElement = new VisualElement() { style = { marginTop = 5 } };
             Label curveLabel = new Label(Util.CaptializeFirstLetter(var)) { style = { fontSize = 12, backgroundColor = Color.gray1, flexGrow = 0, flexShrink = 0, borderTopLeftRadius = 3, borderTopRightRadius = 3, marginBottom = 0, paddingBottom = 0, borderBottomWidth = 0, paddingLeft = 3 } };
-            CurveField curveField = new CurveField() { name = var, style = { width = new StyleLength(Length.Percent(100)), flexShrink = 0, marginLeft = 0, marginTop = 0, paddingTop = 0 } };
+            CurveField curveField = new CurveField() { showMixedValue = false, name = var, style = { width = new StyleLength(Length.Percent(100)), flexShrink = 0, marginLeft = 0, marginTop = 0, paddingTop = 0 } };
             curveField.Q<VisualElement>(className: "unity-curve-field__input").style.marginTop = 0;
 
             curveField.RegisterCallback<GeometryChangedEvent>(evt => // Maintains Square CurveField
@@ -207,7 +207,6 @@ namespace LeafAudio.Editor
                 void UpdateCurveProp(ChangeEvent<float> evt)
                 {
                     if (curveType.enumValueIndex != (int)SpatialSettings.CurveValueType.Value) return; // Dont lock if not using value
-                    Debug.Log(evt.newValue);
                     curveProp.animationCurveValue = new AnimationCurve(new Keyframe(0, evt.newValue));
                     serializedObject.ApplyModifiedProperties();
                 }

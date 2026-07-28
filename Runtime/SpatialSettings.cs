@@ -1,4 +1,3 @@
-using System;
 using System.Security.Cryptography;
 using UnityEngine;
 
@@ -11,19 +10,19 @@ namespace LeafAudio
         [SerializeField] internal float doppler = DefaultDoppler;
 
         // Curves are stored 0-1 relative to maxDistance just like Unity's Curve
-        [SerializeField] internal AnimationCurve attenuation;
-        [SerializeField] internal AnimationCurve spatial;
-        [SerializeField] internal AnimationCurve reverb;
-        [SerializeField] internal AnimationCurve spread;
+        [SerializeField] internal AnimationCurve attenuation = new AnimationCurve(new Keyframe(0, DefaultAttenuation));
+        [SerializeField] internal AnimationCurve spatial = new AnimationCurve(new Keyframe(0, DefaultSpatial));
+        [SerializeField] internal AnimationCurve reverb = new AnimationCurve(new Keyframe(0, DefaultReverb));
+        [SerializeField] internal AnimationCurve spread = new AnimationCurve(new Keyframe(0, DefaultSpread));
 
 
 
-        internal const float MinMaxDistance = 1; // The minnimusm value for MaxDistance
+
         internal const float DefaultMaxDistance = 100;
         internal const float DefaultDoppler = 1;
         internal const float DefaultAttenuation = 1;
         internal const float DefaultSpatial = 1;
-        internal const float DefaultReverb = 0;
+        internal const float DefaultReverb = 1;
         internal const float DefaultSpread = 0;
         internal static readonly Vector2 DopplerRange = new(0, 5);
 
@@ -31,20 +30,26 @@ namespace LeafAudio
         [SerializeField] internal bool useAttenuation = true;
         [SerializeField] internal bool useSpatial = false;
         [SerializeField] internal bool useDoppler = false;
-        [SerializeField] internal CurveValueType reverbType = CurveValueType.None;
+        [SerializeField] internal CurveValueType reverbType = CurveValueType.Value;
         [SerializeField] internal CurveValueType spreadType = CurveValueType.None;
         internal enum CurveValueType { Curve, Value, None }// The possible ways a Unity's curve values may be driven
+
+        readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, 1, 0, -3f), new Keyframe(1, 0));
+
 
         public static float ValidateMaxDistance(float maxDistance) => Mathf.Max(1, maxDistance);
         public static float ValidateDoppler(float doppler) => Mathf.Clamp(doppler, DopplerRange.x, DopplerRange.y);
         AnimationCurve ValidateCurve(AnimationCurve curve, float range = 1)
         {
             var keys = curve.keys;
-            for (int i = 0; i < keys.Length; i++)
-            {
-                keys[i].time = Mathf.Clamp01(keys[i].time);
-                keys[i].value = Mathf.Clamp(keys[i].value, 0f, range);
-            }
+
+            if (keys.Length == 0)
+
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    keys[i].time = Mathf.Clamp01(keys[i].time);
+                    keys[i].value = Mathf.Clamp(keys[i].value, 0f, range);
+                }
             curve.keys = keys;
             return curve;
         }
@@ -69,10 +74,14 @@ namespace LeafAudio
 
             attenuation = useAttenuation ? ValidateCurve(attenuation) : GetNewFlatCurve(DefaultAttenuation);
             spatial = useSpatial ? ValidateCurve(attenuation) : GetNewFlatCurve(DefaultSpatial);
-            reverb = reverbType == CurveValueType.Curve ? ValidateCurve(reverb, 1.1f) : (reverbType == CurveValueType.Value ? ValidateValueCurve(reverb, 1.1f) : GetNewFlatCurve(DefaultReverb));
-            spread = spreadType == CurveValueType.Curve ? ValidateCurve(spread) : (spreadType == CurveValueType.Value ? ValidateValueCurve(spread) : GetNewFlatCurve(DefaultSpread));
+            reverb = reverbType == CurveValueType.Curve ? ValidateCurve(reverb, 1.1f) : (reverbType == CurveValueType.Value ? ValidateValueCurve(reverb, 1.1f) : GetNewFlatCurve(0));
+            spread = spreadType == CurveValueType.Curve ? ValidateCurve(spread) : (spreadType == CurveValueType.Value ? ValidateValueCurve(spread) : GetNewFlatCurve(0));
         }
-
+        void Reset()
+        {
+            attenuation = DefaultAttenuationCurve;
+            OnValidate();
+        }
 #endif
     }
 }
