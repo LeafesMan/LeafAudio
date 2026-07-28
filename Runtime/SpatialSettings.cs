@@ -1,3 +1,5 @@
+using System;
+using System.Security.Cryptography;
 using UnityEngine;
 
 namespace LeafAudio
@@ -5,8 +7,8 @@ namespace LeafAudio
     [CreateAssetMenu(fileName = "NewSpatialSettings", menuName = "Audio/Spatial Settings", order = -1)]
     public class SpatialSettings : ScriptableObject
     {
-        [SerializeField] internal float maxDistance;
-        [SerializeField] internal float doppler;
+        [SerializeField] internal float maxDistance = DefaultMaxDistance;
+        [SerializeField] internal float doppler = DefaultDoppler;
 
         // Curves are stored 0-1 relative to maxDistance just like Unity's Curve
         [SerializeField] internal AnimationCurve attenuation;
@@ -17,6 +19,12 @@ namespace LeafAudio
 
 
         internal const float MinMaxDistance = 1; // The minnimusm value for MaxDistance
+        internal const float DefaultMaxDistance = 100;
+        internal const float DefaultDoppler = 1;
+        internal const float DefaultAttenuation = 1;
+        internal const float DefaultSpatial = 1;
+        internal const float DefaultReverb = 0;
+        internal const float DefaultSpread = 0;
         internal static readonly Vector2 DopplerRange = new(0, 5);
 
 #if UNITY_EDITOR
@@ -29,12 +37,42 @@ namespace LeafAudio
 
         public static float ValidateMaxDistance(float maxDistance) => Mathf.Max(1, maxDistance);
         public static float ValidateDoppler(float doppler) => Mathf.Clamp(doppler, DopplerRange.x, DopplerRange.y);
+        AnimationCurve ValidateCurve(AnimationCurve curve, float range = 1)
+        {
+            var keys = curve.keys;
+            for (int i = 0; i < keys.Length; i++)
+            {
+                keys[i].time = Mathf.Clamp01(keys[i].time);
+                keys[i].value = Mathf.Clamp(keys[i].value, 0f, range);
+            }
+            curve.keys = keys;
+            return curve;
+        }
+        AnimationCurve ValidateValueCurve(AnimationCurve curve, float range = 1)
+        {   // Ensure only one keyframe with timestamp 0
+
+            Keyframe firstKeyFrame = curve.keys[0];
+            if (curve.keys[0].time != 0) firstKeyFrame.time = 0; // Ensure Keyframe t = 0
+
+            // Apply and Ensure 1 Keyframe
+            curve.ClearKeys();
+            curve.AddKey(firstKeyFrame);
+
+            return ValidateCurve(curve, range);
+        }
+        AnimationCurve GetNewFlatCurve(float value) => new AnimationCurve(new Keyframe(0, value));
 
         void OnValidate()
         {
             maxDistance = ValidateMaxDistance(maxDistance);
-            doppler = ValidateDoppler(doppler);
+            doppler = useDoppler ? ValidateDoppler(doppler) : 1;
+
+            attenuation = useAttenuation ? ValidateCurve(attenuation) : GetNewFlatCurve(DefaultAttenuation);
+            spatial = useSpatial ? ValidateCurve(attenuation) : GetNewFlatCurve(DefaultSpatial);
+            reverb = reverbType == CurveValueType.Curve ? ValidateCurve(reverb, 1.1f) : (reverbType == CurveValueType.Value ? ValidateValueCurve(reverb, 1.1f) : GetNewFlatCurve(DefaultReverb));
+            spread = spreadType == CurveValueType.Curve ? ValidateCurve(spread) : (spreadType == CurveValueType.Value ? ValidateValueCurve(spread) : GetNewFlatCurve(DefaultSpread));
         }
+
 #endif
     }
 }

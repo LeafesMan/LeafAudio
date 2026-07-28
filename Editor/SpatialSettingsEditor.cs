@@ -201,19 +201,20 @@ namespace LeafAudio.Editor
 
                 // Make Value Field
                 FloatField valueField = new FloatField();
-                valueField.RegisterValueChangedCallback(evt => UpdateCurveProp());
+                valueField.RegisterValueChangedCallback(UpdateCurveProp);
                 valueField.TrackPropertyValue(curveProp, p => UpdateValueField());
                 UpdateValueField();
-                void UpdateCurveProp()
+                void UpdateCurveProp(ChangeEvent<float> evt)
                 {
                     if (curveType.enumValueIndex != (int)SpatialSettings.CurveValueType.Value) return; // Dont lock if not using value
-                    curveProp.animationCurveValue = new AnimationCurve(new Keyframe(0, valueField.value));
+                    Debug.Log(evt.newValue);
+                    curveProp.animationCurveValue = new AnimationCurve(new Keyframe(0, evt.newValue));
                     serializedObject.ApplyModifiedProperties();
                 }
                 void UpdateValueField()
                 {
                     var animationCurve = curveProp.animationCurveValue;
-                    valueField.value = animationCurve.keys[0].value;
+                    valueField.SetValueWithoutNotify(animationCurve.keys[0].value);
                 }
                 VisualElement valueElement = Util.GetLabeledElement(valueField, Util.CaptializeFirstLetter(var));
 
