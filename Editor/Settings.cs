@@ -9,12 +9,12 @@ namespace LeafAudio.Editor
         void OnEnable() => ApplySettings();
 
 
-        public bool WarnOnPlayNullSound = true;
+        public bool WarnOnPlayNull = true;
         public Color SliderVariationColor = new Color(68, 136, 202);
 
         void ApplySettings()
         {
-            AudioManager.WarnOnPlayNullSound = WarnOnPlayNullSound;
+            AudioManager.WarnOnPlayNull = WarnOnPlayNull;
         }
         public void SaveSettings() { ApplySettings(); Save(true); }
     }

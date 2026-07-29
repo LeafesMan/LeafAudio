@@ -34,12 +34,5 @@ namespace LeafAudio
             ThrowIfStale();
             manager.FreeSource(pooledSourceIndex);
         }
-        /// <summary>
-        /// Stops the playback of this sound returning its full PlaybackSettings allowing you to start the sound later from where it started via PlaybackSettings.Play();
-        /// </summary>
-        public PlaybackSettings StopAndGetPlaybackSettings()
-        {
-            return new PlaybackSettings();
-        }
     }
 }

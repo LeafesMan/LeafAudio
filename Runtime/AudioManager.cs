@@ -15,7 +15,7 @@ namespace LeafAudio
         [SerializeField] List<int> freeIndices = new(); // Indices for free sources in PooledSources
 
 # if UNITY_EDITOR
-        internal static bool WarnOnPlayNullSound;
+        internal static bool WarnOnPlayNull;
 #endif
         #endregion
         void Update()
@@ -42,19 +42,30 @@ namespace LeafAudio
         /// <param name="loops">
         /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
-        public PlaybackHandle Play(Sound sound, Vector3? position = null, Transform origin = null, float loops = 1)
-        {
-            if (sound == null)
+        public PlaybackHandle Play(Sound sound, Vector3? position = null, Transform origin = null, float loops = 1) => Play(sound.GetPlaybackSettings(), position, origin, loops);
+        /// <summary>
+        /// Plays a Clip with the given parameters.<br/>Note that when either position or origin are set the sound will be played spatially.
+        /// </summary>
+        /// <param name="playbackSettings"> The PlaybackSettings to play</param>
+        /// <param name="position"> The world-space position to play the Sound at.<br/>If an origin is provided,
+        /// this is treated as an offset from the origin.<br/>If this value is non-null the sound will play spatially. </param>
+        /// <param name="origin">
+        /// The sound will follow origin as if it were parented.<br/>
+        /// When this value is set position will be treated as an offset from this.<br/>
+        /// If this value is non-null the sound will play spatially.</param>
+        /// <param name="loops">
+        /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
+        /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
+        public PlaybackHandle Play(PlaybackSettings playbackSettings, Vector3? position = null, Transform origin = null, float loops = 1)
+        {   // Early exit on playing null sound or clip
+            if (playbackSettings.clip == null)
             {
 #if UNITY_EDITOR
-                if (WarnOnPlayNullSound) Debug.LogWarning("Failed to play null sound! This is an editor-only warning and may be disabled: ProjectSetting/LeafAudio/WarnOnPlayNullSound");
+                if (WarnOnPlayNull) Debug.LogWarning("Failed to play! Sound or Clip passed in was null! This is an editor-only warning and may be disabled: ProjectSetting/LeafAudio/WarnOnPlayNull");
 #endif
                 return new PlaybackHandle(this, 0, 0);
             }
 
-            // Exit early if clip is null
-            PlaybackSettings playbackSettings = sound.GetPlaybackSettings();
-            if (playbackSettings.clip == null) return new PlaybackHandle(this, 0, 0);
 
             // Grab a source, set it up, play it, and sort the sources
             int freeSourceIndex = GetFreeSource();

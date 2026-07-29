@@ -34,16 +34,10 @@ namespace LeafAudio
         public int VariantCount => weightedVariants.Count;
 
         public enum SelectionMode { UniformRandom, WeightedRandom }
-
-        /// <summary>
-        /// Gets PlaybackSettings from this sound using this sound's selection mode and a variant's variation properties.
-        /// </summary>
-        public PlaybackSettings GetPlaybackSettings() => GetPlaybackSettingsFromVariants(weightedVariants);
-
         /// <summary>
         /// Gets PlaybackSettings from this sound but uses the specified weightedVariants
         /// </summary>
-        internal PlaybackSettings GetPlaybackSettingsFromVariants(List<Weighted<SoundVariant>> weightedVariants)
+        internal PlaybackSettings GetPlaybackSettingsInternal(List<Weighted<SoundVariant>> weightedVariants)
         {
             var variant = SelectVariant(weightedVariants);
 
@@ -58,7 +52,6 @@ namespace LeafAudio
 
             return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, spatialSettings);
         }
-
 #if UNITY_EDITOR
         // These values are all used in the SoundEditor
 

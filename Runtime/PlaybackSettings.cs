@@ -50,6 +50,7 @@ namespace LeafAudio
                 reverb = DefaultReverb;
             }
         }
+        public PlaybackHandle Play(Vector3? position = null, Transform origin = null, float loops = 1) => Audio.GlobalManager.Play(this, position, origin, loops);
         /// <summary>
         /// Applies Playbacksettings to an AudioSource
         /// </summary>

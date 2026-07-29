@@ -28,7 +28,7 @@ namespace LeafAudio.Editor
                 rootElement.Add(title);
                 rootElement.Add(GetSpacer());
                 rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.SliderVariationColor))));
-                rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNullSound))));
+                rootElement.Add(new PropertyField(settings.FindProperty(nameof(Settings.WarnOnPlayNull))));
                 rootElement.Add(GetSpacer());
                 rootElement.Bind(settings);
 

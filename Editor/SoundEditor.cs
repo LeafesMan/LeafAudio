@@ -368,7 +368,7 @@ namespace LeafAudio.Editor
                         List<Weighted<SoundVariant>> selectedWeightedSoundVariants = new();
                         for (int i = 0; i < selectedIndices.Count; i++) selectedWeightedSoundVariants.Add((Weighted<SoundVariant>)variantsProp.GetArrayElementAtIndex(selectedIndices[i]).boxedValue);
 
-                        playbackSettings = sound.GetPlaybackSettingsFromVariants(selectedWeightedSoundVariants);
+                        playbackSettings = sound.GetPlaybackSettingsInternal(selectedWeightedSoundVariants);
                     }
 
 
