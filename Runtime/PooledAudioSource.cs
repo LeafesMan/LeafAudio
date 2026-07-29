@@ -47,7 +47,7 @@ namespace LeafAudio
 
             // Cache End Time stamp based on clip length and Loops value
             // negative loops results in infinite looping
-            if (loops >= 0) endTime = Time.time + Audio.GetDuration(playbackSettings) * loops;
+            if (loops >= 0) endTime = Time.time + playbackSettings.Duration * loops;
             else endTime = Mathf.Infinity;
         }
         /// <summary>
@@ -65,4 +65,5 @@ namespace LeafAudio
         }
         public void ToggleSourceGameObject(bool on) => source.gameObject.SetActive(on);
     }
+
 }

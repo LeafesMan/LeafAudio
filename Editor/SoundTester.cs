@@ -47,7 +47,7 @@ namespace LeafAudio.Editor
             source.Play();
 
             // Destroy temporary Object after the clips completion            
-            float duration = Audio.GetDuration(playbackSettings);
+            float duration = playbackSettings.Duration;
             if (Application.isPlaying) Object.Destroy(source.gameObject, duration);
             else
             {

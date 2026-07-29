@@ -14,9 +14,19 @@ namespace LeafAudio
         [SerializeField] List<int> usedIndices = new(); // Indices for used sources in PooledSources
         [SerializeField] List<int> freeIndices = new(); // Indices for free sources in PooledSources
 
+        public static AudioManager Global { get; private set; }
+
 # if UNITY_EDITOR
         internal static bool WarnOnPlayNull;
 #endif
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void SetupGlobalAudioManager()
+        {
+            Global = new GameObject("AudioManager").AddComponent<AudioManager>();
+            DontDestroyOnLoad(Global.gameObject);
+        }
+
         #endregion
         void Update()
         {

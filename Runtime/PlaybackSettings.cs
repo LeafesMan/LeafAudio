@@ -50,7 +50,7 @@ namespace LeafAudio
                 reverb = DefaultReverb;
             }
         }
-        public PlaybackHandle Play(Vector3? position = null, Transform origin = null, float loops = 1) => Audio.GlobalManager.Play(this, position, origin, loops);
+        public PlaybackHandle Play(Vector3? position = null, Transform origin = null, float loops = 1) => AudioManager.Global.Play(this, position, origin, loops);
         /// <summary>
         /// Applies Playbacksettings to an AudioSource
         /// </summary>
@@ -71,5 +71,9 @@ namespace LeafAudio
             source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, reverb);
             if (source.pitch < 0) source.time = source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error
         }
+        /// <summary>
+        /// Returns the time it will take for these playback settings to play out.
+        /// </summary>
+        public float Duration => Mathf.Abs(clip.length / pitch);
     }
 }
