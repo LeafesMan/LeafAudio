@@ -30,16 +30,17 @@ namespace LeafAudio
         /// <summary>
         /// Resumes playback
         /// </summary>
-        public void Resume() { if (IsPaused) ResumeInternal(); }
+        public void Resume() { if (!IsDone && IsPaused) ResumeInternal(); }
         /// <summary>
         /// Pauses playback
         /// </summary>
-        public void Pause() { if (!IsPaused) PauseInternal(); }
+        public void Pause() { if (!IsDone && !IsPaused) PauseInternal(); }
         /// <summary>
         /// Resumes if paused and Pauses if not paused 
         /// </summary>
         public void TogglePause()
         {
+            if (IsDone) return;
             if (IsPaused) ResumeInternal();
             else PauseInternal();
         }
@@ -61,7 +62,7 @@ namespace LeafAudio
         /// </summary>
         public void Stop()
         {
-            if (IsDone) throw new System.InvalidOperationException("Failed to call method on this handle because it is stale!");
+            if (IsDone) return;
             manager.FreeSource(pooledSourceIndex);
         }
     }
