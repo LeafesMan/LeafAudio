@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace LeafAudio
@@ -28,23 +27,19 @@ namespace LeafAudio
             if (handle.IsPaused) handle.Resume();
             else if (!handle.IsDone) PlayInternal();
         }
-        public void PlayFrom(float timestamp) { throw new NotImplementedException(); }
+        public void PlayFrom(float timestamp) => PlayInternal();
         public void PlayFromStart() => PlayFrom(0);
         public void Pause() => handle.Pause();
         public void Stop() => handle.Stop();
 
-        void PlayInternal(float timestamp = 0)
+        void PlayInternal()
         {
-            int numLoops = loop ? -1 : 1;
             if (spatial) handle = sound.Play(transform.localPosition, transform);
             else handle = sound.Play();
         }
 
-        void Update()
-        {   // Keep offset up-to-date
-            // handle.offset = transform.localPosition;    
-        }
-
+        // Keep offset up-to-date
+        void Update() => handle.Offset = transform.localPosition;
         void OnDestroy() => handle.Stop();
     }
 }

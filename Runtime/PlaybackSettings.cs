@@ -73,7 +73,7 @@ namespace LeafAudio
             // Find largest distance
             source.maxDistance = maxDistance;
             source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, attenuation);
-            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, spatial);
+            source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, spatial);
             source.SetCustomCurve(AudioSourceCurveType.Spread, spread);
             source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, reverb);
             if (source.pitch < 0) source.time = source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error

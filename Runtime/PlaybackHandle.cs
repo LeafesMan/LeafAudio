@@ -65,5 +65,24 @@ namespace LeafAudio
             if (IsDone) return;
             manager.FreeSource(pooledSourceIndex);
         }
+
+        #region Setters
+        public Vector3 Offset
+        {
+            set
+            {
+                if (IsDone) return;
+                PooledSource.offset = value;
+            }
+        }
+        public Transform Origin
+        {
+            set
+            {
+                if (IsDone) return;
+                PooledSource.origin = value;
+            }
+        }
+        #endregion
     }
 }
