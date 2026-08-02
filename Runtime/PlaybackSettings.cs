@@ -17,18 +17,24 @@ namespace LeafAudio
         public AnimationCurve spread;
         public AnimationCurve reverb;
 
+        public float startTime;
+        public float duration;
+
         static readonly float DefaultMaxDistance = 50;
         static readonly AnimationCurve DefaultAttenuation = new AnimationCurve(new Keyframe(0, 1));
         static readonly AnimationCurve DefaultSpatial = new AnimationCurve(new Keyframe(0, 0));
         static readonly AnimationCurve DefaultSpread = new AnimationCurve(new Keyframe(0, 0));
         static readonly AnimationCurve DefaultReverb = new AnimationCurve(new Keyframe(0, 1));
 
-        public PlaybackSettings(AudioClip clip, float volume, float pitch, AudioMixerGroup mixerGroup, SpatialSettings spatialSettings)
+        public PlaybackSettings(AudioClip clip, float volume, float pitch, float startTime, float duration, AudioMixerGroup mixerGroup, SpatialSettings spatialSettings)
         {
             this.mixerGroup = mixerGroup;
             this.clip = clip;
             this.volume = volume;
             this.pitch = pitch;
+
+            this.startTime = startTime;
+            this.duration = duration;
 
 
             // Copy SpatialSettings if provided
@@ -50,7 +56,7 @@ namespace LeafAudio
                 reverb = DefaultReverb;
             }
         }
-        public PlaybackHandle Play(Vector3? position = null, Transform origin = null, float loops = 1) => AudioManager.Global.Play(this, position, origin, loops);
+        public PlaybackHandle Play(Vector3? position = null, Transform origin = null) => AudioManager.Global.Play(this, position, origin);
         /// <summary>
         /// Applies Playbacksettings to an AudioSource
         /// </summary>
@@ -62,6 +68,7 @@ namespace LeafAudio
             source.pitch = pitch;
             source.outputAudioMixerGroup = mixerGroup;
 
+            source.time = startTime % clip.length;
 
             // Find largest distance
             source.maxDistance = maxDistance;
@@ -74,6 +81,6 @@ namespace LeafAudio
         /// <summary>
         /// Returns the time it will take for these playback settings to play out.
         /// </summary>
-        public float Duration => Mathf.Abs(clip.length / pitch);
+        public float ClipDuration => Mathf.Abs(clip.length / pitch);
     }
 }

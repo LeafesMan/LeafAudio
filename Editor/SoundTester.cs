@@ -16,7 +16,8 @@ namespace LeafAudio.Editor
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
             {
-                Test(new PlaybackSettings(asset as AudioClip, 0.5f, 1, null, null));
+                var clip = asset as AudioClip;
+                Test(new PlaybackSettings(clip, 0.5f, 1, 0, clip.length, null, null));
                 return true;
             }
             if (asset.GetType() == typeof(Sound))
@@ -47,7 +48,7 @@ namespace LeafAudio.Editor
             source.Play();
 
             // Destroy temporary Object after the clips completion            
-            float duration = playbackSettings.Duration;
+            float duration = playbackSettings.ClipDuration;
             if (Application.isPlaying) Object.Destroy(source.gameObject, duration);
             else
             {

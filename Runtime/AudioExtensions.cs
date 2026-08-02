@@ -10,7 +10,7 @@ namespace LeafAudio
         /// <summary>
         /// * Note calling this method on a null sound will result in an early out and a warning rather than a null ref.
         /// </summary>
-        public static PlaybackHandle Play(this Sound sound, Vector3? position = null, Transform origin = null, float loops = 1) => AudioManager.Global.Play(sound, position, origin, loops);
+        public static PlaybackHandle Play(this Sound sound, Vector3? position = null, Transform origin = null) => AudioManager.Global.Play(sound, position, origin);
         /// <summary>
         /// Gets PlaybackSettings from this sound using this sound's selection mode and a variant's variation properties.<br/>
         /// * Note calling this method on a null sound will result in an early out and a warning rather than a null ref.

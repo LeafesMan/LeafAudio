@@ -50,7 +50,7 @@ namespace LeafAudio
             float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
 
 
-            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, spatialSettings);
+            return new PlaybackSettings(variant.clip, volume, pitch, 0, variant.clip.length, mixerGroup, spatialSettings);
         }
 #if UNITY_EDITOR
         // These values are all used in the SoundEditor

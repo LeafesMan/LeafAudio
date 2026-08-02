@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
-using System.Linq;
 using System;
 
 namespace LeafAudio
@@ -54,7 +53,7 @@ namespace LeafAudio
         /// <param name="loops">
         /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
-        public PlaybackHandle Play(Sound sound, Vector3? position = null, Transform origin = null, float loops = 1) => Play(sound.GetPlaybackSettings(), position, origin, loops);
+        public PlaybackHandle Play(Sound sound, Vector3? position = null, Transform origin = null) => Play(sound.GetPlaybackSettings(), position, origin);
         /// <summary>
         /// Plays a Clip with the given parameters.<br/>Note that when either position or origin are set the sound will be played spatially.
         /// </summary>
@@ -68,7 +67,7 @@ namespace LeafAudio
         /// <param name="loops">
         /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
-        public PlaybackHandle Play(PlaybackSettings playbackSettings, Vector3? position = null, Transform origin = null, float loops = 1)
+        public PlaybackHandle Play(PlaybackSettings playbackSettings, Vector3? position = null, Transform origin = null)
         {   // Early exit on playing null sound or clip
             if (playbackSettings.clip == null)
             {
@@ -99,8 +98,7 @@ namespace LeafAudio
 
             // Cache End Time stamp based on clip length and Loops value
             // negative loops results in infinite looping
-            if (loops >= 0) freeSource.endTime = Time.time + playbackSettings.Duration * loops;
-            else freeSource.endTime = Mathf.Infinity;
+            freeSource.endTime = Time.time + playbackSettings.startTime + playbackSettings.duration;
 
             freeSource.source.Play();
 
