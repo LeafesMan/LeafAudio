@@ -18,7 +18,7 @@ namespace LeafAudio
 
 
         internal const float DefaultMaxDistance = 100;
-        internal const float DefaultDoppler = 1;
+        internal const float DefaultDoppler = 0;
         internal const float DefaultAttenuation = 1;
         internal const float DefaultSpatial = 1;
         internal const float DefaultReverb = 1;
