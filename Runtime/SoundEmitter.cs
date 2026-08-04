@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace LeafAudio
 {
@@ -18,7 +19,8 @@ namespace LeafAudio
         {
             if (playOnStart) PlayInternal();
         }
-
+        void OnEnable() => handle.Resume();
+        void OnDisable() => handle.Pause();
         /// <summary>
         /// Plays the sound from the start if its not playing or resumes it if paused
         /// </summary>
