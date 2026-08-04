@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace LeafAudio
@@ -18,45 +19,67 @@ namespace LeafAudio
             this.pooledSourceIndex = pooledSourceIndex;
         }
 
+        ref PooledAudioSource GetPooledSource()
+        {
+            if (manager == null) throw new InvalidOperationException("This handle is invalid! It was not returned from a Play call or it's AudioManager was Destroyed!");
+            return ref manager.pooledSources[pooledSourceIndex];
+        }
+
         /// <summary>
         /// A handle IsDone when playback has run it's course or Stop() was called.<br/>
         /// At this point all local functions will result in no-ops. 
         /// </summary>
-        public bool IsDone => PooledSource.playbackID != playbackID;
-        public bool IsPaused => float.IsNaN(PooledSource.endTime);
-        ref PooledAudioSource PooledSource => ref manager.pooledSources[pooledSourceIndex];
+        public bool IsDone => IsDoneInternal(GetPooledSource());
+        public bool IsPaused => IsPausedInternal(GetPooledSource());
+        // Making these take the PooledAudioSource allows us to cache PooledSource once and pass it around to all the methods that need it rather than grabbing it several times
+        bool IsDoneInternal(in PooledAudioSource pooledSource) => pooledSource.playbackID != playbackID;
+        bool IsPausedInternal(in PooledAudioSource pooledSource) => float.IsNaN(pooledSource.endTime);
 
 
         /// <summary>
         /// Resumes playback
         /// </summary>
-        public void Resume() { if (!IsDone && IsPaused) ResumeInternal(); }
+        public void Resume()
+        {
+            ref PooledAudioSource pooledSource = ref GetPooledSource();
+            if (!IsDoneInternal(pooledSource) && IsPausedInternal(pooledSource))
+                ResumeInternal(ref pooledSource);
+        }
         /// <summary>
         /// Pauses playback
         /// </summary>
-        public void Pause() { if (!IsDone && !IsPaused) PauseInternal(); }
+        public void Pause()
+        {
+            ref PooledAudioSource pooledSource = ref GetPooledSource();
+            if (!IsDoneInternal(pooledSource) && !IsPausedInternal(pooledSource))
+                PauseInternal(ref pooledSource);
+        }
         /// <summary>
         /// Resumes if paused and Pauses if not paused 
         /// </summary>
         public void TogglePause()
         {
-            if (IsDone) return;
-            if (IsPaused) ResumeInternal();
-            else PauseInternal();
+            ref PooledAudioSource pooledSource = ref GetPooledSource();
+            if (IsDoneInternal(pooledSource)) return;
+            if (IsPausedInternal(pooledSource)) ResumeInternal(ref pooledSource);
+            else PauseInternal(ref pooledSource);
         }
-        void PauseInternal()
+        // These internal allow no repeated paused checks
+        void PauseInternal(ref PooledAudioSource pooledSource)
         {   // Calling this method while paused will cause issues
-            PooledSource.source.Pause();
+            pooledSource.source.Pause();
 
-            PooledSource.pausedTimeRemaining = PooledSource.endTime - Time.time;
-            PooledSource.endTime = float.NaN; // Sentinal for Paused
+            pooledSource.pausedTimeRemaining = pooledSource.endTime - Time.time;
+            pooledSource.endTime = float.NaN; // Sentinal for Paused
         }
-        void ResumeInternal()
+        void ResumeInternal(ref PooledAudioSource pooledSource)
         {   // Calling this method while not paused will cause issues
-            PooledSource.source.UnPause();
+            pooledSource.source.UnPause();
 
-            PooledSource.endTime = PooledSource.pausedTimeRemaining + Time.time;
+            pooledSource.endTime = pooledSource.pausedTimeRemaining + Time.time;
         }
+
+
         /// <summary>
         /// Permanently ends the playback of this sound.
         /// </summary>
@@ -66,13 +89,15 @@ namespace LeafAudio
             manager.FreeSource(pooledSourceIndex);
         }
 
+        #region Internals
+        #endregion
         #region Setters
         public Vector3 Position
         {
             set
             {
                 if (IsDone) return;
-                PooledSource.position = value;
+                GetPooledSource().position = value;
             }
         }
         public Transform Origin
@@ -80,9 +105,10 @@ namespace LeafAudio
             set
             {
                 if (IsDone) return;
-                PooledSource.origin = value;
+                GetPooledSource().origin = value;
             }
         }
         #endregion
+
     }
 }

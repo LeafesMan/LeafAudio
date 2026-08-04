@@ -67,7 +67,7 @@ namespace LeafAudio
         /// <param name="loops">
         /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
-        public PlaybackHandle Play(PlaybackSettings playbackSettings)
+        public PlaybackHandle Play(in PlaybackSettings playbackSettings)
         {   // Early exit on playing null sound or clip
             if (playbackSettings.clip == null)
             {
