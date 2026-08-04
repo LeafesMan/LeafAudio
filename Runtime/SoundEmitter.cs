@@ -25,21 +25,25 @@ namespace LeafAudio
         public void Play()
         {
             if (handle.IsPaused) handle.Resume();
-            else if (!handle.IsDone) PlayInternal();
+            else if (!handle.IsDone) PlayFromStart();
         }
-        public void PlayFrom(float timestamp) => PlayInternal();
+        public void PlayFrom(float timestamp) => PlayInternal(timestamp);
         public void PlayFromStart() => PlayFrom(0);
         public void Pause() => handle.Pause();
         public void Stop() => handle.Stop();
 
-        void PlayInternal()
+        void PlayInternal(float timestamp = 0)
         {
-            if (spatial) handle = sound.Play(transform.localPosition, transform);
-            else handle = sound.Play();
+            var settings = sound.WithStartTime(timestamp);
+
+            // Set Pos and Origin if want to play spatially
+            if (spatial) settings = settings.WithOrigin(transform).WithPosition(transform.localPosition); ;
+
+            handle = settings.Play();
         }
 
         // Keep offset up-to-date
-        void Update() => handle.Offset = transform.localPosition;
+        void Update() => handle.Position = transform.localPosition;
         void OnDestroy() => handle.Stop();
     }
 }

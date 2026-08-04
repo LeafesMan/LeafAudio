@@ -67,12 +67,12 @@ namespace LeafAudio
         }
 
         #region Setters
-        public Vector3 Offset
+        public Vector3 Position
         {
             set
             {
                 if (IsDone) return;
-                PooledSource.offset = value;
+                PooledSource.position = value;
             }
         }
         public Transform Origin

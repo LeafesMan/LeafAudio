@@ -15,7 +15,7 @@ namespace LeafAudio
         [SerializeField] internal uint playbackID;
         [SerializeField] internal int usedIndex; // The index of this source in usedIndices
         [SerializeField] internal Transform origin;
-        [SerializeField] internal Vector3 offset;
+        [SerializeField] internal Vector3 position;
         [SerializeField] internal float endTime; // End time may be NaN representing paused or Infinity representing an infinitely looping sound
         [SerializeField] internal float pausedTimeRemaining; // Where remaining time is stored while this pooled source is paused
 

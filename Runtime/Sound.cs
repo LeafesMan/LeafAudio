@@ -101,5 +101,19 @@ namespace LeafAudio
             }
         }
 #endif
+        #region With Chaining Wrappers
+        // Wrappers to allow same chaining on Sound as on PlaybackSettings
+        // With these methods we can do sound.WithXXXX().Play();
+        // Without we need to do        sound.GetPlaybackSettings().WithXXXX().Play();
+        public PlaybackSettings WithMixerGroup(AudioMixerGroup mixerGroup) => this.GetPlaybackSettings().WithMixerGroup(mixerGroup);
+        public PlaybackSettings WithClip(AudioClip clip) => this.GetPlaybackSettings().WithClip(clip);
+        public PlaybackSettings WithStartTime(float startTime) => this.GetPlaybackSettings().WithStartTime(startTime);
+        public PlaybackSettings WithDuration(float duration) => this.GetPlaybackSettings().WithDuration(duration);
+        public PlaybackSettings WithVolume(float volume) => this.GetPlaybackSettings().WithVolume(volume);
+        public PlaybackSettings WithPitch(float pitch) => this.GetPlaybackSettings().WithPitch(pitch);
+        public PlaybackSettings WithPosition(Vector3? position) => this.GetPlaybackSettings().WithPosition(position);
+        public PlaybackSettings WithOrigin(Transform origin) => this.GetPlaybackSettings().WithOrigin(origin);
+        public PlaybackSettings WithSpatialSettings(SpatialSettings settings) => this.GetPlaybackSettings().WithSpatialSettings(settings);
+        #endregion
     }
 }

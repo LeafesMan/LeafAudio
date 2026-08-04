@@ -34,7 +34,7 @@ namespace LeafAudio
             for (int i = usedIndices.Count - 1; i >= 0; i--)
             {
                 PooledAudioSource pooledSource = pooledSources[usedIndices[i]];
-                if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.offset;
+                if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
 
                 // Free up the source and toggle it off
                 if (pooledSource.IsDone) FreeSource(i);
@@ -53,7 +53,7 @@ namespace LeafAudio
         /// <param name="loops">
         /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
-        public PlaybackHandle Play(Sound sound, Vector3? position = null, Transform origin = null) => Play(sound.GetPlaybackSettings(), position, origin);
+        public PlaybackHandle Play(Sound sound) => Play(sound.GetPlaybackSettings());
         /// <summary>
         /// Plays a Clip with the given parameters.<br/>Note that when either position or origin are set the sound will be played spatially.
         /// </summary>
@@ -67,7 +67,7 @@ namespace LeafAudio
         /// <param name="loops">
         /// The number of times to play the Sound. A value of 1 plays the Sound once, values greater than
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
-        public PlaybackHandle Play(PlaybackSettings playbackSettings, Vector3? position = null, Transform origin = null)
+        public PlaybackHandle Play(PlaybackSettings playbackSettings)
         {   // Early exit on playing null sound or clip
             if (playbackSettings.clip == null)
             {
@@ -92,9 +92,9 @@ namespace LeafAudio
 #endif
 
             // Setup spatial settings
-            freeSource.origin = origin;
-            freeSource.offset = position ?? Vector3.zero;
-            freeSource.source.transform.position = origin == null ? freeSource.offset : (origin.position + freeSource.offset);
+            freeSource.origin = playbackSettings.origin;
+            freeSource.position = playbackSettings.position ?? Vector3.zero;
+            freeSource.source.transform.position = playbackSettings.origin == null ? freeSource.position : (playbackSettings.origin.position + freeSource.position);
 
             // Cache End Time stamp based on clip length and Loops value
             // negative loops results in infinite looping

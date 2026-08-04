@@ -9,17 +9,20 @@ namespace LeafAudio
     {
         public AudioMixerGroup mixerGroup;
         public AudioClip clip;
-        public float volume;
-        public float pitch;
-        public float maxDistance;
-        public AnimationCurve attenuation;
-        public AnimationCurve spatial;
-        public AnimationCurve spread;
-        public AnimationCurve reverb;
-
         public float startTime;
         public float duration;
+        public float volume;
+        public float pitch;
+        public Vector3? position;
+        public Transform origin;
+        public float maxDistance;
+        public AnimationCurve attenuation;
+        public AnimationCurve spread;
+        public AnimationCurve reverb;
+        public AnimationCurve spatial;
 
+
+        // Defaults
         static readonly float DefaultMaxDistance = 50;
         static readonly AnimationCurve DefaultAttenuation = new AnimationCurve(new Keyframe(0, 1));
         static readonly AnimationCurve DefaultSpatial = new AnimationCurve(new Keyframe(0, 0));
@@ -36,7 +39,24 @@ namespace LeafAudio
             this.startTime = startTime;
             this.duration = duration;
 
+            position = null;
+            origin = null;
 
+            // Set these to satisfy compiler
+            // Actually set below in ApplySpatialSettings Helper
+            maxDistance = default;
+            attenuation = null;
+            spatial = null;
+            spread = null;
+            reverb = null;
+
+            ApplySpatialSettings(spatialSettings);
+        }
+        /// <summary>
+        /// Applies the provided SpatialSettings to this PlaybackSettings
+        /// </summary>
+        void ApplySpatialSettings(SpatialSettings spatialSettings)
+        {
             // Copy SpatialSettings if provided
             // Otherwise apply defaults
             if (spatialSettings != null)
@@ -56,9 +76,8 @@ namespace LeafAudio
                 reverb = DefaultReverb;
             }
         }
-        public PlaybackHandle Play(Vector3? position = null, Transform origin = null) => AudioManager.Global.Play(this, position, origin);
         /// <summary>
-        /// Applies Playbacksettings to an AudioSource
+        /// Applies this Playbacksettings to an AudioSource
         /// </summary>
         public readonly void ApplyToSource(AudioSource source)
         {
@@ -82,5 +101,62 @@ namespace LeafAudio
         /// Returns the time it will take for these playback settings to play out.
         /// </summary>
         public float ClipDuration => Mathf.Abs(clip.length / pitch);
+
+        public PlaybackHandle Play() => AudioManager.Global.Play(this);
+
+        public PlaybackSettings WithMixerGroup(AudioMixerGroup mixerGroup)
+        {
+            var newSettings = this;
+            newSettings.mixerGroup = mixerGroup;
+            return newSettings;
+        }
+        public PlaybackSettings WithClip(AudioClip clip)
+        {
+            var newSettings = this;
+            newSettings.clip = clip;
+            return newSettings;
+        }
+        public PlaybackSettings WithStartTime(float startTime)
+        {
+            var newSettings = this;
+            newSettings.startTime = startTime;
+            return newSettings;
+        }
+        public PlaybackSettings WithDuration(float duration)
+        {
+            var newSettings = this;
+            newSettings.duration = duration;
+            return newSettings;
+        }
+        public PlaybackSettings WithVolume(float volume)
+        {
+            var newSettings = this;
+            newSettings.volume = volume;
+            return newSettings;
+        }
+        public PlaybackSettings WithPitch(float pitch)
+        {
+            var newSettings = this;
+            newSettings.pitch = pitch;
+            return newSettings;
+        }
+        public PlaybackSettings WithPosition(Vector3? position)
+        {
+            var newSettings = this;
+            newSettings.position = position;
+            return newSettings;
+        }
+        public PlaybackSettings WithOrigin(Transform origin)
+        {
+            var newSettings = this;
+            newSettings.origin = origin;
+            return newSettings;
+        }
+        public PlaybackSettings WithSpatialSettings(SpatialSettings settings)
+        {
+            var newSettings = this;
+            newSettings.ApplySpatialSettings(settings);
+            return newSettings;
+        }
     }
 }
