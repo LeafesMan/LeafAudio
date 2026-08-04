@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace LeafAudio
@@ -19,61 +18,60 @@ namespace LeafAudio
             this.pooledSourceIndex = pooledSourceIndex;
         }
 
-        ref PooledAudioSource GetPooledSource()
-        {
-            if (manager == null) throw new InvalidOperationException("This handle is invalid! It was not returned from a Play call or it's AudioManager was Destroyed!");
-            return ref manager.pooledSources[pooledSourceIndex];
-        }
 
+        ref PooledAudioSource PooledSource => ref manager.pooledSources[pooledSourceIndex];
         /// <summary>
-        /// A handle IsDone when playback has run it's course or Stop() was called.<br/>
-        /// At this point all local functions will result in no-ops. 
+        /// A handle IsDone when playback has run it is no longer playing audio!<br/>
+        /// At this point all local functions will result in no-ops and return NaN values.
         /// </summary>
-        public bool IsDone => IsDoneInternal(GetPooledSource());
-        public bool IsPaused => IsPausedInternal(GetPooledSource());
-        // Making these take the PooledAudioSource allows us to cache PooledSource once and pass it around to all the methods that need it rather than grabbing it several times
-        bool IsDoneInternal(in PooledAudioSource pooledSource) => pooledSource.playbackID != playbackID;
-        bool IsPausedInternal(in PooledAudioSource pooledSource) => float.IsNaN(pooledSource.endTime);
-
+        public bool IsDone
+        {
+            get
+            {
+                if (manager == null) return true;
+                else return PooledSource.playbackID != playbackID;
+            }
+        }
+        public bool IsPaused => !IsDone && IsPausedInternal;
+        bool IsPausedInternal => float.IsNaN(PooledSource.endTime);
 
         /// <summary>
         /// Resumes playback
         /// </summary>
         public void Resume()
         {
-            ref PooledAudioSource pooledSource = ref GetPooledSource();
-            if (!IsDoneInternal(pooledSource) && IsPausedInternal(pooledSource))
-                ResumeInternal(ref pooledSource);
+            if (IsDone) return;
+            if (IsPausedInternal) ResumeInternal();
         }
         /// <summary>
         /// Pauses playback
         /// </summary>
         public void Pause()
         {
-            ref PooledAudioSource pooledSource = ref GetPooledSource();
-            if (!IsDoneInternal(pooledSource) && !IsPausedInternal(pooledSource))
-                PauseInternal(ref pooledSource);
+            if (IsDone) return;
+            if (!IsPausedInternal) PauseInternal();
         }
         /// <summary>
         /// Resumes if paused and Pauses if not paused 
         /// </summary>
         public void TogglePause()
         {
-            ref PooledAudioSource pooledSource = ref GetPooledSource();
-            if (IsDoneInternal(pooledSource)) return;
-            if (IsPausedInternal(pooledSource)) ResumeInternal(ref pooledSource);
-            else PauseInternal(ref pooledSource);
+            if (IsDone) return;
+            if (IsPausedInternal) ResumeInternal();
+            else PauseInternal();
         }
         // These internal allow no repeated paused checks
-        void PauseInternal(ref PooledAudioSource pooledSource)
+        void PauseInternal()
         {   // Calling this method while paused will cause issues
+            ref var pooledSource = ref PooledSource;
             pooledSource.source.Pause();
 
             pooledSource.pausedTimeRemaining = pooledSource.endTime - Time.time;
             pooledSource.endTime = float.NaN; // Sentinal for Paused
         }
-        void ResumeInternal(ref PooledAudioSource pooledSource)
+        void ResumeInternal()
         {   // Calling this method while not paused will cause issues
+            ref var pooledSource = ref PooledSource;
             pooledSource.source.UnPause();
 
             pooledSource.endTime = pooledSource.pausedTimeRemaining + Time.time;
@@ -94,18 +92,28 @@ namespace LeafAudio
         #region Setters
         public Vector3 Position
         {
+            get
+            {
+                if (IsDone) return new Vector3(float.NaN, float.NaN, float.NaN);
+                else return PooledSource.position;
+            }
             set
             {
                 if (IsDone) return;
-                GetPooledSource().position = value;
+                PooledSource.position = value;
             }
         }
         public Transform Origin
         {
+            get
+            {
+                if (IsDone) return null;
+                else return PooledSource.origin;
+            }
             set
             {
                 if (IsDone) return;
-                GetPooledSource().origin = value;
+                PooledSource.origin = value;
             }
         }
         #endregion
