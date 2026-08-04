@@ -37,7 +37,7 @@ namespace LeafAudio
                 if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
 
                 // Free up the source and toggle it off
-                if (pooledSource.IsDone) FreeSource(i);
+                if (pooledSource.IsDone) FreeSource(usedIndices[i]);
             }
         }
         /// <summary>
@@ -172,11 +172,17 @@ namespace LeafAudio
 
             pooledSource.playbackID = 0; // Set to sentinal value for free sources 
 
-            freeIndices.Add(index);
+
 
             // Swap Remove from active indices
-            (usedIndices[^1], usedIndices[pooledSource.usedIndex]) = (usedIndices[pooledSource.usedIndex], usedIndices[^1]);
-            usedIndices.RemoveAt(usedIndices.Count - 1);
+            int toFreeSlot = pooledSource.usedIndex;
+            int lastSlot = usedIndices.Count - 1;
+            pooledSources[usedIndices[lastSlot]].usedIndex = toFreeSlot; // Update the cached usedIndex on the pooledSource whose usedIndex entry was moved
+            usedIndices[toFreeSlot] = usedIndices[lastSlot]; // Swap
+            usedIndices.RemoveAt(lastSlot); // Remove
+
+            // Add as a free source
+            freeIndices.Add(index);
         }
     }
 }
