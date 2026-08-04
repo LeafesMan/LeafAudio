@@ -167,7 +167,7 @@ namespace LeafAudio
         /// </summary>
         internal void FreeSource(int index)
         {
-            PooledAudioSource pooledSource = pooledSources[index];
+            ref PooledAudioSource pooledSource = ref pooledSources[index];
             pooledSource.source.gameObject.SetActive(false); // Stop playback
 
             pooledSource.playbackID = 0; // Set to sentinal value for free sources 
