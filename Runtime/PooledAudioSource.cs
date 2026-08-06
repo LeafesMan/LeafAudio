@@ -17,7 +17,7 @@ namespace LeafAudio
         [SerializeField] internal Transform origin;
         [SerializeField] internal Vector3 position;
         [SerializeField] internal float endTime; // End time may be NaN representing paused or Infinity representing an infinitely looping sound
-        [SerializeField] internal float pausedTimeRemaining; // Where remaining time is stored while this pooled source is paused
+        [SerializeField] internal float pausedRemainingDuration; // Where remaining time is stored while this pooled source is paused
 
         /// <summary>
         /// Whether the pooled audio source has completed playback

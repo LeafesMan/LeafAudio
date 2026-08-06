@@ -10,7 +10,9 @@ namespace LeafAudio
         public AudioMixerGroup mixerGroup;
         public AudioClip clip;
         public float startTime;
+
         public float duration;
+
         public float volume;
         public float pitch;
         public Vector3? position;
@@ -89,6 +91,7 @@ namespace LeafAudio
 
             source.time = startTime % clip.length;
 
+
             // Find largest distance
             source.maxDistance = maxDistance;
             source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, attenuation);
@@ -100,8 +103,8 @@ namespace LeafAudio
         /// <summary>
         /// Returns the time it will take for these playback settings to play out.
         /// </summary>
-        public float ClipDuration => Mathf.Abs(clip.length / pitch);
-
+        public float ClipDuration => Mathf.Abs(ClipLength / pitch);
+        public float ClipLength => clip == null ? 0 : clip.length;
         public PlaybackHandle Play() => AudioManager.Global.Play(this);
 
         public PlaybackSettings WithMixerGroup(AudioMixerGroup mixerGroup)
@@ -122,10 +125,34 @@ namespace LeafAudio
             newSettings.startTime = startTime;
             return newSettings;
         }
+        /// <summary>
+        /// Sets the playback duration in seconds, starting from the current start time.
+        /// </summary>
         public PlaybackSettings WithDuration(float duration)
         {
             var newSettings = this;
-            newSettings.duration = duration;
+            newSettings.duration = Mathf.Max(0, duration);
+            return newSettings;
+        }
+        /// <summary>
+        /// Sets the playback duration to a multiple of the clip's full length.
+        /// </summary>
+        public PlaybackSettings WithFullDurations(float fullDurations)
+        {
+            var newSettings = this;
+            newSettings.duration = clip.length * Mathf.Max(0, fullDurations);
+            return newSettings;
+        }
+        /// <summary>
+        /// Sets the playback to start at startTime and play to the end of the clip, then repeat the full clip loops additional times.<br/>
+        /// If you use this method DO NOT set StartTime independently.
+        /// </summary>
+        public PlaybackSettings WithLoops(float loops)
+        {
+            loops = Mathf.Max(0, loops);
+
+            var newSettings = this;
+            newSettings.duration = ClipLength - startTime % ClipLength + ClipLength * loops;
             return newSettings;
         }
         public PlaybackSettings WithVolume(float volume)

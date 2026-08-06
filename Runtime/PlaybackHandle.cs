@@ -66,7 +66,7 @@ namespace LeafAudio
             ref var pooledSource = ref PooledSource;
             pooledSource.source.Pause();
 
-            pooledSource.pausedTimeRemaining = pooledSource.endTime - Time.time;
+            pooledSource.pausedRemainingDuration = pooledSource.endTime - UnityEngine.Time.time;
             pooledSource.endTime = float.NaN; // Sentinal for Paused
         }
         void ResumeInternal()
@@ -74,7 +74,7 @@ namespace LeafAudio
             ref var pooledSource = ref PooledSource;
             pooledSource.source.UnPause();
 
-            pooledSource.endTime = pooledSource.pausedTimeRemaining + Time.time;
+            pooledSource.endTime = pooledSource.pausedRemainingDuration + UnityEngine.Time.time;
         }
 
 
@@ -86,7 +86,6 @@ namespace LeafAudio
             if (IsDone) return;
             manager.FreeSource(pooledSourceIndex);
         }
-
         #region Internals
         #endregion
         #region Setters
@@ -116,7 +115,69 @@ namespace LeafAudio
                 PooledSource.origin = value;
             }
         }
-        #endregion
+        public float Volume
+        {
+            get
+            {
+                if (IsDone) return float.NaN;
+                else return PooledSource.source.volume;
+            }
+            set
+            {
+                if (IsDone) return;
+                PooledSource.source.volume = value;
+            }
+        }
+        public float Pitch
+        {
+            get
+            {
+                if (IsDone) return float.NaN;
+                else return PooledSource.source.pitch;
+            }
+            set
+            {
+                if (IsDone) return;
+                ref var pooledSource = ref PooledSource;
+                pooledSource.endTime = RemainingDurationInternal * pooledSource.source.pitch / value; // Update endtime to account for change in pitch
+                pooledSource.source.pitch = value;
+            }
+        }
+        /// <summary>
+        /// The current playback position within the clip. When time Adjusting time proportionally adjusts the Reamining Duration. <br/>
+        /// * Note: Setting the time below 0 or above the clip length wraps around within the clip.
+        /// </summary>
+        public float Time
+        {
+            get => PooledSource.source.time;
+            set
+            {
+                // Grab source and clipLength
+                ref var pooledSource = ref PooledSource;
+                float clipLength = pooledSource.source.clip.length;
 
+                float time = value % clipLength; // Calculate new time
+
+                if (time < 0) time += clipLength; // Account for negative time
+
+                pooledSource.source.time = time; // Apply
+            }
+        }
+        public float RemainingDuration
+        {
+            get
+            {
+                if (IsDone) return 0;
+                return RemainingDurationInternal;
+            }
+            set
+            {
+                if (IsDone) return;
+                if (IsPaused) PooledSource.pausedRemainingDuration = value;
+                else PooledSource.endTime = UnityEngine.Time.time + value;
+            }
+        }
+        float RemainingDurationInternal => IsPaused ? PooledSource.pausedRemainingDuration : PooledSource.endTime - UnityEngine.Time.time;
+        #endregion
     }
 }
