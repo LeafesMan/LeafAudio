@@ -17,7 +17,7 @@ namespace LeafAudio.Editor
             if (asset.GetType() == typeof(AudioClip))
             {
                 var clip = asset as AudioClip;
-                Test(new PlaybackSettings(clip, 0.5f, 1, 0, clip.length, null, null));
+                Test(new PlaybackSettings(clip, 0.5f, 1, null, null));
                 return true;
             }
             if (asset.GetType() == typeof(Sound))
@@ -36,7 +36,7 @@ namespace LeafAudio.Editor
         /// </summary>
         public static void Test(PlaybackSettings playbackSettings)
         {
-            if (playbackSettings.clip == null) { Debug.LogWarning("Sound Testing Skipped: Can't test null clip!"); return; }
+            if (playbackSettings.Clip == null) { Debug.LogWarning("Sound Testing Skipped: Can't test null clip!"); return; }
 
 
             // Create Temp Object and Components
@@ -44,15 +44,14 @@ namespace LeafAudio.Editor
             source.gameObject.hideFlags = HideFlags.DontSave;
 
             // Setup Source
-            playbackSettings.ApplyToSource(source);
+            playbackSettings.ApplyToUnityAudioSource(source);
             source.Play();
 
             // Destroy temporary Object after the clips completion            
-            float duration = playbackSettings.ClipDuration;
-            if (Application.isPlaying) Object.Destroy(source.gameObject, duration);
+            if (Application.isPlaying) Object.Destroy(source.gameObject, playbackSettings.Duration);
             else
             {
-                double destroyTime = EditorApplication.timeSinceStartup + duration;
+                double destroyTime = EditorApplication.timeSinceStartup + playbackSettings.Duration;
                 EditorApplication.update += Cleanup;
 
                 void Cleanup()

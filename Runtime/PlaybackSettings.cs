@@ -7,21 +7,88 @@ namespace LeafAudio
     /// </summary>
     public struct PlaybackSettings
     {
-        public AudioMixerGroup mixerGroup;
-        public AudioClip clip;
-        public float startTime;
+        // Main Vars
+        public AudioMixerGroup MixerGroup;
+        public AudioClip Clip;
+        public float Volume;
+        public float Pitch;
 
-        public float duration;
+        // Positional Vars
+        public Vector3? Position;
+        public Transform Origin;
+        public float MaxDistance;
+        public AnimationCurve Attenuation;
+        public AnimationCurve Spread;
+        public AnimationCurve Reverb;
+        public AnimationCurve Spatial;
 
-        public float volume;
-        public float pitch;
-        public Vector3? position;
-        public Transform origin;
-        public float maxDistance;
-        public AnimationCurve attenuation;
-        public AnimationCurve spread;
-        public AnimationCurve reverb;
-        public AnimationCurve spatial;
+        // Time Vars
+        public float StartTime;
+        internal DurationMode durationMode;
+        internal float duration; // A value with units defined in DurationMode
+        /// <summary> 
+        /// Sets the playback duration in seconds.<br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public float Duration
+        {
+            get
+            {
+                // Account for pitch on modes that arent specifying a certain Time duration
+                float finalDuration = 0;
+                if (durationMode == DurationMode.Time) return duration;
+                else if (durationMode == DurationMode.Loops) finalDuration = ClipLength - ClipSpaceStartTime + ClipLength * duration;
+                else if (durationMode == DurationMode.FullDurations) finalDuration = duration * ClipLength;
+                return finalDuration / Mathf.Abs(Pitch); // Account for pitch on pitch dependent modes
+            }
+            set
+            {
+                durationMode = DurationMode.Time;
+                duration = Mathf.Max(0, value);
+            }
+        }
+        /// <summary> 
+        /// Sets the playback duration as a number of traversals of the clip length. <br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public float Traversals
+        {
+            get
+            {
+                if (ClipLength == 0) return 0;
+                return Duration * Mathf.Abs(Pitch) / ClipLength;
+            }
+
+            set
+            {
+                durationMode = DurationMode.FullDurations;
+                duration = Mathf.Max(0, value);
+            }
+        }
+        /// <summary> 
+        /// Sets the playback duration as a number of loops after the initial traversal of the clip. <br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public float Loops
+        {
+            get
+            {
+                if (ClipLength == 0) return 0;
+                return Mathf.Max(0, (Duration - (ClipLength - ClipSpaceStartTime)) * Mathf.Abs(Pitch) / ClipLength);
+            }
+            set
+            {
+                durationMode = DurationMode.Loops;
+                duration = Mathf.Max(0, value);
+            }
+        }
+        public float ClipLength => Clip == null ? 0 : Clip.length;
+        float ClipSpaceStartTime => Mathf.Repeat(StartTime, ClipLength); // Starttime converted into the clips length space so: ClipLength: 1.5 StartTime 0 -> 0, 1.5 -> 1.5, 2 -> 0.5, -1, 0.5
+        /// <summary>
+        /// How the duration field should be interpreted
+        /// </summary>
+        internal enum DurationMode { Time, Loops, FullDurations }
+
 
 
         // Defaults
@@ -31,26 +98,30 @@ namespace LeafAudio
         static readonly AnimationCurve DefaultSpread = new AnimationCurve(new Keyframe(0, 0));
         static readonly AnimationCurve DefaultReverb = new AnimationCurve(new Keyframe(0, 1));
 
-        public PlaybackSettings(AudioClip clip, float volume, float pitch, float startTime, float duration, AudioMixerGroup mixerGroup, SpatialSettings spatialSettings)
+
+
+        public PlaybackSettings(AudioClip clip, float volume, float pitch, AudioMixerGroup mixerGroup, SpatialSettings spatialSettings)
         {
-            this.mixerGroup = mixerGroup;
-            this.clip = clip;
-            this.volume = volume;
-            this.pitch = pitch;
+            MixerGroup = mixerGroup;
+            Clip = clip;
+            Volume = volume;
+            Pitch = pitch;
 
-            this.startTime = startTime;
-            this.duration = duration;
+            // Default timings
+            StartTime = 0;
+            durationMode = DurationMode.Loops;
+            duration = 0;
 
-            position = null;
-            origin = null;
+            Position = null;
+            Origin = null;
 
             // Set these to satisfy compiler
             // Actually set below in ApplySpatialSettings Helper
-            maxDistance = default;
-            attenuation = null;
-            spatial = null;
-            spread = null;
-            reverb = null;
+            MaxDistance = default;
+            Attenuation = null;
+            Spatial = null;
+            Spread = null;
+            Reverb = null;
 
             ApplySpatialSettings(spatialSettings);
         }
@@ -63,120 +134,114 @@ namespace LeafAudio
             // Otherwise apply defaults
             if (spatialSettings != null)
             {
-                maxDistance = spatialSettings.maxDistance;
-                attenuation = spatialSettings.attenuation;
-                spatial = spatialSettings.spatial;
-                spread = spatialSettings.spread;
-                reverb = spatialSettings.reverb;
+                MaxDistance = spatialSettings.maxDistance;
+                Attenuation = spatialSettings.attenuation;
+                Spatial = spatialSettings.spatial;
+                Spread = spatialSettings.spread;
+                Reverb = spatialSettings.reverb;
             }
             else
             {
-                maxDistance = DefaultMaxDistance;
-                attenuation = DefaultAttenuation;
-                spatial = DefaultSpatial;
-                spread = DefaultSpread;
-                reverb = DefaultReverb;
+                MaxDistance = DefaultMaxDistance;
+                Attenuation = DefaultAttenuation;
+                Spatial = DefaultSpatial;
+                Spread = DefaultSpread;
+                Reverb = DefaultReverb;
             }
         }
         /// <summary>
         /// Applies this Playbacksettings to an AudioSource
         /// </summary>
-        public readonly void ApplyToSource(AudioSource source)
+        internal readonly void ApplyToUnityAudioSource(AudioSource source)
         {
             // Setup Source
-            source.clip = clip;
-            source.volume = volume;
-            source.pitch = pitch;
-            source.outputAudioMixerGroup = mixerGroup;
+            source.clip = Clip;
+            source.volume = Volume;
+            source.pitch = Pitch;
+            source.outputAudioMixerGroup = MixerGroup;
 
-            source.time = startTime % clip.length;
+            source.time = StartTime % Clip.length;
 
 
             // Find largest distance
-            source.maxDistance = maxDistance;
-            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, attenuation);
-            source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, spatial);
-            source.SetCustomCurve(AudioSourceCurveType.Spread, spread);
-            source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, reverb);
+            source.maxDistance = MaxDistance;
+            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, Attenuation);
+            source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, Spatial);
+            source.SetCustomCurve(AudioSourceCurveType.Spread, Spread);
+            source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, Reverb);
             if (source.pitch < 0) source.time = source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error
         }
-        /// <summary>
-        /// Returns the time it will take for these playback settings to play out.
-        /// </summary>
-        public float ClipDuration => Mathf.Abs(ClipLength / pitch);
-        public float ClipLength => clip == null ? 0 : clip.length;
         public PlaybackHandle Play() => AudioManager.Global.Play(this);
-
         public PlaybackSettings WithMixerGroup(AudioMixerGroup mixerGroup)
         {
             var newSettings = this;
-            newSettings.mixerGroup = mixerGroup;
+            newSettings.MixerGroup = mixerGroup;
             return newSettings;
         }
         public PlaybackSettings WithClip(AudioClip clip)
         {
             var newSettings = this;
-            newSettings.clip = clip;
+            newSettings.Clip = clip;
             return newSettings;
         }
         public PlaybackSettings WithStartTime(float startTime)
         {
             var newSettings = this;
-            newSettings.startTime = startTime;
+            newSettings.StartTime = startTime;
             return newSettings;
         }
-        /// <summary>
-        /// Sets the playback duration in seconds, starting from the current start time.
+        /// <summary> 
+        /// Sets the playback duration in seconds.<br/> 
+        /// Overrides any previous duration specification.
         /// </summary>
         public PlaybackSettings WithDuration(float duration)
         {
             var newSettings = this;
-            newSettings.duration = Mathf.Max(0, duration);
+            newSettings.Duration = duration;
             return newSettings;
         }
-        /// <summary>
-        /// Sets the playback duration to a multiple of the clip's full length.
+        /// <summary> 
+        /// Sets the playback duration as a number of traversals of the clip length. <br/> 
+        /// Overrides any previous duration specification.
         /// </summary>
-        public PlaybackSettings WithFullDurations(float fullDurations)
+        public PlaybackSettings WithTraversals(float traversals)
         {
             var newSettings = this;
-            newSettings.duration = clip.length * Mathf.Max(0, fullDurations);
+            newSettings.Traversals = traversals;
             return newSettings;
         }
-        /// <summary>
-        /// Sets the playback to start at startTime and play to the end of the clip, then repeat the full clip loops additional times.<br/>
-        /// If you use this method DO NOT set StartTime independently.
+        /// <summary> 
+        /// Sets the playback duration as a number of loops after the initial traversal of the clip. <br/> 
+        /// Overrides any previous duration specification.
         /// </summary>
         public PlaybackSettings WithLoops(float loops)
         {
-            loops = Mathf.Max(0, loops);
-
             var newSettings = this;
-            newSettings.duration = ClipLength - startTime % ClipLength + ClipLength * loops;
+            newSettings.Loops = loops;
             return newSettings;
         }
         public PlaybackSettings WithVolume(float volume)
         {
             var newSettings = this;
-            newSettings.volume = volume;
+            newSettings.Volume = volume;
             return newSettings;
         }
         public PlaybackSettings WithPitch(float pitch)
         {
             var newSettings = this;
-            newSettings.pitch = pitch;
+            newSettings.Pitch = pitch;
             return newSettings;
         }
         public PlaybackSettings WithPosition(Vector3? position)
         {
             var newSettings = this;
-            newSettings.position = position;
+            newSettings.Position = position;
             return newSettings;
         }
         public PlaybackSettings WithOrigin(Transform origin)
         {
             var newSettings = this;
-            newSettings.origin = origin;
+            newSettings.Origin = origin;
             return newSettings;
         }
         public PlaybackSettings WithSpatialSettings(SpatialSettings settings)

@@ -50,7 +50,7 @@ namespace LeafAudio
             float pitch = variant.pitch + Rand.Float(Mathf.Max(-variant.pitchVariation, pitchVariationRange.x), Mathf.Min(variant.pitchVariation, pitchVariationRange.y));
 
 
-            return new PlaybackSettings(variant.clip, volume, pitch, 0, variant.clip.length, mixerGroup, spatialSettings);
+            return new PlaybackSettings(variant.clip, volume, pitch, mixerGroup, spatialSettings);
         }
 #if UNITY_EDITOR
         // These values are all used in the SoundEditor
@@ -108,12 +108,26 @@ namespace LeafAudio
         public PlaybackSettings WithMixerGroup(AudioMixerGroup mixerGroup) => this.GetPlaybackSettings().WithMixerGroup(mixerGroup);
         public PlaybackSettings WithClip(AudioClip clip) => this.GetPlaybackSettings().WithClip(clip);
         public PlaybackSettings WithStartTime(float startTime) => this.GetPlaybackSettings().WithStartTime(startTime);
-        public PlaybackSettings WithDuration(float duration) => this.GetPlaybackSettings().WithDuration(duration);
         public PlaybackSettings WithVolume(float volume) => this.GetPlaybackSettings().WithVolume(volume);
         public PlaybackSettings WithPitch(float pitch) => this.GetPlaybackSettings().WithPitch(pitch);
         public PlaybackSettings WithPosition(Vector3? position) => this.GetPlaybackSettings().WithPosition(position);
         public PlaybackSettings WithOrigin(Transform origin) => this.GetPlaybackSettings().WithOrigin(origin);
         public PlaybackSettings WithSpatialSettings(SpatialSettings settings) => this.GetPlaybackSettings().WithSpatialSettings(settings);
+        /// <summary> 
+        /// Sets the playback duration in seconds.<br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public PlaybackSettings WithDuration(float duration) => this.GetPlaybackSettings().WithDuration(duration);
+        /// <summary> 
+        /// Sets the playback duration as a number of traversals of the clip length. <br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public PlaybackSettings WithTraversals(float traversals) => this.GetPlaybackSettings().WithTraversals(traversals);
+        /// <summary> 
+        /// Sets the playback duration as a number of loops after the initial traversal of the clip. <br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public PlaybackSettings WithLoops(float loops) => this.GetPlaybackSettings().WithLoops(loops);
         #endregion
     }
 }

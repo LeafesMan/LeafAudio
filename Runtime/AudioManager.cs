@@ -69,7 +69,7 @@ namespace LeafAudio
         /// 1 repeat the Sound, fractional values play will play part of the sound, and values less than 0 loop infinitely. </param> 
         public PlaybackHandle Play(in PlaybackSettings playbackSettings)
         {   // Early exit on playing null sound or clip
-            if (playbackSettings.clip == null)
+            if (playbackSettings.Clip == null)
             {
 #if UNITY_EDITOR
                 if (WarnOnPlayNull) Debug.LogWarning("Failed to play! Sound or Clip passed in was null! This is an editor-only warning and may be disabled: ProjectSetting/LeafAudio/WarnOnPlayNull");
@@ -85,20 +85,20 @@ namespace LeafAudio
             freeSource.playbackID = PooledAudioSource.PlaybackIDCounter++;
 
             freeSource.source.gameObject.SetActive(true);
-            playbackSettings.ApplyToSource(freeSource.source);
+            playbackSettings.ApplyToUnityAudioSource(freeSource.source);
 
 #if UNITY_EDITOR
             freeSource.source.name = freeSource.source.clip.name; // Soley an editor convenience for easier debugging
 #endif
 
             // Setup spatial settings
-            freeSource.origin = playbackSettings.origin;
-            freeSource.position = playbackSettings.position ?? Vector3.zero;
-            freeSource.source.transform.position = playbackSettings.origin == null ? freeSource.position : (playbackSettings.origin.position + freeSource.position);
+            freeSource.origin = playbackSettings.Origin;
+            freeSource.position = playbackSettings.Position ?? Vector3.zero;
+            freeSource.source.transform.position = playbackSettings.Origin == null ? freeSource.position : (playbackSettings.Origin.position + freeSource.position);
 
             // Cache End Time stamp based on clip length and Loops value
             // negative loops results in infinite looping
-            freeSource.endTime = Time.time + playbackSettings.startTime + playbackSettings.duration;
+            freeSource.endTime = Time.time + playbackSettings.Duration;
 
             freeSource.source.Play();
 
