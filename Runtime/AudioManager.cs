@@ -36,7 +36,7 @@ namespace LeafAudio
                 ref PooledAudioSource pooledSource = ref pooledSources[usedIndices[i]];
                 if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
 
-                if (!pooledSource.paused) pooledSource.remainingDuration -= Mathf.Max(0, pooledSource.remainingDuration - Time.deltaTime);
+                if (!pooledSource.paused) pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration - Time.deltaTime);
                 if (pooledSource.IsDone)
                 {   // Free up the source and toggle it off
                     if (pooledSource.killOnDone) FreeSource(usedIndices[i]);

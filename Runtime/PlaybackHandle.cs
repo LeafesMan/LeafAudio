@@ -53,6 +53,11 @@ namespace LeafAudio
                 else return PooledSource.playbackID == playbackID;
             }
         }
+        void UpdateAudioSourcePaused(in PooledAudioSource pooledSource)
+        {
+            if (pooledSource.IsDone || pooledSource.paused) pooledSource.source.Pause();
+            else pooledSource.source.UnPause();
+        }
         #region Setters
         public bool Paused
         {
@@ -71,8 +76,7 @@ namespace LeafAudio
 
                 // Update pause value and Un/Pause
                 pooledSource.paused = value;
-                if (PooledSource.IsDone || PooledSource.paused) pooledSource.source.Pause();
-                else pooledSource.source.UnPause();
+                UpdateAudioSourcePaused(pooledSource);
             }
         }
         public Vector3 Position
@@ -154,6 +158,8 @@ namespace LeafAudio
                 float time = value % clipLength + (pooledSource.source.time < 0 ? clipLength : 0);
 
                 pooledSource.source.time = time; // Apply
+
+                UpdateAudioSourcePaused(pooledSource);
             }
         }
         public float RemainingDuration
@@ -166,7 +172,11 @@ namespace LeafAudio
             set
             {
                 if (!IsAlive) return;
-                PooledSource.remainingDuration = Mathf.Max(0, value);
+                ref var pooledSource = ref PooledSource;
+                pooledSource.remainingDuration = Mathf.Max(0, value);
+
+                // Changing remainingDuration may result in change in Pause on the source
+                UpdateAudioSourcePaused(pooledSource);
             }
         }
         #endregion
