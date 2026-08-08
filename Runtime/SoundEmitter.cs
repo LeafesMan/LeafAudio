@@ -1,6 +1,4 @@
 using UnityEngine;
-using UnityEngine.XR;
-
 namespace LeafAudio
 {
     /// <summary>
@@ -19,20 +17,20 @@ namespace LeafAudio
         {
             if (playOnStart) PlayInternal();
         }
-        void OnEnable() => handle.Resume();
-        void OnDisable() => handle.Pause();
+        void OnEnable() => handle.Paused = false;
+        void OnDisable() => handle.Paused = true;
         /// <summary>
         /// Plays the sound from the start if its not playing or resumes it if paused
         /// </summary>
         public void Play()
         {
-            if (handle.IsPaused) handle.Resume();
-            else if (!handle.IsDone) PlayFromStart();
+            if (handle.Paused) handle.Paused = false;
+            else if (handle.IsDone) PlayFromStart();
         }
         public void PlayFrom(float timestamp) => PlayInternal(timestamp);
         public void PlayFromStart() => PlayFrom(0);
-        public void Pause() => handle.Pause();
-        public void Stop() => handle.Stop();
+        public void Pause() => handle.Paused = true;
+        public void Stop() => handle.Kill();
 
         void PlayInternal(float timestamp = 0)
         {
@@ -46,6 +44,6 @@ namespace LeafAudio
 
         // Keep offset up-to-date
         void Update() => handle.Position = transform.localPosition;
-        void OnDestroy() => handle.Stop();
+        void OnDestroy() => handle.Kill();
     }
 }

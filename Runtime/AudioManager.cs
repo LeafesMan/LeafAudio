@@ -33,11 +33,17 @@ namespace LeafAudio
         {
             for (int i = usedIndices.Count - 1; i >= 0; i--)
             {
-                PooledAudioSource pooledSource = pooledSources[usedIndices[i]];
+                ref PooledAudioSource pooledSource = ref pooledSources[usedIndices[i]];
                 if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
 
                 // Free up the source and toggle it off
-                if (pooledSource.IsDone) FreeSource(usedIndices[i]);
+                if (pooledSource.IsDone)
+                {
+                    if (pooledSource.killOnDone) FreeSource(usedIndices[i]);
+                    else pooledSource.source.Pause();
+                }
+                if (!pooledSource.IsDone && !pooledSource.paused) pooledSource.remainingDuration -= Time.deltaTime;
+
             }
         }
         /// <summary>
@@ -84,6 +90,8 @@ namespace LeafAudio
 
             freeSource.playbackID = PooledAudioSource.PlaybackIDCounter++;
 
+            freeSource.killOnDone = playbackSettings.KillOnDone;
+
             freeSource.source.gameObject.SetActive(true);
             playbackSettings.ApplyToUnityAudioSource(freeSource.source);
 
@@ -98,7 +106,7 @@ namespace LeafAudio
 
             // Cache End Time stamp based on clip length and Loops value
             // negative loops results in infinite looping
-            freeSource.endTime = Time.time + playbackSettings.Duration;
+            freeSource.remainingDuration = playbackSettings.Duration;
 
             freeSource.source.Play();
 
@@ -142,8 +150,10 @@ namespace LeafAudio
                 index = usedIndices.Count;
 
                 // Construct a Pooled Source
-                PooledAudioSource newPooledSource = new PooledAudioSource();
-                newPooledSource.source = new GameObject("PooledAudioSource").AddComponent<AudioSource>();
+                PooledAudioSource newPooledSource = new PooledAudioSource
+                {
+                    source = new GameObject("PooledAudioSource").AddComponent<AudioSource>()
+                };
                 newPooledSource.source.rolloffMode = AudioRolloffMode.Custom;
                 newPooledSource.source.loop = true;
                 newPooledSource.source.transform.SetParent(transform);

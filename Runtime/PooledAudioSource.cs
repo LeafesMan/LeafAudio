@@ -10,18 +10,19 @@ namespace LeafAudio
     {
         internal static uint PlaybackIDCounter = 1; // Value of 0 is reserved for free sources
 
+        [SerializeField] internal bool killOnDone; // Whether the source should be killed when it is done
         [SerializeField] internal AudioSource source; // Unchanging for the life of a pooled audio source
 
         [SerializeField] internal uint playbackID;
         [SerializeField] internal int usedIndex; // The index of this source in usedIndices
         [SerializeField] internal Transform origin;
         [SerializeField] internal Vector3 position;
-        [SerializeField] internal float endTime; // End time may be NaN representing paused or Infinity representing an infinitely looping sound
-        [SerializeField] internal float pausedRemainingDuration; // Where remaining time is stored while this pooled source is paused
+        [SerializeField] internal float remainingDuration;
+        [SerializeField] internal bool paused;
 
         /// <summary>
         /// Whether the pooled audio source has completed playback
         /// </summary>
-        public bool IsDone => Time.time > endTime;
+        public bool IsDone => remainingDuration <= 0;
     }
 }

@@ -20,70 +20,59 @@ namespace LeafAudio
 
 
         ref PooledAudioSource PooledSource => ref manager.pooledSources[pooledSourceIndex];
+
         /// <summary>
-        /// A handle IsDone when playback has run it is no longer playing audio!<br/>
-        /// At this point all local functions will result in no-ops and return NaN values.
+        /// A handle IsDone when remaining duration is up. <br/>
+        /// At this point audio playback has stopped and the handle will be dead if KillOnDone is true.
         /// </summary>
         public bool IsDone
         {
             get
             {
-                if (manager == null) return true;
-                else return PooledSource.playbackID != playbackID;
+                if (!IsAlive) return true;
+                else return PooledSource.IsDone;
             }
         }
-        public bool IsPaused => !IsDone && IsPausedInternal;
-        bool IsPausedInternal => float.IsNaN(PooledSource.endTime);
-
         /// <summary>
-        /// Resumes playback
+        /// When a handle isAlive all functions and properties are accessible.<br/>
+        /// When a handle is not alive functions and properties will be no-ops or return NaN values.
         /// </summary>
-        public void Resume()
+        public bool IsAlive
         {
-            if (IsDone) return;
-            if (IsPausedInternal) ResumeInternal();
+            get
+            {
+                if (manager == null) return false;
+                else return PooledSource.playbackID == playbackID;
+            }
         }
-        /// <summary>
-        /// Pauses playback
-        /// </summary>
-        public void Pause()
+        public bool Paused
         {
-            if (IsDone) return;
-            if (!IsPausedInternal) PauseInternal();
-        }
-        /// <summary>
-        /// Resumes if paused and Pauses if not paused 
-        /// </summary>
-        public void TogglePause()
-        {
-            if (IsDone) return;
-            if (IsPausedInternal) ResumeInternal();
-            else PauseInternal();
-        }
-        // These internal allow no repeated paused checks
-        void PauseInternal()
-        {   // Calling this method while paused will cause issues
-            ref var pooledSource = ref PooledSource;
-            pooledSource.source.Pause();
+            get
+            {
+                if (!IsAlive) return false;
+                return PooledSource.paused;
+            }
+            set
+            {   // Early Outs
+                // 1) If !Alive can't pause
+                // 2) If Done can't pause
+                if (!IsAlive) return;
+                ref var pooledSource = ref PooledSource;
+                if (pooledSource.IsDone) return;
 
-            pooledSource.pausedRemainingDuration = pooledSource.endTime - UnityEngine.Time.time;
-            pooledSource.endTime = float.NaN; // Sentinal for Paused
+                // Update pause value and Un/Pause
+                pooledSource.paused = value;
+                if (ShouldPauseSource) pooledSource.source.Pause();
+                else pooledSource.source.UnPause();
+            }
         }
-        void ResumeInternal()
-        {   // Calling this method while not paused will cause issues
-            ref var pooledSource = ref PooledSource;
-            pooledSource.source.UnPause();
-
-            pooledSource.endTime = pooledSource.pausedRemainingDuration + UnityEngine.Time.time;
-        }
-
-
+        bool ShouldPauseSource => PooledSource.IsDone || PooledSource.paused;
         /// <summary>
         /// Permanently ends the playback of this sound.
         /// </summary>
-        public void Stop()
+        public void Kill()
         {
-            if (IsDone) return;
+            if (!IsAlive) return;
             manager.FreeSource(pooledSourceIndex);
         }
         #region Internals
@@ -93,12 +82,12 @@ namespace LeafAudio
         {
             get
             {
-                if (IsDone) return new Vector3(float.NaN, float.NaN, float.NaN);
+                if (!IsAlive) return new Vector3(float.NaN, float.NaN, float.NaN);
                 else return PooledSource.position;
             }
             set
             {
-                if (IsDone) return;
+                if (!IsAlive) return;
                 PooledSource.position = value;
             }
         }
@@ -106,12 +95,12 @@ namespace LeafAudio
         {
             get
             {
-                if (IsDone) return null;
+                if (!IsAlive) return null;
                 else return PooledSource.origin;
             }
             set
             {
-                if (IsDone) return;
+                if (!IsAlive) return;
                 PooledSource.origin = value;
             }
         }
@@ -119,12 +108,12 @@ namespace LeafAudio
         {
             get
             {
-                if (IsDone) return float.NaN;
+                if (!IsAlive) return float.NaN;
                 else return PooledSource.source.volume;
             }
             set
             {
-                if (IsDone) return;
+                if (!IsAlive) return;
                 PooledSource.source.volume = value;
             }
         }
@@ -132,14 +121,14 @@ namespace LeafAudio
         {
             get
             {
-                if (IsDone) return float.NaN;
+                if (!IsAlive) return float.NaN;
                 else return PooledSource.source.pitch;
             }
             set
             {
-                if (IsDone) return;
+                if (!IsAlive) return;
                 ref var pooledSource = ref PooledSource;
-                pooledSource.endTime = RemainingDurationInternal * pooledSource.source.pitch / value; // Update endtime to account for change in pitch
+                pooledSource.remainingDuration *= pooledSource.source.pitch / value; // Update endtime to account for change in pitch
                 pooledSource.source.pitch = value;
             }
         }
@@ -149,16 +138,23 @@ namespace LeafAudio
         /// </summary>
         public float Time
         {
-            get => PooledSource.source.time;
+            get
+            {
+                if (!IsAlive) return float.NaN;
+                return PooledSource.source.time;
+            }
             set
             {
+                if (!IsAlive) return;
                 // Grab source and clipLength
                 ref var pooledSource = ref PooledSource;
                 float clipLength = pooledSource.source.clip.length;
 
-                float time = value % clipLength; // Calculate new time
 
-                if (time < 0) time += clipLength; // Account for negative time
+                pooledSource.remainingDuration += pooledSource.source.time - value; // Update remaining duration accordingly
+
+                // Keep time in clip space
+                float time = value % clipLength + (pooledSource.source.time < 0 ? clipLength : 0);
 
                 pooledSource.source.time = time; // Apply
             }
@@ -167,17 +163,15 @@ namespace LeafAudio
         {
             get
             {
-                if (IsDone) return 0;
-                return RemainingDurationInternal;
+                if (!IsAlive) return 0;
+                return PooledSource.remainingDuration;
             }
             set
             {
-                if (IsDone) return;
-                if (IsPaused) PooledSource.pausedRemainingDuration = value;
-                else PooledSource.endTime = UnityEngine.Time.time + value;
+                if (!IsAlive) return;
+                PooledSource.remainingDuration = value;
             }
         }
-        float RemainingDurationInternal => IsPaused ? PooledSource.pausedRemainingDuration : PooledSource.endTime - UnityEngine.Time.time;
         #endregion
     }
 }

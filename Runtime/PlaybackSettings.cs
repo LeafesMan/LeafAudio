@@ -12,6 +12,7 @@ namespace LeafAudio
         public AudioClip Clip;
         public float Volume;
         public float Pitch;
+        public bool KillOnDone;
 
         // Positional Vars
         public Vector3? Position;
@@ -106,6 +107,7 @@ namespace LeafAudio
             Clip = clip;
             Volume = volume;
             Pitch = pitch;
+            KillOnDone = true;
 
             // Default timings
             StartTime = 0;
@@ -248,6 +250,12 @@ namespace LeafAudio
         {
             var newSettings = this;
             newSettings.ApplySpatialSettings(settings);
+            return newSettings;
+        }
+        public PlaybackSettings WithKillOnDone(bool value)
+        {
+            var newSettings = this;
+            newSettings.KillOnDone = value;
             return newSettings;
         }
     }
