@@ -21,6 +21,22 @@ namespace LeafAudio
         ref PooledAudioSource PooledSource => ref manager.pooledSources[pooledSourceIndex];
 
         /// <summary>
+        /// Seeks by amount through the playback adjusting both the current Time and RemainingDuration accordingly. <br/>
+        /// * Note: If amount would cause RemainingDuration to fall below 0, the seek will be limited to the current RemainingDuration.
+        /// </summary>
+        public void Seek(float amount)
+        {
+            if (!IsAlive) return;
+            ref var pooledSource = ref PooledSource;
+
+            // Ensure seek does not go past remaining duration
+            amount = Mathf.Min(amount, pooledSource.remainingDuration);
+
+            SetTimeInternal(pooledSource.source.time + amount);
+            pooledSource.remainingDuration -= amount; // Update remaining duration accordingly
+            UpdateAudioSourcePaused(pooledSource);
+        }
+        /// <summary>
         /// Permanently ends the playback of this sound.
         /// </summary>
         public void Kill()
@@ -157,20 +173,19 @@ namespace LeafAudio
             set
             {
                 if (!IsAlive) return;
-                // Grab source and clipLength
-                ref var pooledSource = ref PooledSource;
-                float clipLength = pooledSource.source.clip.length;
-
-
-                pooledSource.remainingDuration += pooledSource.source.time - value; // Update remaining duration accordingly
-
-                // Keep time in clip space
-                float time = value % clipLength + (pooledSource.source.time < 0 ? clipLength : 0);
-
-                pooledSource.source.time = time; // Apply
-
-                UpdateAudioSourcePaused(pooledSource);
+                SetTimeInternal(value);
             }
+        }
+        void SetTimeInternal(float newTime)
+        {
+            // Grab source and clipLength
+            ref var pooledSource = ref PooledSource;
+            float clipLength = pooledSource.source.clip.length;
+
+            // Keep time in clip space
+            float time = newTime % clipLength + (newTime < 0 ? clipLength : 0);
+
+            pooledSource.source.time = time;
         }
         public float RemainingDuration
         {
