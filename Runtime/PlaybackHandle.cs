@@ -18,8 +18,16 @@ namespace LeafAudio
             this.pooledSourceIndex = pooledSourceIndex;
         }
 
-
         ref PooledAudioSource PooledSource => ref manager.pooledSources[pooledSourceIndex];
+
+        /// <summary>
+        /// Permanently ends the playback of this sound.
+        /// </summary>
+        public void Kill()
+        {
+            if (!IsAlive) return;
+            manager.FreeSource(pooledSourceIndex);
+        }
 
         /// <summary>
         /// A handle IsDone when remaining duration is up. <br/>
@@ -45,6 +53,7 @@ namespace LeafAudio
                 else return PooledSource.playbackID == playbackID;
             }
         }
+        #region Setters
         public bool Paused
         {
             get
@@ -62,22 +71,10 @@ namespace LeafAudio
 
                 // Update pause value and Un/Pause
                 pooledSource.paused = value;
-                if (ShouldPauseSource) pooledSource.source.Pause();
+                if (PooledSource.IsDone || PooledSource.paused) pooledSource.source.Pause();
                 else pooledSource.source.UnPause();
             }
         }
-        bool ShouldPauseSource => PooledSource.IsDone || PooledSource.paused;
-        /// <summary>
-        /// Permanently ends the playback of this sound.
-        /// </summary>
-        public void Kill()
-        {
-            if (!IsAlive) return;
-            manager.FreeSource(pooledSourceIndex);
-        }
-        #region Internals
-        #endregion
-        #region Setters
         public Vector3 Position
         {
             get
@@ -169,7 +166,7 @@ namespace LeafAudio
             set
             {
                 if (!IsAlive) return;
-                PooledSource.remainingDuration = value;
+                PooledSource.remainingDuration = Mathf.Max(0, value);
             }
         }
         #endregion

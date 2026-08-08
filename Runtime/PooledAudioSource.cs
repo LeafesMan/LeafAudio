@@ -23,6 +23,6 @@ namespace LeafAudio
         /// <summary>
         /// Whether the pooled audio source has completed playback
         /// </summary>
-        public bool IsDone => remainingDuration <= 0;
+        public bool IsDone => remainingDuration == 0;
     }
 }
