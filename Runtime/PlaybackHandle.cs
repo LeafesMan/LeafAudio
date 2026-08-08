@@ -59,6 +59,19 @@ namespace LeafAudio
             else pooledSource.source.UnPause();
         }
         #region Setters
+        public bool Muted
+        {
+            get
+            {
+                if (!IsAlive) return false;
+                return PooledSource.source.mute;
+            }
+            set
+            {
+                if (!IsAlive) return;
+                PooledSource.source.mute = value;
+            }
+        }
         public bool Paused
         {
             get
@@ -67,15 +80,12 @@ namespace LeafAudio
                 return PooledSource.paused;
             }
             set
-            {   // Early Outs
-                // 1) If !Alive can't pause
-                // 2) If Done can't pause
+            {
                 if (!IsAlive) return;
                 ref var pooledSource = ref PooledSource;
-                if (pooledSource.IsDone) return;
 
-                // Update pause value and Un/Pause
                 pooledSource.paused = value;
+
                 UpdateAudioSourcePaused(pooledSource);
             }
         }
