@@ -6,7 +6,7 @@ namespace LeafAudio
     /// Struct for data stored about every source in the pool.
     /// </summary>
     [Serializable]
-    internal struct PooledAudioSource
+    internal class PooledAudioSource
     {
         internal static uint PlaybackIDCounter = 1; // Value of 0 is reserved for free sources
 

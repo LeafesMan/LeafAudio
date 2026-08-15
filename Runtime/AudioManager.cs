@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System;
+using PrimeTween;
 
 namespace LeafAudio
 {
@@ -11,7 +12,7 @@ namespace LeafAudio
     public class AudioManager : MonoBehaviour
     {
         #region Vars
-        [SerializeField] internal PooledAudioSource[] pooledSources = new PooledAudioSource[64]; // Contains all sources in the pool indices are never changed once assigned (Use a manually resized array for easier struct mutation)
+        [SerializeField] internal List<PooledAudioSource> pooledSources = new(); // Contains all sources in the pool indices are never changed once assigned (Use a manually resized array for easier struct mutation)
         [SerializeField] List<int> usedIndices = new(); // Indices for used sources in PooledSources
         [SerializeField] List<int> freeIndices = new(); // Indices for free sources in PooledSources
         public static AudioManager Global { get; private set; }
@@ -33,12 +34,18 @@ namespace LeafAudio
         {
             for (int i = usedIndices.Count - 1; i >= 0; i--)
             {
-                ref PooledAudioSource pooledSource = ref pooledSources[usedIndices[i]];
+                PooledAudioSource pooledSource = pooledSources[usedIndices[i]];
                 if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
 
                 if (!pooledSource.paused) pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration - Time.deltaTime);
                 if (pooledSource.IsDone)
-                {   // Free up the source and toggle it off
+                {
+                    // Prime tween Integration
+                    // Tweens on this pooled source started manually through a non-alloc Tween.XXX(handle) call will be stopped at this point
+                    Tween.StopAll(pooledSource);
+
+
+                    // Free up the source and toggle it off
                     if (pooledSource.killOnDone) FreeSource(usedIndices[i]);
                     else pooledSource.source.Pause();
                 }
@@ -84,7 +91,7 @@ namespace LeafAudio
 
             // Grab a source, set it up, play it, and sort the sources
             int freeSourceIndex = AcquireSource();
-            ref PooledAudioSource freeSource = ref pooledSources[freeSourceIndex];
+            PooledAudioSource freeSource = pooledSources[freeSourceIndex];
 
             freeSource.playbackID = PooledAudioSource.PlaybackIDCounter++;
 
@@ -156,10 +163,7 @@ namespace LeafAudio
                 newPooledSource.source.loop = true;
                 newPooledSource.source.transform.SetParent(transform);
 
-                // Add the new Source to PooledSources
-                if (usedIndices.Count == pooledSources.Length) Array.Resize(ref pooledSources, pooledSources.Length * 2);
-                pooledSources[index] = newPooledSource;
-
+                pooledSources.Add(newPooledSource);
 
                 // Update Used/Free Lists
                 usedIndices.Add(index);
@@ -175,7 +179,7 @@ namespace LeafAudio
         /// </summary>
         internal void FreeSource(int index)
         {
-            ref PooledAudioSource pooledSource = ref pooledSources[index];
+            PooledAudioSource pooledSource = pooledSources[index];
             pooledSource.source.gameObject.SetActive(false); // Stop playback
 
             pooledSource.playbackID = 0; // Set to sentinal value for free sources 
