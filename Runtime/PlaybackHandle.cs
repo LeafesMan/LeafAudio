@@ -7,7 +7,7 @@ namespace LeafAudio
     /// <summary>
     /// Provides access to Playback properties and functions.
     /// </summary>
-    public struct PlaybackHandle
+    public readonly struct PlaybackHandle
     {
         static internal uint NextPlaybackID = 1;
         internal readonly AudioManager manager;
@@ -20,13 +20,13 @@ namespace LeafAudio
             this.pooledSourceIndex = pooledSourceIndex;
         }
 
-        PooledAudioSource PooledSource => manager.pooledSources[pooledSourceIndex];
+        readonly PooledAudioSource PooledSource => manager.pooledSources[pooledSourceIndex];
 
         /// <summary>
         /// Seeks by amount through the playback adjusting both the current Time and RemainingDuration accordingly. <br/>
         /// * Note: If amount would cause RemainingDuration to fall below 0, the seek will be limited to the current RemainingDuration.
         /// </summary>
-        public void Seek(float amount)
+        public readonly void Seek(float amount)
         {
             if (!IsAlive) return;
 
@@ -40,7 +40,7 @@ namespace LeafAudio
         /// <summary>
         /// Permanently ends the playback of this sound.
         /// </summary>
-        public void Kill()
+        public readonly void Kill()
         {
             if (!IsAlive) return;
             manager.FreeSource(pooledSourceIndex);
@@ -50,7 +50,7 @@ namespace LeafAudio
         /// A handle IsDone when remaining duration is up. <br/>
         /// At this point audio playback has stopped and the handle will be dead if KillOnDone is true.
         /// </summary>
-        public bool IsDone
+        public readonly bool IsDone
         {
             get
             {
@@ -62,7 +62,7 @@ namespace LeafAudio
         /// When a handle isAlive all functions and properties are accessible.<br/>
         /// When a handle is not alive functions and properties will be no-ops or return NaN values.
         /// </summary>
-        public bool IsAlive
+        public readonly bool IsAlive
         {
             get
             {
@@ -70,13 +70,13 @@ namespace LeafAudio
                 else return PooledSource.playbackID == playbackID;
             }
         }
-        void UpdateAudioSourcePaused(in PooledAudioSource pooledSource)
+        readonly void UpdateAudioSourcePaused(in PooledAudioSource pooledSource)
         {
             if (pooledSource.IsDone || pooledSource.paused) pooledSource.source.Pause();
             else pooledSource.source.UnPause();
         }
         #region Setters
-        public bool Muted
+        public readonly bool Muted
         {
             get
             {
@@ -89,7 +89,7 @@ namespace LeafAudio
                 PooledSource.source.mute = value;
             }
         }
-        public bool Paused
+        public readonly bool Paused
         {
             get
             {
@@ -105,7 +105,7 @@ namespace LeafAudio
                 UpdateAudioSourcePaused(PooledSource);
             }
         }
-        public Vector3 Position
+        public readonly Vector3 Position
         {
             get
             {
@@ -118,7 +118,7 @@ namespace LeafAudio
                 PooledSource.position = value;
             }
         }
-        public Transform Origin
+        public readonly Transform Origin
         {
             get
             {
@@ -131,7 +131,7 @@ namespace LeafAudio
                 PooledSource.origin = value;
             }
         }
-        public float Volume
+        public readonly float Volume
         {
             get
             {
@@ -144,7 +144,7 @@ namespace LeafAudio
                 PooledSource.source.volume = value;
             }
         }
-        public float Pitch
+        public readonly float Pitch
         {
             get
             {
@@ -162,7 +162,7 @@ namespace LeafAudio
         /// The current playback position within the clip. When time Adjusting time proportionally adjusts the Reamining Duration. <br/>
         /// * Note: Setting the time below 0 or above the clip length wraps around within the clip.
         /// </summary>
-        public float Time
+        public readonly float Time
         {
             get
             {
@@ -175,7 +175,7 @@ namespace LeafAudio
                 SetTimeInternal(value);
             }
         }
-        void SetTimeInternal(float newTime)
+        readonly void SetTimeInternal(float newTime)
         {
             // Grab source and clipLength
             float clipLength = PooledSource.source.clip.length;
@@ -185,7 +185,7 @@ namespace LeafAudio
 
             PooledSource.source.time = time;
         }
-        public float RemainingDuration
+        public readonly float RemainingDuration
         {
             get
             {
@@ -203,12 +203,12 @@ namespace LeafAudio
         }
         #endregion
         #region Tween Support
-        public Tween TweenVolume(TweenSettings<float> tweenSettings) => Tween.Custom(target: new PlaybackHandleBoxed(this), tweenSettings, (target, newValue) => { target.handle.Volume = newValue; });
-        public Tween TweenVolume(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenVolume(new TweenSettings<float>(Volume, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
-        public Tween TweenVolume(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenVolume(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
-        public Tween TweenPitch(TweenSettings<float> tweenSettings) => Tween.Custom(target: new PlaybackHandleBoxed(this), tweenSettings, (target, newValue) => { target.handle.Pitch = newValue; });
-        public Tween TweenPitch(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenPitch(new TweenSettings<float>(Pitch, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
-        public Tween TweenPitch(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenPitch(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
+        public readonly Tween TweenVolume(TweenSettings<float> tweenSettings) => Tween.Custom(target: new PlaybackHandleBoxed(this), tweenSettings, (target, newValue) => { target.handle.Volume = newValue; });
+        public readonly Tween TweenVolume(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenVolume(new TweenSettings<float>(Volume, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
+        public readonly Tween TweenVolume(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenVolume(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
+        public readonly Tween TweenPitch(TweenSettings<float> tweenSettings) => Tween.Custom(target: new PlaybackHandleBoxed(this), tweenSettings, (target, newValue) => { target.handle.Pitch = newValue; });
+        public readonly Tween TweenPitch(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenPitch(new TweenSettings<float>(Pitch, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
+        public readonly Tween TweenPitch(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenPitch(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
         #endregion
     }
 }
