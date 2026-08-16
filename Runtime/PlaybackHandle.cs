@@ -203,17 +203,31 @@ namespace LeafAudio
         }
         #endregion
         #region Tween Support
-        public readonly Tween TweenVolume(TweenSettings<float> tweenSettings) => Tween.Custom(target: new PlaybackHandleBoxed(this), tweenSettings, (target, newValue) => { target.handle.Volume = newValue; });
+        public readonly Tween TweenVolume(TweenSettings<float> tweenSettings)
+        {
+            var tweenTarget = manager.RentTweenTarget(this);
+            var tween = Tween.Custom(target: tweenTarget, tweenSettings, (target, newValue) => { target.handle.Volume = newValue; });
+            tweenTarget.tween = tween;
+            return tween;
+        }
         public readonly Tween TweenVolume(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenVolume(new TweenSettings<float>(Volume, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
         public readonly Tween TweenVolume(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenVolume(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
-        public readonly Tween TweenPitch(TweenSettings<float> tweenSettings) => Tween.Custom(target: new PlaybackHandleBoxed(this), tweenSettings, (target, newValue) => { target.handle.Pitch = newValue; });
+        public readonly Tween TweenPitch(TweenSettings<float> tweenSettings)
+        {
+            var tweenTarget = manager.RentTweenTarget(this);
+            var tween = Tween.Custom(target: new AudioTweenTarget(this), tweenSettings, (target, newValue) => { target.handle.Pitch = newValue; });
+            tweenTarget.tween = tween;
+            return tween;
+        }
         public readonly Tween TweenPitch(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenPitch(new TweenSettings<float>(Pitch, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
         public readonly Tween TweenPitch(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false) => TweenPitch(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime));
         #endregion
     }
 }
-internal class PlaybackHandleBoxed
+[System.Serializable]
+internal class AudioTweenTarget
 {
     public PlaybackHandle handle;
-    public PlaybackHandleBoxed(PlaybackHandle handle) => this.handle = handle;
+    public Tween tween;
+    public AudioTweenTarget(PlaybackHandle handle) => this.handle = handle;
 }

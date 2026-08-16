@@ -1,8 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
-using System;
 using PrimeTween;
+using Unity.Collections;
 
 namespace LeafAudio
 {
@@ -17,7 +17,24 @@ namespace LeafAudio
         [SerializeField] List<int> freeIndices = new(); // Indices for free sources in PooledSources
         public static AudioManager Global { get; private set; }
 
+        List<AudioTweenTarget> freeTweenTargets = new();
+        List<AudioTweenTarget> usedTweenTargets = new();
+        internal AudioTweenTarget RentTweenTarget(PlaybackHandle playbackHandle)
+        {
+            AudioTweenTarget toReturn;
+            if (freeTweenTargets.Count > 0)
+            {
+                int toUse = freeTweenTargets.Count - 1;
+                toReturn = freeTweenTargets[toUse];
+                toReturn.handle = playbackHandle;
+                freeTweenTargets.RemoveAt(toUse);
+            }
+            else toReturn = new AudioTweenTarget(playbackHandle);
 
+
+            usedTweenTargets.Add(toReturn);
+            return toReturn;
+        }
 #if UNITY_EDITOR
         internal static bool WarnOnPlayNull;
 #endif
@@ -32,6 +49,19 @@ namespace LeafAudio
         #endregion
         void Update()
         {
+            // Free TweenTargets if the Tween isDone
+            for (int i = usedTweenTargets.Count - 1; i >= 0; i--)
+            {
+                if (!usedTweenTargets[i].tween.isAlive)
+                {
+                    // Add to free and swap remove from used
+                    freeTweenTargets.Add(usedTweenTargets[i]);
+                    int lastIndex = usedTweenTargets.Count - 1;
+                    usedTweenTargets[i] = usedTweenTargets[lastIndex];
+                    usedTweenTargets.RemoveAt(lastIndex);
+                }
+            }
+
             for (int i = usedIndices.Count - 1; i >= 0; i--)
             {
                 PooledAudioSource pooledSource = pooledSources[usedIndices[i]];
