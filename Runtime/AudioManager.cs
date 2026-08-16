@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using PrimeTween;
-using Unity.Collections;
+using System;
 
 namespace LeafAudio
 {
@@ -19,17 +19,21 @@ namespace LeafAudio
 
         List<AudioTweenTarget> freeTweenTargets = new();
         List<AudioTweenTarget> usedTweenTargets = new();
-        internal AudioTweenTarget RentTweenTarget(PlaybackHandle playbackHandle)
+        /// <summary>
+        /// Returns a target for a tween from the pool
+        /// * Note you must set a tween and this target will be freed back to the pool once said tween is dead
+        /// </summary>
+        /// <returns></returns>
+        internal AudioTweenTarget GetAudioTweenTarget()
         {
             AudioTweenTarget toReturn;
             if (freeTweenTargets.Count > 0)
             {
                 int toUse = freeTweenTargets.Count - 1;
                 toReturn = freeTweenTargets[toUse];
-                toReturn.handle = playbackHandle;
                 freeTweenTargets.RemoveAt(toUse);
             }
-            else toReturn = new AudioTweenTarget(playbackHandle);
+            else toReturn = new AudioTweenTarget();
 
 
             usedTweenTargets.Add(toReturn);
