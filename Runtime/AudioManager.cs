@@ -1,8 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
-using PrimeTween;
-using System;
 
 namespace LeafAudio
 {
@@ -17,28 +15,6 @@ namespace LeafAudio
         [SerializeField] List<int> freeIndices = new(); // Indices for free sources in PooledSources
         public static AudioManager Global { get; private set; }
 
-        List<AudioTweenTarget> freeTweenTargets = new();
-        List<AudioTweenTarget> usedTweenTargets = new();
-        /// <summary>
-        /// Returns a target for a tween from the pool
-        /// * Note you must set a tween and this target will be freed back to the pool once said tween is dead
-        /// </summary>
-        /// <returns></returns>
-        internal AudioTweenTarget GetAudioTweenTarget()
-        {
-            AudioTweenTarget toReturn;
-            if (freeTweenTargets.Count > 0)
-            {
-                int toUse = freeTweenTargets.Count - 1;
-                toReturn = freeTweenTargets[toUse];
-                freeTweenTargets.RemoveAt(toUse);
-            }
-            else toReturn = new AudioTweenTarget();
-
-
-            usedTweenTargets.Add(toReturn);
-            return toReturn;
-        }
 #if UNITY_EDITOR
         internal static bool WarnOnPlayNull;
 #endif
@@ -49,23 +25,9 @@ namespace LeafAudio
             Global = new GameObject("AudioManager").AddComponent<AudioManager>();
             DontDestroyOnLoad(Global.gameObject);
         }
-
         #endregion
         void Update()
         {
-            // Free TweenTargets if the Tween isDone
-            for (int i = usedTweenTargets.Count - 1; i >= 0; i--)
-            {
-                if (!usedTweenTargets[i].tween.isAlive)
-                {
-                    // Add to free and swap remove from used
-                    freeTweenTargets.Add(usedTweenTargets[i]);
-                    int lastIndex = usedTweenTargets.Count - 1;
-                    usedTweenTargets[i] = usedTweenTargets[lastIndex];
-                    usedTweenTargets.RemoveAt(lastIndex);
-                }
-            }
-
             for (int i = usedIndices.Count - 1; i >= 0; i--)
             {
                 PooledAudioSource pooledSource = pooledSources[usedIndices[i]];
@@ -74,11 +36,6 @@ namespace LeafAudio
                 if (!pooledSource.paused) pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration - Time.deltaTime);
                 if (pooledSource.IsDone)
                 {
-                    // Prime tween Integration
-                    // Tweens on this pooled source started manually through a non-alloc Tween.XXX(handle) call will be stopped at this point
-                    Tween.StopAll(pooledSource);
-
-
                     // Free up the source and toggle it off
                     if (pooledSource.killOnDone) FreeSource(usedIndices[i]);
                     else pooledSource.source.Pause();

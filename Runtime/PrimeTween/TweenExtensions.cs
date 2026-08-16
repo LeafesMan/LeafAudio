@@ -7,7 +7,7 @@ namespace LeafAudio
     {
         public static Tween OnComplete(this Tween tween, PlaybackHandle target, Action<PlaybackHandle> onComplete)
         {
-            var tweenTarget = target.manager.GetAudioTweenTarget();
+            var tweenTarget = AudioTweenPool.RentTarget();
             tweenTarget.tween = tween;
             tweenTarget.playback = target;
             tweenTarget.onComplete = onComplete;

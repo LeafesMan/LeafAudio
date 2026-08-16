@@ -1,0 +1,25 @@
+{
+    "name": "LeafAudio.PrimeTween",
+    "rootNamespace": "LeafAudio",
+    "references": [
+        "GUID:e6c26e98c9623ea4081787c5c9dec7a2",
+        "GUID:80ecb87cae9c44d19824e70ea7229748"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "PRIMETWEEN_INSTALLED"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.kyrylokuzyk.primetween",
+            "expression": "",
+            "define": "PRIMETWEEN_INSTALLED"
+        }
+    ],
+    "noEngineReferences": false
+}

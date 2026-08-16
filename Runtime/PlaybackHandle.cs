@@ -1,6 +1,3 @@
-using System;
-using LeafAudio;
-using PrimeTween;
 using UnityEngine;
 
 namespace LeafAudio
@@ -203,48 +200,6 @@ namespace LeafAudio
             }
         }
         #endregion
-        #region Tween Support
-        public readonly Tween TweenVolume(TweenSettings<float> tweenSettings, Action<PlaybackHandle> onComplete = null)
-        {
-            var tweenTarget = manager.GetAudioTweenTarget();
-            var tween = Tween.Custom(target: tweenTarget, tweenSettings, (t, newValue) => { t.playback.Volume = newValue; });
 
-            // Apply OnComplete
-            if (onComplete != null) tween.OnComplete(target: tweenTarget, t => t.onComplete(t.playback));
-
-            // Cache values for tween target
-            tweenTarget.playback = this;
-            tweenTarget.onComplete = onComplete;
-            tweenTarget.tween = tween;
-
-            return tween;
-        }
-        public readonly Tween TweenVolume(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false, Action<PlaybackHandle> onComplete = null) => TweenVolume(new TweenSettings<float>(Volume, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime), onComplete);
-        public readonly Tween TweenVolume(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false, Action<PlaybackHandle> onComplete = null) => TweenVolume(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime), onComplete);
-        public readonly Tween TweenPitch(TweenSettings<float> tweenSettings, Action<PlaybackHandle> onComplete = null)
-        {
-            var tweenTarget = manager.GetAudioTweenTarget();
-            var tween = Tween.Custom(target: tweenTarget, tweenSettings, (t, newValue) => { t.playback.Pitch = newValue; });
-
-            // Apply OnComplete
-            if (onComplete != null) tween.OnComplete(target: tweenTarget, t => t.onComplete(t.playback));
-
-            // Cache Values for Tween Target
-            tweenTarget.playback = this;
-            tweenTarget.onComplete = onComplete;
-            tweenTarget.tween = tween;
-
-            return tween;
-        }
-        public readonly Tween TweenPitch(float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false, Action<PlaybackHandle> onComplete = null) => TweenPitch(new TweenSettings<float>(Pitch, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime), onComplete);
-        public readonly Tween TweenPitch(float startValue, float endValue, float duration, Easing ease = default, int cycles = 1, CycleMode cycleMode = CycleMode.Restart, float startDelay = 0f, float endDelay = 0f, bool useUnscaledTime = false, Action<PlaybackHandle> onComplete = null) => TweenPitch(new TweenSettings<float>(startValue, endValue, duration, ease, cycles, cycleMode, startDelay, endDelay, useUnscaledTime), onComplete);
-        #endregion
     }
-}
-[System.Serializable]
-internal class AudioTweenTarget
-{
-    public PlaybackHandle playback;
-    public Tween tween;
-    public Action<PlaybackHandle> onComplete;
 }
