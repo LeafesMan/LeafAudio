@@ -10,15 +10,25 @@ namespace LeafAudio
         static internal uint NextPlaybackID = 1;
         internal readonly AudioManager manager;
         internal readonly uint playbackID;
-        internal readonly int pooledSourceIndex;
-        public PlaybackHandle(AudioManager manager, int pooledSourceIndex, uint playbackID)
+        internal readonly PooledAudioSource pooledSource;
+        internal PlaybackHandle(AudioManager manager, PooledAudioSource pooledAudioSource, uint playbackID)
         {
             this.manager = manager;
             this.playbackID = playbackID;
-            this.pooledSourceIndex = pooledSourceIndex;
+            this.pooledSource = pooledAudioSource;
         }
 
-        readonly PooledAudioSource PooledSource => manager.pooledSources[pooledSourceIndex];
+        public enum DurationMode
+        {
+            /// <summary>
+            /// Duration is measured in amount of time remaining regardless of pitch.
+            /// </summary>
+            RealTime,
+            /// <summary>
+            /// Duration is measured as progression through the clip. This scales with pitch so playtime will shrink as pitch increases and vice versa.
+            /// </summary>
+            ClipTime
+        }
 
         /// <summary>
         /// Seeks by amount through the playback adjusting both the current Time and RemainingDuration accordingly. <br/>
@@ -29,11 +39,11 @@ namespace LeafAudio
             if (!IsAlive) return;
 
             // Ensure seek does not go past remaining duration
-            amount = Mathf.Min(amount, PooledSource.remainingDuration);
+            amount = Mathf.Min(amount, pooledSource.remainingDuration);
 
-            SetTimeInternal(PooledSource.source.time + amount);
-            PooledSource.remainingDuration -= amount; // Update remaining duration accordingly
-            UpdateAudioSourcePaused(PooledSource);
+            SetTimeInternal(pooledSource.source.time + amount);
+            pooledSource.remainingDuration -= amount; // Update remaining duration accordingly
+            UpdateAudioSourcePaused(pooledSource);
         }
         /// <summary>
         /// Permanently ends the playback of this sound.
@@ -41,7 +51,7 @@ namespace LeafAudio
         public readonly void Kill()
         {
             if (!IsAlive) return;
-            manager.FreeSource(pooledSourceIndex);
+            manager.FreeSource(pooledSource);
         }
 
         /// <summary>
@@ -53,7 +63,7 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return true;
-                else return PooledSource.IsDone;
+                else return pooledSource.IsDone;
             }
         }
         /// <summary>
@@ -65,7 +75,7 @@ namespace LeafAudio
             get
             {
                 if (manager == null) return false;
-                else return PooledSource.playbackID == playbackID;
+                else return pooledSource.playbackID == playbackID;
             }
         }
         readonly void UpdateAudioSourcePaused(in PooledAudioSource pooledSource)
@@ -79,12 +89,12 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return false;
-                return PooledSource.source.mute;
+                return pooledSource.source.mute;
             }
             set
             {
                 if (!IsAlive) return;
-                PooledSource.source.mute = value;
+                pooledSource.source.mute = value;
             }
         }
         public readonly bool Paused
@@ -92,15 +102,15 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return false;
-                return PooledSource.paused;
+                return pooledSource.paused;
             }
             set
             {
                 if (!IsAlive) return;
 
-                PooledSource.paused = value;
+                pooledSource.paused = value;
 
-                UpdateAudioSourcePaused(PooledSource);
+                UpdateAudioSourcePaused(pooledSource);
             }
         }
         public readonly Vector3 Position
@@ -108,12 +118,12 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return new Vector3(float.NaN, float.NaN, float.NaN);
-                else return PooledSource.position;
+                else return pooledSource.position;
             }
             set
             {
                 if (!IsAlive) return;
-                PooledSource.position = value;
+                pooledSource.position = value;
             }
         }
         public readonly Transform Origin
@@ -121,12 +131,12 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return null;
-                else return PooledSource.origin;
+                else return pooledSource.origin;
             }
             set
             {
                 if (!IsAlive) return;
-                PooledSource.origin = value;
+                pooledSource.origin = value;
             }
         }
         public readonly float Volume
@@ -134,12 +144,12 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return float.NaN;
-                else return PooledSource.source.volume;
+                else return pooledSource.source.volume;
             }
             set
             {
                 if (!IsAlive) return;
-                PooledSource.source.volume = value;
+                pooledSource.source.volume = value;
             }
         }
         public readonly float Pitch
@@ -147,13 +157,13 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return float.NaN;
-                else return PooledSource.source.pitch;
+                else return pooledSource.source.pitch;
             }
             set
             {
                 if (!IsAlive) return;
-                PooledSource.remainingDuration *= PooledSource.source.pitch / value; // Update endtime to account for change in pitch
-                PooledSource.source.pitch = value;
+                pooledSource.remainingDuration *= pooledSource.source.pitch / value; // Update endtime to account for change in pitch
+                pooledSource.source.pitch = value;
             }
         }
         /// <summary>
@@ -165,7 +175,7 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return float.NaN;
-                return PooledSource.source.time;
+                return pooledSource.source.time;
             }
             set
             {
@@ -176,30 +186,65 @@ namespace LeafAudio
         readonly void SetTimeInternal(float newTime)
         {
             // Grab source and clipLength
-            float clipLength = PooledSource.source.clip.length;
+            float clipLength = pooledSource.source.clip.length;
 
             // Keep time in clip space
             float time = newTime % clipLength + (newTime < 0 ? clipLength : 0);
 
-            PooledSource.source.time = time;
+            pooledSource.source.time = time;
         }
-        public readonly float RemainingDuration
+        public readonly DurationMode GetDurationMode => pooledSource.durationMode;
+        /// <summary>
+        /// Sets the remaining duration as a RealTime value, in seconds, and switches DurationMode to RealTime.
+        /// </summary>
+        public readonly float RealTimeRemainingDuration
         {
             get
             {
                 if (!IsAlive) return 0;
-                return PooledSource.remainingDuration;
+                switch (pooledSource.durationMode)
+                {
+                    case DurationMode.RealTime: return pooledSource.remainingDuration;
+                    case DurationMode.ClipTime: return pooledSource.remainingDuration == 0 ? 0 : pooledSource.remainingDuration / Mathf.Abs(PitchInternal);
+                    default: throw new System.Exception("Unknown Mode!");
+                }
             }
             set
             {
                 if (!IsAlive) return;
-                PooledSource.remainingDuration = Mathf.Max(0, value);
+                pooledSource.remainingDuration = Mathf.Max(0, value);
+                pooledSource.durationMode = DurationMode.RealTime;
 
                 // Changing remainingDuration may result in change in Pause on the source
-                UpdateAudioSourcePaused(PooledSource);
+                UpdateAudioSourcePaused(pooledSource);
             }
         }
-        #endregion
+        /// <summary>
+        /// Sets the remaining duration as a ClipTime value, in seconds, and switches DurationMode to ClipTime.
+        /// </summary>
+        public readonly float ClipTimeRemainingDuration
+        {
+            get
+            {
+                if (!IsAlive) return 0;
+                switch (pooledSource.durationMode)
+                {
+                    case DurationMode.RealTime: return Mathf.Abs(PitchInternal) == 0 ? 0 : pooledSource.remainingDuration * Mathf.Abs(PitchInternal);
+                    case DurationMode.ClipTime: return pooledSource.remainingDuration;
+                    default: throw new System.Exception("Unknown Mode!");
+                }
+            }
+            set
+            {
+                if (!IsAlive) return;
+                pooledSource.remainingDuration = Mathf.Max(0, value);
+                pooledSource.durationMode = DurationMode.ClipTime;
 
+                // Changing remainingDuration may result in change in Pause on the source
+                UpdateAudioSourcePaused(pooledSource);
+            }
+        }
+        float PitchInternal => pooledSource.source.pitch;
+        #endregion
     }
 }

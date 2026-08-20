@@ -68,7 +68,12 @@ namespace LeafAudio
         /// Sets the playback duration in seconds.<br/> 
         /// Overrides any previous duration specification.
         /// </summary>
-        public PlaybackSettings WithDuration(float duration) => this.GetPlaybackSettings().WithDuration(duration);
+        public PlaybackSettings WithRealTimeDuration(float duration) => this.GetPlaybackSettings().WithRealTimeDuration(duration);
+        /// <summary> 
+        /// Sets the playback duration in seconds.<br/> 
+        /// Overrides any previous duration specification.
+        /// </summary>
+        public PlaybackSettings WithClipTimeDuration(float duration) => this.GetPlaybackSettings().WithClipTimeDuration(duration);
         /// <summary> 
         /// Sets the playback duration as a number of traversals of the clip length. <br/> 
         /// Overrides any previous duration specification.

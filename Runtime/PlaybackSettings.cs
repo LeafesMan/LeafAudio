@@ -31,55 +31,70 @@ namespace LeafAudio
         /// Sets the playback duration in seconds.<br/> 
         /// Overrides any previous duration specification.
         /// </summary>
-        public float Duration
+        public float RealTimeDuration
+        {
+            get
+            {
+                if (durationMode == DurationMode.RealTime) return duration;
+                float unpitchedDuration = ClipTimeDuration;
+                return unpitchedDuration == 0 ? 0 : unpitchedDuration / Mathf.Abs(Pitch);
+            }
+            set
+            {
+                durationMode = DurationMode.RealTime;
+                duration = Mathf.Max(0, value);
+            }
+        }
+        public float ClipTimeDuration
         {
             get
             {
                 // Account for pitch on modes that arent specifying a certain Time duration
-                float finalDuration = 0;
-                if (durationMode == DurationMode.Time) return duration;
-                else if (durationMode == DurationMode.Loops) finalDuration = ClipLength - ClipSpaceStartTime + ClipLength * duration;
-                else if (durationMode == DurationMode.FullDurations) finalDuration = duration * ClipLength;
-                return finalDuration / Mathf.Abs(Pitch); // Account for pitch on pitch dependent modes
+                if (durationMode == DurationMode.ClipLoops) return ClipLength == 0 ? 0 : ClipLength - ClipSpaceStartTime + ClipLength * duration;
+                else if (durationMode == DurationMode.ClipTraversals) return ClipLength == 0 ? 0 : duration * ClipLength;
+                else if (durationMode == DurationMode.RealTime) return Mathf.Abs(Pitch) == 0 ? 0 : duration * Mathf.Abs(Pitch);
+                return duration;
             }
             set
             {
-                durationMode = DurationMode.Time;
+                durationMode = DurationMode.ClipTime;
                 duration = Mathf.Max(0, value);
             }
         }
         /// <summary> 
         /// Sets the playback duration as a number of traversals of the clip length. <br/> 
-        /// Overrides any previous duration specification.
+        /// Overrides any previous duration specification. <br/>
+        /// * Note same as Loops when StartTime = 0
         /// </summary>
         public float Traversals
         {
             get
             {
                 if (ClipLength == 0) return 0;
-                return Duration * Mathf.Abs(Pitch) / ClipLength;
+                return ClipTimeDuration / ClipLength;
             }
 
             set
             {
-                durationMode = DurationMode.FullDurations;
+                durationMode = DurationMode.ClipTraversals;
                 duration = Mathf.Max(0, value);
             }
         }
         /// <summary> 
         /// Sets the playback duration as a number of loops after the initial traversal of the clip. <br/> 
-        /// Overrides any previous duration specification.
+        /// Overrides any previous duration specification. <br/>
+        /// * Note same as Traversals when StartTime = 0
         /// </summary>
         public float Loops
         {
             get
             {
                 if (ClipLength == 0) return 0;
-                return Mathf.Max(0, (Duration - (ClipLength - ClipSpaceStartTime)) * Mathf.Abs(Pitch) / ClipLength);
+                return Mathf.Max(0, (ClipTimeDuration - (ClipLength - ClipSpaceStartTime)) / ClipLength);
             }
             set
             {
-                durationMode = DurationMode.Loops;
+                durationMode = DurationMode.ClipLoops;
                 duration = Mathf.Max(0, value);
             }
         }
@@ -88,7 +103,7 @@ namespace LeafAudio
         /// <summary>
         /// How the duration field should be interpreted
         /// </summary>
-        internal enum DurationMode { Time, Loops, FullDurations }
+        internal enum DurationMode { RealTime, ClipTime, ClipLoops, ClipTraversals }
 
 
 
@@ -111,7 +126,7 @@ namespace LeafAudio
 
             // Default timings
             StartTime = 0;
-            durationMode = DurationMode.Loops;
+            durationMode = DurationMode.ClipLoops;
             duration = 0;
 
             Position = null;
@@ -196,10 +211,16 @@ namespace LeafAudio
         /// Sets the playback duration in seconds.<br/> 
         /// Overrides any previous duration specification.
         /// </summary>
-        public PlaybackSettings WithDuration(float duration)
+        public PlaybackSettings WithRealTimeDuration(float duration)
         {
             var newSettings = this;
-            newSettings.Duration = duration;
+            newSettings.RealTimeDuration = duration;
+            return newSettings;
+        }
+        public PlaybackSettings WithClipTimeDuration(float duration)
+        {
+            var newSettings = this;
+            newSettings.ClipTimeDuration = duration;
             return newSettings;
         }
         /// <summary> 

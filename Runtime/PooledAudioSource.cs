@@ -17,8 +17,10 @@ namespace LeafAudio
         [SerializeField] internal int usedIndex; // The index of this source in usedIndices
         [SerializeField] internal Transform origin;
         [SerializeField] internal Vector3 position;
+        [SerializeField] internal PlaybackHandle.DurationMode durationMode;
         [SerializeField] internal float remainingDuration;
         [SerializeField] internal bool paused;
+
 
         /// <summary>
         /// Whether the pooled audio source has completed playback

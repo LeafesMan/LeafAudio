@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using PrimeTween;
 using UnityEngine;
 
@@ -14,9 +15,11 @@ namespace LeafAudio
         static List<AudioTweenTarget> usedTweenTargets = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Setup()
+        static async void Setup()
         {
-            Tween.Delay(float.PositiveInfinity).OnUpdate(freeTweenTargets, (f, t) =>
+            await Task.Delay(100);
+
+            Tween.Custom(1, 2, 1, c => { }, cycles: -1).OnUpdate(freeTweenTargets, (f, t) =>
             {
                 // Free TweenTargets if the Tween isDone
                 for (int i = usedTweenTargets.Count - 1; i >= 0; i--)
