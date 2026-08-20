@@ -18,17 +18,7 @@ namespace LeafAudio
             this.pooledSource = pooledAudioSource;
         }
 
-        public enum DurationMode
-        {
-            /// <summary>
-            /// Duration is measured in amount of time remaining regardless of pitch.
-            /// </summary>
-            RealTime,
-            /// <summary>
-            /// Duration is measured as progression through the clip. This scales with pitch so playtime will shrink as pitch increases and vice versa.
-            /// </summary>
-            ClipTime
-        }
+
 
         /// <summary>
         /// Seeks by amount through the playback adjusting both the current Time and RemainingDuration accordingly. <br/>
@@ -193,6 +183,9 @@ namespace LeafAudio
 
             pooledSource.source.time = time;
         }
+        /// <summary>
+        /// Returns the current DurationMode. Note DurationMode may not be set through the property it may only be changed via a set of RealTimeRemainingDuration or ClipTimeRemainingDuration.
+        /// </summary>
         public readonly DurationMode GetDurationMode => pooledSource.durationMode;
         /// <summary>
         /// Sets the remaining duration as a RealTime value, in seconds, and switches DurationMode to RealTime.

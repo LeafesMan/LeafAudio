@@ -33,7 +33,12 @@ namespace LeafAudio
                 PooledAudioSource pooledSource = usedSources[i];
                 if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
 
-                if (!pooledSource.paused) pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration - Time.deltaTime * pooledSource.source.pitch);
+                if (!pooledSource.paused)
+                {   // Reduces the remaining duration while not paused
+                    float pitchFactor = pooledSource.durationMode == DurationMode.ClipTime ? pooledSource.source.pitch : 1; // Compute pitch effect
+                    pooledSource.remainingDuration -= Time.deltaTime * pitchFactor; // Reduce remaining duration
+                    pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration); // Ensure >= 0
+                }
                 if (pooledSource.IsDone)
                 {
                     // Free up the source and toggle it off
@@ -102,12 +107,12 @@ namespace LeafAudio
 
             if (playbackSettings.durationMode == PlaybackSettings.DurationMode.RealTime)
             {
-                pooledSource.durationMode = PlaybackHandle.DurationMode.RealTime;
+                pooledSource.durationMode = DurationMode.RealTime;
                 pooledSource.remainingDuration = playbackSettings.duration;
             }
             else
             {
-                pooledSource.durationMode = PlaybackHandle.DurationMode.ClipTime;
+                pooledSource.durationMode = DurationMode.ClipTime;
                 pooledSource.remainingDuration = playbackSettings.ClipTimeDuration;
             }
 
