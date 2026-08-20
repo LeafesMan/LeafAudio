@@ -152,7 +152,6 @@ namespace LeafAudio
             set
             {
                 if (!IsAlive) return;
-                pooledSource.remainingDuration *= pooledSource.source.pitch / value; // Update endtime to account for change in pitch
                 pooledSource.source.pitch = value;
             }
         }
