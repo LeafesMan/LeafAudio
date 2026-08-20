@@ -11,7 +11,13 @@ namespace LeafAudio.Editor
         [OnOpenAsset]
         public static bool OnOpenAsset(int instanceID)
         {
+            // First only Test Audio in the Project window
+            var focusedWindow = EditorWindow.focusedWindow;
+            if (focusedWindow == null || focusedWindow.GetType().Name != "ProjectBrowser") return false;
+
+            // Grab the Asset
             Object asset = EditorUtility.EntityIdToObject(instanceID);
+
 
             // Handle AudioClip
             if (asset.GetType() == typeof(AudioClip))
@@ -20,6 +26,7 @@ namespace LeafAudio.Editor
                 Test(new PlaybackSettings(clip, 0.5f, 1, null, null));
                 return true;
             }
+            // Handle Sound
             if (asset.GetType() == typeof(Sound))
             {
                 Sound sound = asset as Sound;
