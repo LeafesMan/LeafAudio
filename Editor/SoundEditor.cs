@@ -6,6 +6,7 @@ using System.Linq;
 using System.Collections.Generic;
 using LeafRand.Collections;
 using System;
+using System.Data.Common;
 namespace LeafAudio.Editor
 {
     [CustomEditor(typeof(Sound)), CanEditMultipleObjects]
@@ -148,7 +149,7 @@ namespace LeafAudio.Editor
                 reorderable = true,
                 headerTitle = "Variants"
             };
-            variantsListView.bindItem += BindVariantField;
+            variantsListView.bindItem += (prop, index) => BindVariantField(prop, index);
             variantsListView.makeItem += () => GetVariantField(false);
             variantsListView.BindProperty(variantsProp);
 
@@ -178,6 +179,8 @@ namespace LeafAudio.Editor
             var volumeElements = GetVariedField(new Vector2(0, 1), isSharedField, "volume", "Volume");
             var pitchElements = GetVariedField(serializedObject.FindProperty(nameof(Sound.pitchRange)).vector2Value, isSharedField, "pitch", "Pitch");
 
+
+
             container.Add(clipField);
             container.Add(volumeElements);
             container.Add(pitchElements);
@@ -186,7 +189,7 @@ namespace LeafAudio.Editor
             // Add the Element to the given container
             return container;
         }
-        void BindVariantField(VisualElement element, int index)
+        void BindVariantField(VisualElement element, int index, bool isSharedField = false)
         {
             ((BindableElement)element).BindProperty(variantsProp.GetArrayElementAtIndex(index));
 
@@ -194,8 +197,8 @@ namespace LeafAudio.Editor
             var variantProp = variantsProp.GetArrayElementAtIndex(index).FindPropertyRelative("item");
             var volumeVariedField = element.Q<VisualElement>("volumeVariedField");
             var pitchVariedField = element.Q<VisualElement>("pitchVariedField");
-            BindVariationPreview(variantProp, volumeVariedField);
-            BindVariationPreview(variantProp, pitchVariedField);
+            BindVariationPreview(variantProp, volumeVariedField, isSharedField);
+            BindVariationPreview(variantProp, pitchVariedField, isSharedField);
         }
         /// <summary>
         /// Returns a Variant Field that will always be bound to the first element of variantsProp
@@ -203,31 +206,37 @@ namespace LeafAudio.Editor
         VisualElement GetFirstVariantField()
         {
             VisualElement firstVariantField = GetVariantField(true);
-            BindVariantField(firstVariantField, 0);
+            BindVariantField(firstVariantField, 0, true);
+
 
             // Ensure this field remains bound to variant 0 in case the original is moved/destroyed
             firstVariantField.TrackPropertyValue(variantsProp, p => BindVariantField(firstVariantField, 0));
 
             return firstVariantField;
         }
-        void BindVariationPreview(SerializedProperty variantProp, VisualElement variedField)
+        void BindVariationPreview(SerializedProperty variantProp, VisualElement variedField, bool isSharedField)
         {           // Prefix is set as the elements userData and thus may be updated to rebind the variation preview
             VariedFieldInfo newVariedFieldInfo = (VariedFieldInfo)variedField.userData;
             newVariedFieldInfo.variantPropPath = variantProp.propertyPath + ".";
             variedField.userData = newVariedFieldInfo;
             string var = newVariedFieldInfo.var;
 
-            var valSliderPreview = variedField.Q<VisualElement>(var + "SliderPreview");
+            var sliderPreview = variedField.Q<VisualElement>(var + "SliderPreview");
 
             var variationProp = variantProp.FindPropertyRelative(var + "Variation");
             var valueProp = variantProp.FindPropertyRelative(var);
-            valSliderPreview.Unbind(); // Unbinds previous TrackPropertyValue calls
+            sliderPreview.Unbind(); // Unbinds previous TrackPropertyValue calls
 
 
+            // Update the variation preview when neccesary
+            // - On binding
+            // - On variation change
             UpdateVariationPreview(variedField);
+            sliderPreview.TrackPropertyValue(valueProp, p => UpdateVariationPreview(variedField));
+            sliderPreview.TrackPropertyValue(variationProp, p => UpdateVariationPreview(variedField));
 
-            valSliderPreview.TrackPropertyValue(valueProp, p => UpdateVariationPreview(variedField));
-            valSliderPreview.TrackPropertyValue(variationProp, p => UpdateVariationPreview(variedField));
+            // If this is the shared field only show preview when in shared mode
+            Util.ShowIfCondition(serializedObject, sliderPreview, () => serializedObject.FindProperty(nameof(Sound.volumeVariationMode)).enumValueIndex == (int)Sound.VariationMode.Shared);
         }
         void UpdateVariationPreview(VisualElement variedElement)
         {
