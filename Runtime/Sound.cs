@@ -130,8 +130,10 @@ namespace LeafAudio
                 if (shareClip) variant.clip = firstVariant.clip;
                 if (shareVolume) variant.volume = firstVariant.volume;
                 if (volumeVariationMode == VariationMode.Shared) variant.volumeVariation = firstVariant.volumeVariation;
+                if (volumeVariationMode == VariationMode.None) variant.volumeVariation = 0;
                 if (sharePitch) variant.pitch = firstVariant.pitch;
                 if (pitchVariationMode == VariationMode.Shared) variant.pitchVariation = firstVariant.pitchVariation;
+                if (pitchVariationMode == VariationMode.None) variant.pitchVariation = 0;
             }
         }
 #endif
