@@ -15,6 +15,8 @@ namespace LeafAudio
         [SerializeField] List<PooledAudioSource> freeSources = new(); // Indices for free sources in PooledSources
         public static AudioManager Global { get; private set; }
 
+        float previousTimeScale; // Cache the previous timescale to detect change
+
 #if UNITY_EDITOR
         internal static bool WarnOnPlayNull;
 #endif
@@ -28,6 +30,10 @@ namespace LeafAudio
         #endregion
         void Update()
         {
+            // Update Pooled Sources
+            // - Update positions
+            // - Update remaining duration
+            // - Free/Pause when Done
             for (int i = usedSources.Count - 1; i >= 0; i--)
             {
                 PooledAudioSource pooledSource = usedSources[i];
@@ -36,7 +42,8 @@ namespace LeafAudio
                 if (!pooledSource.paused)
                 {   // Reduces the remaining duration while not paused
                     float pitchFactor = pooledSource.durationMode == DurationMode.ClipTime ? pooledSource.source.pitch : 1; // Compute pitch effect
-                    pooledSource.remainingDuration -= Time.deltaTime * pitchFactor; // Reduce remaining duration
+                    float deltaTime = pooledSource.IgnoreTimeScale ? Time.unscaledDeltaTime : Time.deltaTime; // Allow clip to ignore timescale
+                    pooledSource.remainingDuration -= deltaTime * pitchFactor; // Reduce remaining duration
                     pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration); // Ensure >= 0
                 }
                 if (pooledSource.IsDone)
@@ -46,6 +53,20 @@ namespace LeafAudio
                     else pooledSource.source.Pause();
                 }
             }
+
+            HandleTimeScaleChange();
+        }
+        /// <summary>
+        /// Detects change in timescale and updates all pitches accordingly
+        /// </summary>
+        void HandleTimeScaleChange()
+        {
+            // Timescale changed -> Update pitches
+            if (Time.timeScale != previousTimeScale)
+                foreach (PooledAudioSource pooledSource in usedSources)
+                    pooledSource.UpdateSourcePitch();
+
+            previousTimeScale = Time.timeScale;
         }
         /// <summary>
         /// Plays a Clip with the given parameters.<br/>Note that when either position or origin are set the sound will be played spatially.
@@ -91,6 +112,7 @@ namespace LeafAudio
             pooledSource.playbackID = PooledAudioSource.PlaybackIDCounter++;
 
             pooledSource.killOnDone = playbackSettings.KillOnDone;
+            pooledSource.IgnoreTimeScale = playbackSettings.IgnoreTimeScale;
 
             pooledSource.source.gameObject.SetActive(true);
             playbackSettings.ApplyToUnityAudioSource(pooledSource.source);

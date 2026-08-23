@@ -85,6 +85,7 @@ namespace LeafAudio
         /// </summary>
         public PlaybackSettings WithLoops(float loops) => this.GetPlaybackSettings().WithLoops(loops);
         public PlaybackSettings WithKillOnDone(bool value) => this.GetPlaybackSettings().WithKillOnDone(value);
+        public PlaybackSettings WithIgnoreTimeScale(bool value) => this.GetPlaybackSettings().WithIgnoreTimeScale(value);
         #endregion
 #if UNITY_EDITOR
         // These values are all used in the SoundEditor

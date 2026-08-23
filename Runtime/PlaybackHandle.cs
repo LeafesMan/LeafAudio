@@ -147,12 +147,26 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return float.NaN;
-                else return pooledSource.source.pitch;
+                else return pooledSource.Pitch;
             }
             set
             {
                 if (!IsAlive) return;
-                pooledSource.source.pitch = value;
+
+                pooledSource.Pitch = value;
+            }
+        }
+        public readonly bool IgnoreTimeScale
+        {
+            get
+            {
+                if (!IsAlive) return false;
+                else return pooledSource.IgnoreTimeScale;
+            }
+            set
+            {
+                if (!IsAlive) return;
+                pooledSource.IgnoreTimeScale = value;
             }
         }
         /// <summary>

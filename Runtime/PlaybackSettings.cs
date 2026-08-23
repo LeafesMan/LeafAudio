@@ -13,6 +13,7 @@ namespace LeafAudio
         public float Volume;
         public float Pitch;
         public bool KillOnDone;
+        public bool IgnoreTimeScale;
 
         // Positional Vars
         public Vector3? Position;
@@ -123,6 +124,7 @@ namespace LeafAudio
             Volume = volume;
             Pitch = pitch;
             KillOnDone = true;
+            IgnoreTimeScale = false;
 
             // Default timings
             StartTime = 0;
@@ -277,6 +279,12 @@ namespace LeafAudio
         {
             var newSettings = this;
             newSettings.KillOnDone = value;
+            return newSettings;
+        }
+        public PlaybackSettings WithIgnoreTimeScale(bool value)
+        {
+            var newSettings = this;
+            newSettings.IgnoreTimeScale = value;
             return newSettings;
         }
     }

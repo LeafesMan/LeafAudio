@@ -15,16 +15,43 @@ namespace LeafAudio
 
         [SerializeField] internal uint playbackID;
         [SerializeField] internal int usedIndex; // The index of this source in usedIndices
+        [SerializeField] private float pitch; // The user-set pitch
         [SerializeField] internal Transform origin;
         [SerializeField] internal Vector3 position;
         [SerializeField] internal DurationMode durationMode;
         [SerializeField] internal float remainingDuration;
         [SerializeField] internal bool paused;
+        [SerializeField] private bool ignoreTimescale;
+
+
+        public float Pitch
+        {
+            get => pitch;
+            set
+            {
+                pitch = value;
+                UpdateSourcePitch();
+            }
+        }
+        public bool IgnoreTimeScale
+        {
+            get => ignoreTimescale;
+            set
+            {
+                ignoreTimescale = value;
+                UpdateSourcePitch();
+            }
+        }
 
 
         /// <summary>
         /// Whether the pooled audio source has completed playback
         /// </summary>
         public bool IsDone => remainingDuration == 0;
+
+        /// <summary>
+        /// Updates the pitch on the source using the user-set pitch and the timescale if ignoreTimeScale is false
+        /// </summary>
+        public void UpdateSourcePitch() => source.pitch = pitch * (ignoreTimescale ? 1 : Time.timeScale);
     }
 }
