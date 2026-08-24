@@ -8,6 +8,8 @@ namespace LeafAudio
     /// <summary>
     /// A reusable sound asset containing multiple variants that will be randomly selected from for playback.
     /// </summary>
+    // [Icon("Packages/com.mycompany.gameutils/Icons/MyItemIcon.png")]
+    [Icon("Packages/com.leafesman.leafaudio/Editor/SoundWave.png")]
     [CreateAssetMenu(fileName = "NewSound", menuName = "Audio/Sound", order = -2)]
     public class Sound : ScriptableObject
     {
