@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace LeafAudio
 {
+    [Icon("Packages/com.leafesman.leafaudio/Editor/sound_point_source_icon.png")]
     [CreateAssetMenu(fileName = "NewSpatialSettings", menuName = "Audio/Spatial Settings", order = -1)]
     public class SpatialSettings : ScriptableObject
     {
