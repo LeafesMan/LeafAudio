@@ -212,10 +212,15 @@ namespace LeafAudio
             // Swap Remove from active indices
             int toFreeSlot = pooledSource.usedIndex;
             int lastSlot = usedSources.Count - 1;
+
+            // Update Cached Used Indices
+            usedSources[lastSlot].usedIndex = toFreeSlot;
+            pooledSource.usedIndex = -1; 
+
             usedSources[toFreeSlot] = usedSources[lastSlot]; // Swap
             usedSources.RemoveAt(lastSlot); // Remove
 
-            pooledSource.usedIndex = toFreeSlot; // Update the cached usedIndex on the pooledSource whose usedIndex entry was moved
+
 
             // Add as a free source
             freeSources.Add(pooledSource);
