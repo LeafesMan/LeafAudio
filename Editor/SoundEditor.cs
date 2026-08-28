@@ -210,7 +210,7 @@ namespace LeafAudio.Editor
 
 
             // Ensure this field remains bound to variant 0 in case the original is moved/destroyed
-            firstVariantField.TrackPropertyValue(variantsProp, p => BindVariantField(firstVariantField, 0));
+            firstVariantField.TrackPropertyValue(variantsProp, p => BindVariantField(firstVariantField, 0, true));
 
             return firstVariantField;
         }
@@ -227,7 +227,6 @@ namespace LeafAudio.Editor
             var valueProp = variantProp.FindPropertyRelative(var);
             sliderPreview.Unbind(); // Unbinds previous TrackPropertyValue calls
 
-
             // Update the variation preview when neccesary
             // - On binding
             // - On variation change
@@ -236,7 +235,7 @@ namespace LeafAudio.Editor
             sliderPreview.TrackPropertyValue(variationProp, p => UpdateVariationPreview(variedField));
 
             // If this is the shared field only show preview when in shared mode
-            Util.ShowIfCondition(serializedObject, sliderPreview, () => serializedObject.FindProperty(nameof(Sound.volumeVariationMode)).enumValueIndex == (int)Sound.VariationMode.Shared);
+            if (isSharedField) Util.ShowIfCondition(serializedObject, sliderPreview, () => serializedObject.FindProperty(var + "VariationMode").enumValueIndex == (int)Sound.VariationMode.Shared || variantsProp.arraySize <= 1);
         }
         void UpdateVariationPreview(VisualElement variedElement)
         {
