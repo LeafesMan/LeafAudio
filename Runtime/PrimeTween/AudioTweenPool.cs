@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using PrimeTween;
 using UnityEngine;
 
@@ -14,10 +13,10 @@ namespace LeafAudio
         static List<AudioTweenTarget> freeTweenTargets = new();
         static List<AudioTweenTarget> usedTweenTargets = new();
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static async void Setup()
+        // Fire AFTER PrimeTween is setup
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Setup()
         {
-            await Task.Delay(100);
 
             Tween.Custom(1, 2, 1, c => { }, cycles: -1).OnUpdate(freeTweenTargets, (f, t) =>
             {
