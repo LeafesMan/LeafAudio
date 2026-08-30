@@ -103,17 +103,17 @@ namespace LeafAudio
                 UpdateAudioSourcePaused(pooledSource);
             }
         }
-        public readonly Vector3 Position
+        public readonly Vector3? Position
         {
             get
             {
                 if (!IsAlive) return new Vector3(float.NaN, float.NaN, float.NaN);
-                else return pooledSource.position;
+                else return pooledSource.Position;
             }
             set
             {
                 if (!IsAlive) return;
-                pooledSource.position = value;
+                pooledSource.Position = value;
             }
         }
         public readonly Transform Origin
@@ -121,12 +121,12 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return null;
-                else return pooledSource.origin;
+                else return pooledSource.Origin;
             }
             set
             {
                 if (!IsAlive) return;
-                pooledSource.origin = value;
+                pooledSource.Origin = value;
             }
         }
         public readonly float Volume

@@ -109,11 +109,11 @@ namespace LeafAudio
 
 
         // Defaults
-        static readonly float DefaultMaxDistance = 50;
-        static readonly AnimationCurve DefaultAttenuation = new AnimationCurve(new Keyframe(0, 1));
-        static readonly AnimationCurve DefaultSpatial = new AnimationCurve(new Keyframe(0, 0));
-        static readonly AnimationCurve DefaultSpread = new AnimationCurve(new Keyframe(0, 0));
-        static readonly AnimationCurve DefaultReverb = new AnimationCurve(new Keyframe(0, 1));
+        internal static readonly float DefaultMaxDistance = 50;
+        internal static readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultAttenuation));
+        internal static readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultSpread));
+        internal static readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultReverb));
+        internal static readonly AnimationCurve DefaultSpatialCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultSpatial));
 
 
 
@@ -160,12 +160,14 @@ namespace LeafAudio
                 Reverb = spatialSettings.reverb;
             }
             else
-            {
+            {   // When no spatial settings are provided
+                // the sound defaults to playing with no attenuation, spread, or reverb with a spatial curve set to always full spatial
+                // Note: The spatial curve only applies when a position or origin is set
                 MaxDistance = DefaultMaxDistance;
-                Attenuation = DefaultAttenuation;
-                Spatial = DefaultSpatial;
-                Spread = DefaultSpread;
-                Reverb = DefaultReverb;
+                Attenuation = DefaultAttenuationCurve;
+                Spatial = DefaultSpatialCurve;
+                Spread = DefaultSpreadCurve;
+                Reverb = DefaultReverbCurve;
             }
         }
         /// <summary>
@@ -182,12 +184,7 @@ namespace LeafAudio
             source.time = StartTime % Clip.length;
 
 
-            // Find largest distance
-            source.maxDistance = MaxDistance;
-            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, Attenuation);
-            source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, Spatial);
-            source.SetCustomCurve(AudioSourceCurveType.Spread, Spread);
-            source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, Reverb);
+
             if (source.pitch < 0) source.time = source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error
         }
         public PlaybackHandle Play() => AudioManager.Global.Play(this);

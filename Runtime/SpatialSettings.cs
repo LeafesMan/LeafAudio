@@ -22,7 +22,7 @@ namespace LeafAudio
         internal const float DefaultDoppler = 0;
         internal const float DefaultAttenuation = 1;
         internal const float DefaultSpatial = 1;
-        internal const float DefaultReverb = 1;
+        internal const float DefaultReverb = 0;
         internal const float DefaultSpread = 0;
         internal static readonly Vector2 DopplerRange = new(0, 5);
 

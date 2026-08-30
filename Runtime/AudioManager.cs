@@ -37,7 +37,8 @@ namespace LeafAudio
             for (int i = usedSources.Count - 1; i >= 0; i--)
             {
                 PooledAudioSource pooledSource = usedSources[i];
-                if (pooledSource.origin != null) pooledSource.source.transform.position = pooledSource.origin.position + pooledSource.position;
+                if (pooledSource.Origin != null) pooledSource.UpdateWorldPositionOriginNull();
+
 
                 if (!pooledSource.paused)
                 {   // Reduces the remaining duration while not paused
@@ -122,9 +123,18 @@ namespace LeafAudio
 #endif
 
             // Setup spatial settings
-            pooledSource.origin = playbackSettings.Origin;
-            pooledSource.position = playbackSettings.Position ?? Vector3.zero;
-            pooledSource.source.transform.position = playbackSettings.Origin == null ? pooledSource.position : (playbackSettings.Origin.position + pooledSource.position);
+            // Find largest distance
+            pooledSource.source.maxDistance = playbackSettings.MaxDistance;
+            pooledSource.source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, playbackSettings.Attenuation);
+            pooledSource.source.SetCustomCurve(AudioSourceCurveType.Spread, playbackSettings.Spread);
+            pooledSource.source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, playbackSettings.Reverb);
+            pooledSource.spatialBlendCurve = playbackSettings.Spatial; // Special Case just cache the SpatialBlend Curve (It is set afterwards based on Origin/Position)
+
+            // Intentionally skip setters here
+            pooledSource.SetOriginWithoutNotify(playbackSettings.Origin);
+            pooledSource.SetPositionWithoutNotify(playbackSettings.Position);
+            pooledSource.UpdateWorldPosition();
+            pooledSource.UpdateSpatialCurve();
 
 
             if (playbackSettings.durationMode == PlaybackSettings.DurationMode.RealTime)
@@ -215,7 +225,7 @@ namespace LeafAudio
 
             // Update Cached Used Indices
             usedSources[lastSlot].usedIndex = toFreeSlot;
-            pooledSource.usedIndex = -1; 
+            pooledSource.usedIndex = -1;
 
             usedSources[toFreeSlot] = usedSources[lastSlot]; // Swap
             usedSources.RemoveAt(lastSlot); // Remove
