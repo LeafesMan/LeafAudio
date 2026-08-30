@@ -110,14 +110,14 @@ namespace LeafAudio
 
         // Defaults
         internal static readonly float DefaultMaxDistance = 50;
-        internal static readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultAttenuation));
-        internal static readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultSpread));
-        internal static readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultReverb));
-        internal static readonly AnimationCurve DefaultSpatialCurve = new AnimationCurve(new Keyframe(0, SpatialSettings.DefaultSpatial));
+        internal static readonly AnimationCurve DefaultAttenuationCurve = new AnimationCurve(new Keyframe(0, SpatialProfile.DefaultAttenuation));
+        internal static readonly AnimationCurve DefaultSpreadCurve = new AnimationCurve(new Keyframe(0, SpatialProfile.DefaultSpread));
+        internal static readonly AnimationCurve DefaultReverbCurve = new AnimationCurve(new Keyframe(0, SpatialProfile.DefaultReverb));
+        internal static readonly AnimationCurve DefaultSpatialCurve = new AnimationCurve(new Keyframe(0, SpatialProfile.DefaultSpatial));
 
 
 
-        public PlaybackSettings(AudioClip clip, float volume, float pitch, AudioMixerGroup mixerGroup, SpatialSettings spatialSettings)
+        public PlaybackSettings(AudioClip clip, float volume, float pitch, AudioMixerGroup mixerGroup, SpatialProfile spatialSettings)
         {
             MixerGroup = mixerGroup;
             Clip = clip;
@@ -147,7 +147,7 @@ namespace LeafAudio
         /// <summary>
         /// Applies the provided SpatialSettings to this PlaybackSettings
         /// </summary>
-        void ApplySpatialSettings(SpatialSettings spatialSettings)
+        void ApplySpatialSettings(SpatialProfile spatialSettings)
         {
             // Copy SpatialSettings if provided
             // Otherwise apply defaults
@@ -266,7 +266,7 @@ namespace LeafAudio
             newSettings.Origin = origin;
             return newSettings;
         }
-        public PlaybackSettings WithSpatialSettings(SpatialSettings settings)
+        public PlaybackSettings WithSpatialSettings(SpatialProfile settings)
         {
             var newSettings = this;
             newSettings.ApplySpatialSettings(settings);

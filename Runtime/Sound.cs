@@ -14,7 +14,7 @@ namespace LeafAudio
     public class Sound : ScriptableObject
     {
         [SerializeField] internal AudioMixerGroup mixerGroup = null;
-        [SerializeField] internal SpatialSettings spatialSettings = null;
+        [SerializeField] internal SpatialProfile spatialSettings = null;
         [SerializeField] internal SelectionMode selectionMode = SelectionMode.UniformRandom;
         [SerializeField] internal List<Weighted<SoundVariant>> weightedVariants = new() { new() };
         [SerializeField] internal Vector2 pitchRange = new Vector2(0, 2);
@@ -65,7 +65,7 @@ namespace LeafAudio
         public PlaybackSettings WithPitch(float pitch) => this.GetPlaybackSettings().WithPitch(pitch);
         public PlaybackSettings WithPosition(Vector3? position) => this.GetPlaybackSettings().WithPosition(position);
         public PlaybackSettings WithOrigin(Transform origin) => this.GetPlaybackSettings().WithOrigin(origin);
-        public PlaybackSettings WithSpatialSettings(SpatialSettings settings) => this.GetPlaybackSettings().WithSpatialSettings(settings);
+        public PlaybackSettings WithSpatialSettings(SpatialProfile settings) => this.GetPlaybackSettings().WithSpatialSettings(settings);
         /// <summary> 
         /// Sets the playback duration in seconds.<br/> 
         /// Overrides any previous duration specification.

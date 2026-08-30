@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace LeafAudio.Editor
 {
-    [CustomEditor(typeof(SpatialSettings))]
+    [CustomEditor(typeof(SpatialProfile))]
     public class SpatialSettingsEditor : UnityEditor.Editor
     {
         SerializedProperty maxDistanceProp;
@@ -18,33 +18,33 @@ namespace LeafAudio.Editor
         {   // Grab Props and Vars from field
             BindableElement root = new BindableElement();
 
-            maxDistanceProp = serializedObject.FindProperty(nameof(SpatialSettings.maxDistance));
+            maxDistanceProp = serializedObject.FindProperty(nameof(SpatialProfile.maxDistance));
             FloatField maxDistanceField = new FloatField("");
             maxDistanceField.BindProperty(maxDistanceProp);
             maxDistanceField.TrackPropertyValue(maxDistanceProp, p => MaxDistanceChanged?.Invoke());
-            maxDistanceField.RegisterValueChangedCallback(evt => maxDistanceField.SetValueWithoutNotify(SpatialSettings.ValidateMaxDistance(evt.newValue)));
+            maxDistanceField.RegisterValueChangedCallback(evt => maxDistanceField.SetValueWithoutNotify(SpatialProfile.ValidateMaxDistance(evt.newValue)));
             VisualElement maxDistanceElement = Util.GetLabeledElement(maxDistanceField, "Max Distance", labelWidth: LabelWidth);
 
             // Set up doppler fields
-            SerializedProperty dopplerProp = serializedObject.FindProperty(nameof(SpatialSettings.doppler));
-            Slider dopplerSlider = new Slider("") { lowValue = SpatialSettings.DopplerRange.x, highValue = SpatialSettings.DopplerRange.y, style = { flexGrow = 3 } };
+            SerializedProperty dopplerProp = serializedObject.FindProperty(nameof(SpatialProfile.doppler));
+            Slider dopplerSlider = new Slider("") { lowValue = SpatialProfile.DopplerRange.x, highValue = SpatialProfile.DopplerRange.y, style = { flexGrow = 3 } };
             dopplerSlider.BindProperty(dopplerProp);
 
             FloatField dopplerFloatField = new FloatField("") { style = { flexGrow = 0.9f, flexBasis = 0, marginRight = 7 } };
             dopplerFloatField.BindProperty(dopplerProp);
-            dopplerFloatField.RegisterValueChangedCallback(evt => dopplerFloatField.SetValueWithoutNotify(SpatialSettings.ValidateDoppler(evt.newValue)));
+            dopplerFloatField.RegisterValueChangedCallback(evt => dopplerFloatField.SetValueWithoutNotify(SpatialProfile.ValidateDoppler(evt.newValue)));
 
             VisualElement dopplerElement = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
             dopplerElement.Add(dopplerFloatField);
             dopplerElement.Add(dopplerSlider);
             dopplerElement = Util.GetLabeledElement(dopplerElement, "Doppler", labelWidth: LabelWidth);
-            Util.ShowIfCondition(serializedObject, dopplerElement, () => serializedObject.FindProperty(nameof(SpatialSettings.useDoppler)).boolValue);
+            Util.ShowIfCondition(serializedObject, dopplerElement, () => serializedObject.FindProperty(nameof(SpatialProfile.useDoppler)).boolValue);
 
 
-            var attenuationElements = GetCurveElements(nameof(SpatialSettings.attenuation), canBeValue: false);
-            var spatialElements = GetCurveElements(nameof(SpatialSettings.spatial), canBeValue: false);
-            var spreadElements = GetCurveElements(nameof(SpatialSettings.spread), canBeValue: true);
-            var reverbElements = GetCurveElements(nameof(SpatialSettings.reverb), canBeValue: true);
+            var attenuationElements = GetCurveElements(nameof(SpatialProfile.attenuation), canBeValue: false);
+            var spatialElements = GetCurveElements(nameof(SpatialProfile.spatial), canBeValue: false);
+            var spreadElements = GetCurveElements(nameof(SpatialProfile.spread), canBeValue: true);
+            var reverbElements = GetCurveElements(nameof(SpatialProfile.reverb), canBeValue: true);
 
             root.Add(maxDistanceElement);
             root.Add(spreadElements.valueElement);
@@ -68,11 +68,11 @@ namespace LeafAudio.Editor
             root.viewDataKey = nameof(SpatialSettingsEditor) + "DataSettings";
 
             float labelWidth = 90;
-            root.Add(Util.GetPropField(nameof(SpatialSettings.useAttenuation), "Attenuation", labelWidth));
-            root.Add(Util.GetPropField(nameof(SpatialSettings.useSpatial), "Spatial", labelWidth));
-            root.Add(Util.GetPropField(nameof(SpatialSettings.useDoppler), "Doppler", labelWidth));
-            root.Add(Util.GetPropField(nameof(SpatialSettings.spreadType), "Spread", labelWidth));
-            root.Add(Util.GetPropField(nameof(SpatialSettings.reverbType), "Reverb", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialProfile.useAttenuation), "Attenuation", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialProfile.useSpatial), "Spatial", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialProfile.useDoppler), "Doppler", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialProfile.spreadType), "Spread", labelWidth));
+            root.Add(Util.GetPropField(nameof(SpatialProfile.reverbType), "Reverb", labelWidth));
 
             return root;
         }
@@ -212,7 +212,7 @@ namespace LeafAudio.Editor
                 UpdateValueField();
                 void UpdateCurveProp(ChangeEvent<float> evt)
                 {
-                    if (curveType.enumValueIndex != (int)SpatialSettings.CurveValueType.Value) return; // Dont lock if not using value
+                    if (curveType.enumValueIndex != (int)SpatialProfile.CurveValueType.Value) return; // Dont lock if not using value
                     curveProp.animationCurveValue = new AnimationCurve(new Keyframe(0, evt.newValue));
                     serializedObject.ApplyModifiedProperties();
                 }
@@ -225,8 +225,8 @@ namespace LeafAudio.Editor
 
                 // Show Curve if on Curve Mode
                 // Show Value if on Value Mode
-                Util.ShowIfCondition(serializedObject, curveElement, () => curveType.enumValueIndex == (int)SpatialSettings.CurveValueType.Curve);
-                Util.ShowIfCondition(serializedObject, valueElement, () => curveType.enumValueIndex == (int)SpatialSettings.CurveValueType.Value);
+                Util.ShowIfCondition(serializedObject, curveElement, () => curveType.enumValueIndex == (int)SpatialProfile.CurveValueType.Curve);
+                Util.ShowIfCondition(serializedObject, valueElement, () => curveType.enumValueIndex == (int)SpatialProfile.CurveValueType.Value);
             }
             else Util.ShowIfCondition(serializedObject, curveElement, () => serializedObject.FindProperty("use" + Util.CaptializeFirstLetter(var)).boolValue);
 
