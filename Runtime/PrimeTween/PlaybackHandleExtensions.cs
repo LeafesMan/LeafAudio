@@ -1,5 +1,6 @@
 using System;
 using PrimeTween;
+using UnityEngine;
 namespace LeafAudio
 {
     public static class PlaybackHandleExtensions
@@ -28,6 +29,7 @@ namespace LeafAudio
         public static Tween TweenPitch(this PlaybackHandle playbackHandle, TweenSettings<float> tweenSettings, Action<PlaybackHandle> onComplete = null)
         {
             var tweenTarget = AudioTweenPool.RentTarget();
+
             var tween = Tween.Custom(target: tweenTarget, tweenSettings, (t, newValue) => { t.playback.Pitch = newValue; });
 
             // Apply OnComplete

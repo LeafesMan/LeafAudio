@@ -116,7 +116,16 @@ namespace LeafAudio
             pooledSource.IgnoreTimeScale = playbackSettings.IgnoreTimeScale;
 
             pooledSource.source.gameObject.SetActive(true);
-            playbackSettings.ApplyToUnityAudioSource(pooledSource.source);
+
+            // Setup Source
+            pooledSource.source.clip = playbackSettings.Clip;
+            pooledSource.source.volume = playbackSettings.Volume;
+            pooledSource.source.outputAudioMixerGroup = playbackSettings.MixerGroup;
+            pooledSource.Pitch = playbackSettings.Pitch;
+
+            pooledSource.source.time = playbackSettings.StartTime % playbackSettings.Clip.length;
+
+            if (pooledSource.Pitch < 0) pooledSource.source.time = pooledSource.source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error
 
 #if UNITY_EDITOR
             pooledSource.source.name = pooledSource.source.clip.name; // Soley an editor convenience for easier debugging

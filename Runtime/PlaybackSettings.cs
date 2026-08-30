@@ -183,8 +183,6 @@ namespace LeafAudio
 
             source.time = StartTime % Clip.length;
 
-
-
             if (source.pitch < 0) source.time = source.clip.length - 0.001f; // Flip the clip small subtraction stops from setting timestamp out-of-range causing an error
         }
         public PlaybackHandle Play() => AudioManager.Global.Play(this);
