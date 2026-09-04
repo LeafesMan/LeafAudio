@@ -28,12 +28,13 @@ namespace LeafAudio
         {
             if (!IsAlive) return;
 
+
             // Ensure seek does not go past remaining duration
-            amount = Mathf.Min(amount, pooledSource.remainingDuration);
+            amount = Mathf.Min(amount, (float)pooledSource.dspSnapshot.RemainingDuration);
 
             SetTimeInternal(pooledSource.source.time + amount);
-            pooledSource.remainingDuration -= amount; // Update remaining duration accordingly
-            UpdateAudioSourcePaused(pooledSource);
+
+            pooledSource.dspSnapshot = new(pooledSource.dspSnapshot.RemainingDuration - amount, AudioSettings.dspTime); // Update remaining duration accordingly
         }
         /// <summary>
         /// Permanently ends the playback of this sound.
@@ -166,7 +167,10 @@ namespace LeafAudio
             set
             {
                 if (!IsAlive) return;
+
+                pooledSource.BeforeUpdateConsumptionRate();
                 pooledSource.IgnoreTimeScale = value;
+                pooledSource.AfterUpdateConsumptionRate();
             }
         }
         /// <summary>
@@ -195,6 +199,9 @@ namespace LeafAudio
             float time = newTime % clipLength + (newTime < 0 ? clipLength : 0);
 
             pooledSource.source.time = time;
+
+            // Updating time may un/pause
+            UpdateAudioSourcePaused(pooledSource);
         }
         /// <summary>
         /// Returns the current DurationMode. Note DurationMode may not be set through the property it may only be changed via a set of RealTimeRemainingDuration or ClipTimeRemainingDuration.

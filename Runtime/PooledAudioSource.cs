@@ -16,8 +16,61 @@ namespace LeafAudio
         [SerializeField] internal uint playbackID;
         [SerializeField] internal int usedIndex; // The index of this source in usedIndices
         [SerializeField] internal DurationMode durationMode;
-        [SerializeField] internal float remainingDuration;
+
+        /// <summary>
+        /// A new snapshot is taken whenever anything that may affect the AudioSource EndTime changes.<br/>
+        /// - This includes: RemainingDuration, Time, TimeScale, Pitch, and Pause
+        /// </summary>
+        [SerializeField] internal DSPSnapshot dspSnapshot;
         [SerializeField] internal bool paused;
+
+        internal struct DSPSnapshot
+        {
+            /// <summary>
+            /// The DSP Time when the snapshot was taken
+            /// </summary>
+            public readonly double Time;
+            /// <summary>
+            /// The Remaining Duration at the moment of the snapshot
+            /// </summary>
+            public readonly double RemainingDuration;
+            /// <summary>
+            /// The EndTime when this snapshot was taken
+            /// </summary>
+            public DSPSnapshot(double value, double dspTime)
+            {
+                RemainingDuration = value;
+                Time = dspTime;
+            }
+        }
+        /// <summary>
+        /// We must call this before we edit something that affects the rate of remainingDuration consumption ie: Pitch, Timescale, Etc
+        /// </summary>
+        internal void BeforeUpdateConsumptionRate()
+        {
+            double deltaTime = AudioSettings.dspTime - dspSnapshot.Time;
+            double durationConsumed = deltaTime * GetConsumptionRate();
+
+            // Compute New RemainingDuration    
+            double newRemainingDuration = dspSnapshot.RemainingDuration - durationConsumed;
+            newRemainingDuration = 0 > newRemainingDuration ? 0 : newRemainingDuration; // Ensure >= 0
+
+            dspSnapshot = new DSPSnapshot(newRemainingDuration, AudioSettings.dspTime);
+        }
+        /// <summary>
+        /// We must call this after we edit something that affects the rate of remainingDuration consumption ie: Pitch, Timescale, Etc
+        /// </summary>
+        internal void AfterUpdateConsumptionRate() => source.SetScheduledEndTime(dspSnapshot.Time + dspSnapshot.RemainingDuration * GetConsumptionRate());
+        /// <summary>
+        /// The current rate of RemainingDuration consumption per unit of DSPTime
+        /// </summary>
+        double GetConsumptionRate()
+        {
+            float pausedFactor = paused ? 0 : 1;
+            float pitchFactor = durationMode == DurationMode.ClipTime ? source.pitch : 1; // Compute pitch effect
+            double timescaleFactor = ignoreTimescale ? 1 : Time.timeScale; // Allow clip to ignore timescale
+            return timescaleFactor * pitchFactor * pausedFactor;
+        }
 
         // We maintain this outside the Unity AudioSource to avoid losing the curve
         // Upon nullifying both position+origin the UnitySource Spatial Blend Curve is set to 0 to stop all spatial playback. Thus we store this separately incase position/origin are set again we dont want to lose the curve 
@@ -87,7 +140,7 @@ namespace LeafAudio
         /// <summary>
         /// Whether the pooled audio source has completed playback
         /// </summary>
-        public bool IsDone => remainingDuration == 0;
+        public bool IsDone => AudioSettings.dspTime >= dspSnapshot.Time + dspSnapshot.RemainingDuration;
 
         /// <summary>
         /// Updates the pitch on the source using the user-set pitch and the timescale if ignoreTimeScale is false

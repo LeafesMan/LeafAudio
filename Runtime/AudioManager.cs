@@ -38,20 +38,13 @@ namespace LeafAudio
             {
                 PooledAudioSource pooledSource = usedSources[i];
                 if (pooledSource.Origin != null) pooledSource.UpdateWorldPositionOriginNull();
-
-
-                if (!pooledSource.paused)
-                {   // Reduces the remaining duration while not paused
-                    float pitchFactor = pooledSource.durationMode == DurationMode.ClipTime ? pooledSource.source.pitch : 1; // Compute pitch effect
-                    float deltaTime = pooledSource.IgnoreTimeScale ? Time.unscaledDeltaTime : Time.deltaTime; // Allow clip to ignore timescale
-                    pooledSource.remainingDuration -= deltaTime * pitchFactor; // Reduce remaining duration
-                    pooledSource.remainingDuration = Mathf.Max(0, pooledSource.remainingDuration); // Ensure >= 0
-                }
                 if (pooledSource.IsDone)
                 {
+
                     // Free up the source and toggle it off
                     if (pooledSource.killOnDone) FreeSource(usedSources[i]);
                     else pooledSource.source.Pause();
+
                 }
             }
 
@@ -149,13 +142,17 @@ namespace LeafAudio
             if (playbackSettings.durationMode == PlaybackSettings.DurationMode.RealTime)
             {
                 pooledSource.durationMode = DurationMode.RealTime;
-                pooledSource.remainingDuration = playbackSettings.duration;
+                pooledSource.dspSnapshot = new(playbackSettings.duration, AudioSettings.dspTime);
             }
             else
             {
                 pooledSource.durationMode = DurationMode.ClipTime;
-                pooledSource.remainingDuration = playbackSettings.ClipTimeDuration;
+                pooledSource.dspSnapshot = new(playbackSettings.ClipTimeDuration, AudioSettings.dspTime);
             }
+
+            pooledSource.source.SetScheduledEndTime(pooledSource.dspSnapshot.EndTime);
+
+            Debug.Log($"Mode: {pooledSource.durationMode} and EndTime: {pooledSource.dspSnapshot.EndTime}");
 
             pooledSource.source.Play();
 
