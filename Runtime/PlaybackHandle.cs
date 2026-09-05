@@ -30,11 +30,11 @@ namespace LeafAudio
 
 
             // Ensure seek does not go past remaining duration
-            amount = Mathf.Min(amount, (float)pooledSource.dspSnapshot.RemainingDuration);
+            amount = Mathf.Min(amount, (float)pooledSource.remainingDurationSnapshot.Value);
 
             SetTimeInternal(pooledSource.source.time + amount);
 
-            pooledSource.dspSnapshot = new(pooledSource.dspSnapshot.RemainingDuration - amount, AudioSettings.dspTime); // Update remaining duration accordingly
+            pooledSource.remainingDurationSnapshot.Value -= amount; // Update remaining duration accordingly
         }
         /// <summary>
         /// Permanently ends the playback of this sound.
@@ -98,8 +98,11 @@ namespace LeafAudio
             set
             {
                 if (!IsAlive) return;
+                if (pooledSource.paused == value) return;
 
+                pooledSource.BeforeUpdateConsumptionRate();
                 pooledSource.paused = value;
+                pooledSource.AfterUpdateConsumptionRate();
 
                 UpdateAudioSourcePaused(pooledSource);
             }
@@ -154,7 +157,9 @@ namespace LeafAudio
             {
                 if (!IsAlive) return;
 
+                pooledSource.BeforeUpdateConsumptionRate();
                 pooledSource.Pitch = value;
+                pooledSource.AfterUpdateConsumptionRate();
             }
         }
         public readonly bool IgnoreTimeScale
@@ -215,18 +220,23 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return 0;
+
+                pooledSource.UpdateRemainingDurationSnapshot();
+
                 switch (pooledSource.durationMode)
                 {
-                    case DurationMode.RealTime: return pooledSource.remainingDuration;
-                    case DurationMode.ClipTime: return pooledSource.remainingDuration == 0 ? 0 : pooledSource.remainingDuration / Mathf.Abs(PitchInternal);
+                    case DurationMode.RealTime: return (float)pooledSource.remainingDurationSnapshot.Value;
+                    case DurationMode.ClipTime: return pooledSource.remainingDurationSnapshot.Value == 0 ? 0 : (float)pooledSource.remainingDurationSnapshot.Value / Mathf.Abs(PitchInternal);
                     default: throw new System.Exception("Unknown Mode!");
                 }
             }
             set
             {
                 if (!IsAlive) return;
-                pooledSource.remainingDuration = Mathf.Max(0, value);
+                pooledSource.remainingDurationSnapshot.Value = Mathf.Max(0, value);
                 pooledSource.durationMode = DurationMode.RealTime;
+
+                pooledSource.UpdateScheduledEndTime();
 
                 // Changing remainingDuration may result in change in Pause on the source
                 UpdateAudioSourcePaused(pooledSource);
@@ -240,18 +250,23 @@ namespace LeafAudio
             get
             {
                 if (!IsAlive) return 0;
+
+                pooledSource.UpdateRemainingDurationSnapshot();
+
                 switch (pooledSource.durationMode)
                 {
-                    case DurationMode.RealTime: return Mathf.Abs(PitchInternal) == 0 ? 0 : pooledSource.remainingDuration * Mathf.Abs(PitchInternal);
-                    case DurationMode.ClipTime: return pooledSource.remainingDuration;
+                    case DurationMode.RealTime: return Mathf.Abs(PitchInternal) == 0 ? 0 : (float)pooledSource.remainingDurationSnapshot.Value * Mathf.Abs(PitchInternal);
+                    case DurationMode.ClipTime: return (float)pooledSource.remainingDurationSnapshot.Value;
                     default: throw new System.Exception("Unknown Mode!");
                 }
             }
             set
             {
                 if (!IsAlive) return;
-                pooledSource.remainingDuration = Mathf.Max(0, value);
+                pooledSource.remainingDurationSnapshot.Value = Mathf.Max(0, value);
                 pooledSource.durationMode = DurationMode.ClipTime;
+
+                pooledSource.UpdateScheduledEndTime();
 
                 // Changing remainingDuration may result in change in Pause on the source
                 UpdateAudioSourcePaused(pooledSource);

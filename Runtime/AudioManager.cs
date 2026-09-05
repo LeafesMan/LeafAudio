@@ -58,7 +58,12 @@ namespace LeafAudio
             // Timescale changed -> Update pitches
             if (Time.timeScale != previousTimeScale)
                 foreach (PooledAudioSource pooledSource in usedSources)
-                    pooledSource.UpdateSourcePitch();
+                    if (!pooledSource.IgnoreTimeScale)
+                    {
+                        pooledSource.UpdateSourcePitch();
+                        pooledSource.UpdateRemainingDurationSnapshot(previousTimeScale);
+                        pooledSource.UpdateScheduledEndTime();
+                    }
 
             previousTimeScale = Time.timeScale;
         }
@@ -142,17 +147,15 @@ namespace LeafAudio
             if (playbackSettings.durationMode == PlaybackSettings.DurationMode.RealTime)
             {
                 pooledSource.durationMode = DurationMode.RealTime;
-                pooledSource.dspSnapshot = new(playbackSettings.duration, AudioSettings.dspTime);
+                pooledSource.remainingDurationSnapshot.Value = playbackSettings.RealTimeDuration;
             }
             else
             {
                 pooledSource.durationMode = DurationMode.ClipTime;
-                pooledSource.dspSnapshot = new(playbackSettings.ClipTimeDuration, AudioSettings.dspTime);
+                pooledSource.remainingDurationSnapshot.Value = playbackSettings.ClipTimeDuration;
             }
 
-            pooledSource.source.SetScheduledEndTime(pooledSource.dspSnapshot.EndTime);
-
-            Debug.Log($"Mode: {pooledSource.durationMode} and EndTime: {pooledSource.dspSnapshot.EndTime}");
+            pooledSource.UpdateScheduledEndTime();
 
             pooledSource.source.Play();
 
